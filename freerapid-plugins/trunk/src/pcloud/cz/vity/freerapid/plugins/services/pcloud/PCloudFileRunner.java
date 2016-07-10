@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.file4go;
+package cz.vity.freerapid.plugins.services.pcloud;
 
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
@@ -8,20 +8,19 @@ import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Class which contains main code
  *
  * @author birchie
  */
-class File4GoFileRunner extends AbstractRunner {
-    private final static Logger logger = Logger.getLogger(File4GoFileRunner.class.getName());
+class PCloudFileRunner extends AbstractRunner {
+    private final static Logger logger = Logger.getLogger(PCloudFileRunner.class.getName());
 
     @Override
     public void runCheck() throws Exception { //this method validates file
         super.runCheck();
+        correctURL();
         final GetMethod getMethod = getGetMethod(fileURL);//make first request
         if (makeRedirectedRequest(getMethod)) {
             checkProblems();
@@ -33,31 +32,30 @@ class File4GoFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        PlugUtils.checkName(httpFile, content, "<b>Nome:</b> ", "</");
-        PlugUtils.checkFileSize(httpFile, content, "<b>Tamanho:</b>", "</");
+        PlugUtils.checkName(httpFile, content, "\"name\": \"", "\",");
+        PlugUtils.checkFileSize(httpFile, content, "\"size\": ", ",");
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
+    }
+
+    private void correctURL() {
+        fileURL = fileURL.replaceFirst("http://pc.cd/", "https://my.pcloud.com/publink/show?code=");
     }
 
     @Override
     public void run() throws Exception {
         super.run();
+        correctURL();
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
-            Matcher matcher = Pattern.compile("var time = (\\d+)").matcher(contentAsString);
-            if (matcher.find()) {
-                downloadTask.sleep(Integer.parseInt(matcher.group(1)) + 1);
-            }
-            HttpMethod httpMethod = getMethodBuilder().setActionFromFormWhereActionContains("download", true).toPostMethod();
-            if (!makeRedirectedRequest(httpMethod)) {
-                checkProblems();
-                throw new ServiceConnectionProblemException();
-            }
-            checkProblems();
-            httpMethod = getMethodBuilder().setActionFromAHrefWhereATagContains("Download").toGetMethod();
+
+            String downloadlink = PlugUtils.getStringBetween(contentAsString, "\"downloadlink\": \"", "\",");
+            downloadlink = downloadlink.replace("\\/", "/");
+            final HttpMethod httpMethod = getGetMethod(downloadlink);
+            //here is the download link extraction
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
@@ -70,9 +68,8 @@ class File4GoFileRunner extends AbstractRunner {
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
-        if (contentAsString.contains("Not Found") || contentAsString.contains("<b>Nome:</b> </") ||
-                contentAsString.contains("Arquivo Temporariamente Indisponivel") ||
-                contentAsString.contains("Arquivos Removidor POR DMCA Infregimento dos termos de uso")) {
+        if (contentAsString.contains("File Not Found") ||
+                contentAsString.contains("Invalid link")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
     }

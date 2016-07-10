@@ -33,12 +33,9 @@ class DataFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        final Matcher matchN = PlugUtils.matcher("download_page_filename\".*?>\\s*?.*?\\s*?.*?\\s*?<.+?>(.+?)</div>", content);
+        final Matcher matchN = PlugUtils.matcher("<h1>([^<>\\s]+)", content);
         if (!matchN.find()) throw new PluginImplementationException("File name not found");
         httpFile.setFileName(matchN.group(1).trim());
-        final Matcher matchS = PlugUtils.matcher("download_page_filesize\".*?>\\s*?.*?\\s*?<.+?>(.+?)</span>", content);
-        if (!matchS.find()) throw new PluginImplementationException("File size not found");
-        httpFile.setFileSize(PlugUtils.getFileSizeFromString(matchS.group(1).replaceAll("<[^>]*>", "").trim()));
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 

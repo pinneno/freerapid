@@ -39,7 +39,7 @@ class LoadToRunner extends AbstractRunner {
         getMethod.setFollowRedirects(true);
         if (makeRequest(getMethod)) {
             checkNameAndSize(getContentAsString());
-            final HttpMethod method = doCaptcha(getMethodBuilder().setReferer(fileURL)
+            final HttpMethod method = doCaptcha(getMethodBuilder(getContentAsString()+"</form>").setReferer(fileURL)
                     .setActionFromFormWhereActionContains("load.to", true)).toPostMethod();
             if (!tryDownloadAndSaveFile(method)) {
                 checkProblems();

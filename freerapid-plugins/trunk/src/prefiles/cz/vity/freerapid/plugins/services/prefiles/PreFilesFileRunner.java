@@ -2,7 +2,6 @@ package cz.vity.freerapid.plugins.services.prefiles;
 
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
-import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingServiceImpl;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileNameHandler;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandler;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
@@ -63,27 +62,21 @@ class PreFilesFileRunner extends XFileSharingRunner {
 
     @Override
     protected MethodBuilder getXFSMethodBuilder(final String content) throws Exception {
-        synchronized (getClass()) {
-            final PremiumAccount pa = ((XFileSharingServiceImpl) getPluginService()).getConfig();
-            if (pa == null || !pa.isSet())
-                return super.getXFSMethodBuilder(content, "method_free").setAction(fileURL)
-                        .setParameter("method_free", "method_free").removeParameter("method_premium");
-            return super.getXFSMethodBuilder(content, "method_premium").setAction(fileURL)
-                    .setParameter("method_premium", "method_premium").removeParameter("method_free");
-        }
+        return super.getXFSMethodBuilder(content, "method_").setAction(fileURL)
+                .setParameter("method_free", "method_free").removeParameter("method_premium");
     }
 
     @Override
     protected void doLogin(final PremiumAccount pa) throws Exception {
         HttpMethod method = getMethodBuilder()
                 .setReferer(getBaseURL())
-                .setAction(getBaseURL() + "/login.html")
+                .setAction(getBaseURL() + "/login")            // line changed
                 .toGetMethod();
         if (!makeRedirectedRequest(method)) {
             throw new ServiceConnectionProblemException();
         }
         method = getMethodBuilder()
-                .setReferer(getBaseURL() + "/login.html")
+                .setReferer(getBaseURL() + "/login")            // line changed
                 .setAction(getBaseURL())
                 .setActionFromFormWhereActionContains("login", true)            // line changed
                 .setParameter("login", pa.getUsername())

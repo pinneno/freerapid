@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.data;
+package cz.vity.freerapid.plugins.services.pcloud;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -8,7 +8,7 @@ import org.jdesktop.application.Application;
 import java.net.URL;
 
 /**
- * @author Javi
+ * @author birchie
  */
 public class TestApp extends PluginDevApplication {
     @Override
@@ -16,13 +16,13 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            //httpFile.setNewURL(new URL("http://data.hu/get/3959775/Metro.part1.rar"));
-            httpFile.setNewURL(new URL("http://data.hu/get/9839407/the.snow.queen.2.2014.1080p.part01.rar?pid=1676219750"));
+            //httpFile.setNewURL(new URL("http://pc.cd/ivtctalK"));
+            httpFile.setNewURL(new URL("https://my.pcloud.com/publink/show?code=ivtctalK"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
-            final DataServiceImpl service = new DataServiceImpl(); //instance of service - of our plugin
+            final PCloudServiceImpl service = new PCloudServiceImpl(); //instance of service - of our plugin
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console

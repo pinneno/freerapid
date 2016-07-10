@@ -114,7 +114,7 @@ class AlfaFileFileRunner extends AbstractRunner {
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String content = getContentAsString();
-        if (content.contains("File Not Found")) {
+        if (content.contains("File Not Found") || content.contains("this page does not exist")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
         if (content.contains("file can be downloaded by premium users only")) {

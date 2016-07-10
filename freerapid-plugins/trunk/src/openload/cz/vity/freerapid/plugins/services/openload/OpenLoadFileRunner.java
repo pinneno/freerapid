@@ -24,6 +24,8 @@ class OpenLoadFileRunner extends AbstractRunner {
     private final static String OPENLOAD_API_TICKET = "/file/dlticket?file=";
     private final static String OPENLOAD_API_DOWNLOAD = "/file/dl?file=%s&ticket=%s"; //&captcha_response=
 
+    private static boolean USE_HTML_BEFORE_API = false;
+
     @Override
     public void runCheck() throws Exception { //this method validates file
         super.runCheck();
@@ -62,48 +64,22 @@ class OpenLoadFileRunner extends AbstractRunner {
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
 
-            final int wait = PlugUtils.getNumberBetween(contentAsString, "secondsdl = ", ";");
-            if (wait > 0)
-                downloadTask.sleep(1 + wait);
-            String decodedText = "";
-            int loop = 1;
-            do {
+            String dlUrl;
+            if (USE_HTML_BEFORE_API) {
                 try {
-                    HttpMethod httpMethod = getGetMethod(method.getURI().getURI());
-                    // Workaround for 0.9u4 bug, can be removed when next version is released
-                    httpMethod.removeRequestHeader("Accept-Encoding");
-                    if (!makeRedirectedRequest(httpMethod)) {
-                        checkProblems();
-                        throw new ServiceConnectionProblemException();
-                    }
-                    checkProblems();
-                    final Matcher match = PlugUtils.matcher("(?s)Download.+?\\s*<script type=\"text/javascript\">([^<]+?)<", getContentAsString());
-                    if (!match.find())
-                        throw new PluginImplementationException("Script not found");
-                    String srcScript = match.group(1);
-                    logger.info("Src script: " + srcScript);
-                    decodedText = new AADecoder().decode(srcScript);
-                    loop = -1;
+                    dlUrl = downloadFromHTML(method);
                 } catch (PluginImplementationException e) {
-                    if (loop++ > 10) {
-                        //throw new PluginImplementationException("JavaScript eval failed");
-                        logger.warning("JavaScript eval failed - HTML Source : " + getContentAsString());
-                        downloadWithAPI();
-                        return;
-                    }
+                    logger.warning(e.getMessage());
+                    dlUrl = downloadWithAPI();
                 }
-            } while (loop > 0);
-            logger.info("Decoded text: " + decodedText);
-            try {
-                decodedText = decodeNewScript(decodedText);
-            } catch (ScriptException e) {
-                //throw new PluginImplementationException("JavaScript eval-2 failed");
-                logger.warning("JavaScript eval-2 failed - HTML Source : " + getContentAsString());
-                downloadWithAPI();
-                return;
+            } else {
+                try {
+                    dlUrl = downloadWithAPI();
+                } catch (PluginImplementationException e) {
+                    logger.warning(e.getMessage());
+                    dlUrl = downloadFromHTML(method);
+                }
             }
-            logger.info("Decoded-2 text: " + decodedText);
-            final String dlUrl = decodedText;
             HttpMethod httpMethod = getGetMethod(dlUrl);
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed
@@ -115,7 +91,43 @@ class OpenLoadFileRunner extends AbstractRunner {
         }
     }
 
-    private void downloadWithAPI() throws Exception {
+    private String downloadFromHTML(HttpMethod method) throws Exception {
+        logger.info("Downloading using HTML");
+        HttpMethod httpMethod = getGetMethod(method.getURI().getURI());
+        // Workaround for 0.9u4 bug, can be removed when next version is released
+        httpMethod.removeRequestHeader("Accept-Encoding");
+        if (!makeRedirectedRequest(httpMethod)) {
+            checkProblems();
+            throw new ServiceConnectionProblemException();
+        }
+        checkProblems();
+        final int wait = PlugUtils.getNumberBetween(getContentAsString(), "secondsdl = ", ";");
+        if (wait > 0)
+            downloadTask.sleep(1 + wait);
+        String decodedText;
+        try {
+            final Matcher match = PlugUtils.matcher("(?s)Download.+?\\s*<script type=\"text/javascript\">([^<]+?)<", getContentAsString());
+            if (!match.find())
+                throw new PluginImplementationException("Script not found");
+            String srcScript = match.group(1);
+            logger.info("Src script: " + srcScript);
+            decodedText = new AADecoder().decode(srcScript);
+        } catch (PluginImplementationException e) {
+            logger.warning("JavaScript eval failed - HTML Source : " + e.getMessage() + "\n" + getContentAsString());
+            throw new PluginImplementationException("JavaScript eval failed");
+        }
+        logger.info("Decoded text: " + decodedText);
+        try {
+            decodedText = decodeNewScript(decodedText);
+        } catch (ScriptException e) {
+            logger.warning("JavaScript eval-2 failed - HTML Source : " + getContentAsString());
+            throw new PluginImplementationException("JavaScript eval-2 failed");
+        }
+        logger.info("Decoded-2 text: " + decodedText);
+        return decodedText;
+    }
+
+    private String downloadWithAPI() throws Exception {
         logger.info("Downloading using API");
         final Matcher match = PlugUtils.matcher("/f/([^/]+)", fileURL);
         if (!match.find()) throw new InvalidURLOrServiceProblemException("Unable to find fileID in url");
@@ -150,12 +162,7 @@ class OpenLoadFileRunner extends AbstractRunner {
         } while (getContentAsString().contains("Captcha not solved correctly"));
         checkAPIProblems();
 
-        final String dlUrl = PlugUtils.getStringBetween(getContentAsString(), "\"url\":\"", "\",").replace("\\/", "/");
-        httpMethod = getGetMethod(dlUrl);
-        if (!tryDownloadAndSaveFile(httpMethod)) {
-            checkProblems();//if downloading failed
-            throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
-        }
+        return PlugUtils.getStringBetween(getContentAsString(), "\"url\":\"", "\",").replace("\\/", "/");
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {
@@ -170,7 +177,7 @@ class OpenLoadFileRunner extends AbstractRunner {
         final String content = getContentAsString();
         if (!content.contains("\"status\":200,")) {
             final String msg = PlugUtils.getStringBetween(content, "\"msg\":\"", "\",");
-            throw new ServiceConnectionProblemException(msg);
+            throw new PluginImplementationException(msg);
         }
     }
 

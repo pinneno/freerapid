@@ -17,7 +17,7 @@ public class TestApp extends PluginDevApplication {
         try {
             //we set file URL
             httpFile.setNewURL(new URL("https://openload.co/f/4iGzLXwsp4k/Vela_-_MFSA_Directors_Certificate.pdf"));
-            //httpFile.setNewURL(new URL("https://openload.co/f/z-vS-Xs0XG8"));   // captcha
+            //httpFile.setNewURL(new URL("https://openload.co/f/z-vS-Xs0XG8"));   // API captcha
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
