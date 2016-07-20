@@ -105,8 +105,8 @@ class UlozToRunner extends AbstractRunner {
         final GetMethod getMethod = getGetMethod(fileURL);
         if (makeRedirectedRequest(getMethod)) {
             checkProblems();
-            passwordProtectedCheck();
             fileURL = getMethod.getURI().toString(); // '/m/' folder redirected to '/soubory/'
+            passwordProtectedCheck();
             ageCheck(getContentAsString());
             if (isFolder(fileURL)) {
                 parseFolder();

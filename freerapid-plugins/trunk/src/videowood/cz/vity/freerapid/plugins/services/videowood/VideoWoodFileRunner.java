@@ -10,12 +10,8 @@ import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Class which contains main code
@@ -70,21 +66,8 @@ class VideoWoodFileRunner extends AbstractRunner {
             if (match.find()) {
                 videoUrl = match.group(1).trim();
             } else {
-                match = PlugUtils.matcher("(" + Pattern.quote("eval(function(p,a,c,k,e,d)") + ".+)", contentAsString);
-                if (!match.find()) {
-                    throw new PluginImplementationException("JS eval function not found");
-                }
-                String jsString = match.group(1).replaceFirst(Pattern.quote("eval(function(p,a,c,k,e,d)"), "function test(p,a,c,k,e,d)")
-                        .replaceFirst(Pattern.quote("return p}"), "return p};test").replaceFirst(Pattern.quote(".split('|')))"), ".split('|'));");
-                ScriptEngineManager manager = new ScriptEngineManager();
-                ScriptEngine engine = manager.getEngineByName("javascript");
-                String evaluated;
-                try {
-                    evaluated = (String) engine.eval(jsString);
-                } catch (ScriptException e) {
-                    throw new PluginImplementationException("JavaScript eval failed", e);
-                }
-                match = PlugUtils.matcher(",\"file\"\\s*:\\s*['\"](.+?)['\"]", evaluated);
+                String evaluated = new AADecoder().decode(contentAsString);
+                match = PlugUtils.matcher("'(http://[^']+)'", evaluated);
                 if (!match.find()) {
                     throw new PluginImplementationException("Video not found");
                 }

@@ -21,7 +21,7 @@ public class TestApp extends PluginDevApplication {
         try {
             //httpFile.setNewURL(new URL("http://www.ulozto.cz/xda1xMy/penthouse-sex-obsessed-xxx-dvdrip-xvid-qualitx-avi"));
             //httpFile.setNewURL(new URL("http://uloz.to/xda1xMy/penthouse-sex-obsessed-xxx-dvdrip-xvid-qualitx-avi"));
-            //httpFile.setNewURL(new URL("http://uloz.to/xrgawztg/sample-txt"));           //password: "1234"
+            httpFile.setNewURL(new URL("http://uloz.to/xrgawztg/sample-txt"));           //password: "1234"
             //httpFile.setNewURL(new URL("http://www.ulozto.cz/xFU8sN2G/test-docx")); //password : "password"
             //httpFile.setNewURL(new URL("http://www.ulozto.cz/xE6PNASA/hercule-poirot-smrt-v-oblacich-ts"));
             //httpFile.setNewURL(new URL("http://uloz.to/soubory/ladaber/mlp/s04/"));
@@ -35,7 +35,7 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://pornfile.cz/x24LRbZv/stunners-veronika-fasterova-mov"));
             //httpFile.setNewURL(new URL("http://www.ulozto.cz/xaTKDFQS/dum-z-karet-s01e12-2013-monty-698-avi"));
             //httpFile.setNewURL(new URL("https://uloz.to/xRkMWEZa/jewel-pet-4-velky-lok-lasky-mpg"));
-            httpFile.setNewURL(new URL("https://uloz.to/x4f8jsr9/jewel-pet-16-otrava-neprijemny-novy-spoluzak-mpg"));
+            //httpFile.setNewURL(new URL("https://uloz.to/x4f8jsr9/jewel-pet-16-otrava-neprijemny-novy-spoluzak-mpg"));
             final ConnectionSettings settings = new ConnectionSettings();
             //settings.setProxy("localhost", 8081);
             testRun(new UlozToServiceImpl(), httpFile, settings);
