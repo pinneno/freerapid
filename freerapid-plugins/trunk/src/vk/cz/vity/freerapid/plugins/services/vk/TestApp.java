@@ -19,7 +19,8 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://vk.com/video_ext.php?oid=-36880507&id=165376600&hash=38b5d44a4e26d0ea"));
             //httpFile.setNewURL(new URL("http://vk.com/video193844286_165427099")); //requires login, redirect to biqle as workaround
             //httpFile.setNewURL(new URL("http://vk.com/video193844286_165616118"));
-            httpFile.setNewURL(new URL("https://vk.com/video115214503_456239019")); //1080p
+            //httpFile.setNewURL(new URL("https://vk.com/video115214503_456239019")); //1080p
+            httpFile.setNewURL(new URL("https://new.vk.com/video115214503_456239019"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             final VkServiceImpl service = new VkServiceImpl();

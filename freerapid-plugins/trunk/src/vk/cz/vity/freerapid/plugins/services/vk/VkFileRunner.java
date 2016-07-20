@@ -52,7 +52,7 @@ class VkFileRunner extends AbstractRunner {
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException, UnsupportedEncodingException {
         try {
-            String fn = PlugUtils.getStringBetween(content, "var video_title = '", "';").trim();
+            String fn = PlugUtils.getStringBetween(content, "\"md_title\":\"", "\"").trim();
             httpFile.setFileName(URLDecoder.decode(fn, "UTF-8").trim() + ".mp4");
         } catch (PluginImplementationException e) {
             throw new PluginImplementationException("Filename not found");
