@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.depfile;
+package cz.vity.freerapid.plugins.services.tune_pk;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -15,12 +15,14 @@ public class TestApp extends PluginDevApplication {
     protected void startup() {
         final HttpFile httpFile = getHttpFile();
         try {
-            //httpFile.setNewURL(new URL("http://depfile.com/downloads/i/799054/f/KoOoRa.CoM_Rey_Mysterio_-_The_Life_of_a_Masked_Man_DVD_3_Discs_By_MASHA_ERA.part01.rar.html"));
-            //httpFile.setNewURL(new URL("http://depfile.com/a1Ek8mPCz"));
-            httpFile.setNewURL(new URL("https://depfile.com/p5e5NtNxgIZ"));
+            //httpFile.setNewURL(new URL("https://tune.pk/video/6577742/the-kapil-sharma-show-25th-june-2016-episode-19"));
+            httpFile.setNewURL(new URL("http://tune.pk/video/6613265/wfatw-tnaimpact-21072016"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
-            //connectionSettings.setProxy("203.176.183.198", 8080); //eg we can use local proxy to sniff HTTP communication
-            final DepFileServiceImpl service = new DepFileServiceImpl();
+            //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
+            final Tune_pkServiceImpl service = new Tune_pkServiceImpl();
+            SettingsConfig config = new SettingsConfig();
+            config.setVideoQuality(VideoQuality._360);
+            service.setConfig(config);
             testRun(service, httpFile, connectionSettings);
         } catch (Exception e) {
             e.printStackTrace();
