@@ -109,7 +109,7 @@ class SubtitleDownloader {
 
     public void downloadSubtitle(HttpFile httpFile, String content) throws Exception {
         logger.info("Downloading subtitle");
-        Matcher matcher = PlugUtils.matcher("subtitle id='(\\d+)'", content);
+        Matcher matcher = PlugUtils.matcher("<subtitle id='(\\d+)'>", content);
         if (!matcher.find()) {
             logger.info("Subtitle not found");
             return;

@@ -145,7 +145,7 @@ class CrunchyRollFileRunner extends AbstractRtmpRunner {
         QualityUrl selectedQualityUrl = null;
         while (matcher.find()) {
             int quality = Integer.parseInt(matcher.group(2));
-            String url = matcher.group(1);
+            String url = PlugUtils.replaceEntities(matcher.group(1));
             QualityUrl qualityUrl = new QualityUrl(quality, url);
             logger.info("Found video: " + qualityUrl);
             int deltaQ = quality - config.getVideoQuality().getQuality();

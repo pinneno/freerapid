@@ -19,8 +19,10 @@ public class TestApp extends PluginDevApplication {
             //InputStream is = new BufferedInputStream(new FileInputStream("E:\\Stuff\\logtest.properties"));
             //LogManager.getLogManager().readConfiguration(is);
             //we set file URL
-            httpFile.setNewURL(new URL("http://www.crunchyroll.com/naruto-shippuden/episode-233-narutos-imposter-585248"));
+            //httpFile.setNewURL(new URL("http://www.crunchyroll.com/naruto-shippuden/episode-233-narutos-imposter-585248"));
             //httpFile.setNewURL(new URL("http://www.crunchyroll.com/jojos-bizarre-adventure/episode-8-the-devil-652591"));
+            //httpFile.setNewURL(new URL("http://www.crunchyroll.com/food-wars-shokugeki-no-soma/episode-1-what-fills-the-box-715209"));
+            httpFile.setNewURL(new URL("http://www.crunchyroll.com/food-wars-shokugeki-no-soma/episode-1-what-fills-the-box-715209?ssid=208205"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 9050, Proxy.Type.SOCKS); //eg we can use local proxy to sniff HTTP communication
