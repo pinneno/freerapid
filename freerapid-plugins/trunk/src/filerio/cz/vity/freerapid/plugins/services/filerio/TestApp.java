@@ -16,7 +16,7 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile();
         try {
             //httpFile.setNewURL(new URL("http://filerio.com/yfi4xcu511om"));
-            httpFile.setNewURL(new URL("http://filerio.in/j8005r7um9yf"));
+            httpFile.setNewURL(new URL("http://filerio.in/u6d5q1avdk0s"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             final FileRioServiceImpl service = new FileRioServiceImpl();

@@ -4,8 +4,8 @@ import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
+import org.apache.commons.httpclient.util.URIUtil;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.List;
@@ -43,8 +43,8 @@ class FileRioFileRunner extends XFileSharingRunner {
             if (matcher.find()) {
                 try {
                     final String unEscStr = URLDecoder.decode(matcher.group(1), "UTF-8");
-                    return PlugUtils.getStringBetween(unEscStr, "location.href=\"", "\";");
-                } catch (UnsupportedEncodingException e) {
+                    return URIUtil.encodePath(PlugUtils.getStringBetween(unEscStr, "location.href=\"", "\";"));
+                } catch (Exception e) {
                     throw new PluginImplementationException("Error reading download URL");
                 }
             }
