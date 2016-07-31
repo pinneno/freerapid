@@ -1,6 +1,7 @@
 package cz.vity.freerapid.plugins.services.rapidgator;
 
 import cz.vity.freerapid.plugins.exceptions.*;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptcha;
 import cz.vity.freerapid.plugins.services.solvemediacaptcha.SolveMediaCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadState;
@@ -188,9 +189,9 @@ class RapidGatorFileRunner extends AbstractRunner {
                     .setParameter("DownloadCaptchaForm[captcha]", "");
             return methodBuilder.toPostMethod();
         } else if (getContentAsString().contains("papi/challenge.noscript")) {
-            logger.info("Captcha Type 2");
+            logger.info("Captcha Type: SolveMediaCaptcha");
             final Matcher captchaKeyMatcher = getMatcherAgainstContent("papi/challenge\\.noscript\\?k=(.*?)\"");
-            if (!captchaKeyMatcher.find()) throw new PluginImplementationException("Captcha not found");
+            if (!captchaKeyMatcher.find()) throw new PluginImplementationException("Captcha key not found");
             final String captchaKey = captchaKeyMatcher.group(1);
             final long captchaStartTime = System.currentTimeMillis();
             SolveMediaCaptcha solveMediaCaptcha = new SolveMediaCaptcha(captchaKey, client, getCaptchaSupport(), downloadTask);
@@ -202,6 +203,24 @@ class RapidGatorFileRunner extends AbstractRunner {
                     .setAction("http://rapidgator.net/download/captcha")
                     .setParameter("DownloadCaptchaForm[captcha]", "");
             return solveMediaCaptcha.modifyResponseMethod(methodBuilder).toPostMethod();
+        } else if (getContentAsString().contains("api.recaptcha.net/challenge")) {
+            logger.info("Captcha Type: Recaptcha");
+            final Matcher captchaKeyMatcher = getMatcherAgainstContent("api\\.recaptcha\\.net/challenge\\?k=(.*?)\"");
+            if (!captchaKeyMatcher.find()) {
+                throw new PluginImplementationException("Captcha key not found");
+            }
+            final String captchaKey = captchaKeyMatcher.group(1);
+            final ReCaptcha r = new ReCaptcha(captchaKey, client);
+            final String captcha = getCaptchaSupport().getCaptcha(r.getImageURL());
+            if (captcha == null) {
+                throw new CaptchaEntryInputMismatchException();
+            }
+            r.setRecognized(captcha);
+            final MethodBuilder methodBuilder = getMethodBuilder()
+                    .setReferer(fileURL)
+                    .setAction("http://rapidgator.net/download/captcha")
+                    .setParameter("DownloadCaptchaForm[captcha]", "");
+            return r.modifyResponseMethod(methodBuilder).toPostMethod();
         } else {
             logger.info("Captcha Error");
             checkProblems();
