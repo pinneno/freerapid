@@ -1,9 +1,6 @@
 package cz.vity.freerapid.plugins.services.itv;
 
-import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
-import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
-import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
-import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
+import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.services.rtmp.AbstractRtmpRunner;
 import cz.vity.freerapid.plugins.services.rtmp.RtmpSession;
 import cz.vity.freerapid.plugins.services.rtmp.SwfVerificationHelper;
@@ -97,7 +94,6 @@ class ItvFileRunner extends AbstractRtmpRunner {
             }
             checkProblems();
             setConfig();
-            logger.info("Config settings: " + config);
             final RtmpSession rtmpSession = getRtmpSession();
             tryDownloadAndSaveFile(rtmpSession);
         } else {
@@ -112,7 +108,7 @@ class ItvFileRunner extends AbstractRtmpRunner {
             throw new URLNotAvailableAnymoreException("File not found");
         }
         if (getContentAsString().contains("InvalidGeoRegion")) {
-            throw new URLNotAvailableAnymoreException("This video is not available in your region");
+            throw new NotRecoverableDownloadException("UK Tor Exit Node blocked; try again via \"Cancel & Resume\"");
         }
     }
 
@@ -183,7 +179,7 @@ class ItvFileRunner extends AbstractRtmpRunner {
         private final static int LOWER_QUALITY_PENALTY = 10;
         private final int bitrate; //kbps
         private final String play;
-        private int weight;
+        private final int weight;
 
         public ItvVideo(final int bitrate, final String play) {
             this.bitrate = bitrate;

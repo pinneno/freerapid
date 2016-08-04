@@ -9,7 +9,7 @@ import java.util.Collections;
 
 enum VideoQuality {
     Lowest(1, 1, "Lowest quality"),
-    _600(288, 600), //240p -> 600kbps
+    _600(288, 600), //288p -> 600kbps
     _800(288, 800),
     _1200(504, 1200),
     _1500(504, 1500),
