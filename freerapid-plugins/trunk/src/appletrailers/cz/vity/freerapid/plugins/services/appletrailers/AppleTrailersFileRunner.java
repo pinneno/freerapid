@@ -5,17 +5,21 @@ import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
 import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
+import cz.vity.freerapid.plugins.webclient.FileState;
+import cz.vity.freerapid.plugins.webclient.utils.HttpUtils;
+import cz.vity.freerapid.plugins.webclient.utils.JsonMapper;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import cz.vity.freerapid.utilities.LogUtils;
-import org.apache.commons.httpclient.HttpMethod;
+import jlibs.core.net.URLUtil;
 import org.apache.commons.httpclient.methods.GetMethod;
+import org.codehaus.jackson.JsonNode;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.*;
+import java.io.IOException;
+import java.net.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Class which contains main code
@@ -25,35 +29,59 @@ import java.util.regex.Pattern;
  */
 class AppleTrailersFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(AppleTrailersFileRunner.class.getName());
-    private final static String USER_AGENT = "QuickTime/7.6.6 (qtver=7.6.6;os=Windows NT 5.1Service Pack 3)";
+    private final static String TITLE = "title";
+    private SettingsConfig config;
+
+    private void setConfig() throws Exception {
+        AppleTrailersServiceImpl service = (AppleTrailersServiceImpl) getPluginService();
+        config = service.getConfig();
+    }
 
     @Override
     public void run() throws Exception {
         super.run();
         logger.info("Starting download in TASK " + fileURL);
 
-        if (fileURL.endsWith(".mov")) {
-            final int lastIndex = fileURL.lastIndexOf('/') + 1;
-            final String firstPartOfURL = fileURL.substring(0, lastIndex);
-            final String lastPartOfURL = fileURL.substring(lastIndex);
-
-            httpFile.setFileName(lastPartOfURL.replace("_h", "_"));
-
-            String downloadURL = fileURL;
-            if (!lastPartOfURL.contains("_h")) {
-                downloadURL = firstPartOfURL + lastPartOfURL.replace("_", "_h");
+        if (fileURL.contains(".mov") || fileURL.contains(".m4v")) {
+            URL url = new URL(fileURL);
+            String filename = null;
+            try {
+                filename = URLUtil.getQueryParams(url.toString(), "UTF-8").get(TITLE);
+            } catch (Exception e) {
+                //
+            }
+            if (filename == null) {
+                throw new PluginImplementationException("File name not found");
             }
 
-            //cannot use getGetMethod(), custom user agent is necessary
-            final GetMethod method = new GetMethod(downloadURL);
-            method.setRequestHeader("User-Agent", USER_AGENT);
+            fileURL = url.getProtocol() + "://" + url.getAuthority() + url.getPath();
+            String fileExt = fileURL.substring(fileURL.lastIndexOf("."));
+            httpFile.setFileName(HttpUtils.replaceInvalidCharsForFileSystem(URLDecoder.decode(filename, "UTF-8"), "_") + fileExt);
+            httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
 
-            logger.info("Downloading from " + downloadURL);
+            GetMethod method = new GetMethod(fileURL);
+            setTextContentTypes("video/quicktime");
+            if (fileURL.contains(".mov")) {
+                if (!makeRedirectedRequest(method)) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
+                }
+                checkProblems();
+                String downloadURL;
+                Matcher matcher = PlugUtils.matcher("(https?://.+\\.mov)", getContentAsString());
+                if (!matcher.find()) {
+                    throw new PluginImplementationException("Download URL not found");
+                }
+                downloadURL = matcher.group(1);
+                method = getGetMethod(downloadURL);
+            }
+            setFileStreamContentTypes("video/quicktime");
             if (!tryDownloadAndSaveFile(method)) {
                 checkProblems();
                 throw new ServiceConnectionProblemException("Error starting download");
             }
         } else {
+            setConfig();
             fileURL = fileURL.replaceFirst("#.+", "");
             if (!makeRedirectedRequest(getGetMethod(fileURL))) {
                 checkProblems();
@@ -64,117 +92,31 @@ class AppleTrailersFileRunner extends AbstractRunner {
             } catch (PluginImplementationException e) {
                 LogUtils.processException(logger, e);
             }
-            if (!makeRedirectedRequest(getMethodBuilder().setReferer(fileURL).setAction(fileURL + "includes/playlists/web.inc").toGetMethod())) {
+
+            if (!makeRedirectedRequest(getMethodBuilder().setReferer(fileURL).setAction(fileURL + "data/page.json").toGetMethod())) {
                 checkProblems();
                 throw new ServiceConnectionProblemException();
             }
+            checkProblems();
+
+            JsonNode rootNode;
+            try {
+                rootNode = new JsonMapper().getObjectMapper().readTree(getContentAsString());
+            } catch (IOException e) {
+                throw new PluginImplementationException("Error parsing trailer data (1)");
+            }
+
+            logger.info("Settings config: " + config);
+            final List<AppleTrailersVideo> videoList = getSelectedVideoList(rootNode);
             final List<URI> uriList = new ArrayList<URI>();
-            if (getContentAsString().contains("<h4>Download</h4>")) {
-                final Matcher videos = getMatcherAgainstContent("(?s-m)<li class=[\"']trailer[^<>]*?>(.+?)(?:<!--/trailer-->|$)");
-                while (videos.find()) {
-                    final List<String> list = new ArrayList<String>();
-                    final Matcher qualities = PlugUtils.matcher("href=\"(http://trailers\\.apple\\.com/.+?\\d+?p\\.mov)\"", videos.group(1));
-                    while (qualities.find()) {
-                        list.add(qualities.group(1));
-                    }
-                    if (list.isEmpty()) throw new PluginImplementationException("Video qualities not found");
-                    //sort the list to determine best quality available
-                    Collections.sort(list, new Comparator<String>() {
-                        @Override
-                        public int compare(String one, String two) {
-                            Matcher m1 = PlugUtils.matcher("(\\d+?)p\\.mov", one);
-                            m1.find();
-                            Matcher m2 = PlugUtils.matcher("(\\d+?)p\\.mov", two);
-                            m2.find();
-                            return Integer.valueOf(m2.group(1)).compareTo(Integer.valueOf(m1.group(1)));
-                        }
-                    });
-                    try {
-                        uriList.add(new URI(list.get(0)));
-                    } catch (URISyntaxException e) {
-                        LogUtils.processException(logger, e);
-                    }
-                }
-            } else {
-                final Matcher grid2colMatcher = Pattern.compile("<div class='grid2col'>(.+?)</div><!--/grid2col-->", Pattern.DOTALL).matcher(getContentAsString());
-                final Matcher videoQualityPageMatcher = Pattern.compile("<a href=\"([^<>\"]+)\"[^<>]*?>.*?(\\d+?)p<span>").matcher(getContentAsString());
-                final Matcher trailerNameMatcher = Pattern.compile("<h3>(.+?)</h3>").matcher(getContentAsString());
-                //there is only one page for each quality of all trailers, so we need to cache them, that way we don't have to rerequest them
-                //http://trailers.apple.com/trailers/wb/pacificrim/includes/extralarge.html#videos-extralarge   -> 720p, multiple trailers
-                //http://trailers.apple.com/trailers/wb/pacificrim/includes/large.html#videos-large             -> 480p, multiple trailers
-                final HashMap<String, String> videoQualityPageCache = new HashMap<String, String>(); //map to cache video quality pages, key=page url, value=page content
-                while (grid2colMatcher.find()) {
-                    trailerNameMatcher.region(grid2colMatcher.start(1), grid2colMatcher.end(1));
-                    videoQualityPageMatcher.region(grid2colMatcher.start(1), grid2colMatcher.end(1));
-
-                    if (!trailerNameMatcher.find()) {
-                        throw new PluginImplementationException("Trailer name not found");
-                    }
-                    String trailerName = trailerNameMatcher.group(1);
-
-                    //select page with the highest video quality for the trailer
-                    TreeMap<Integer, String> videoQualityPageMap = new TreeMap<Integer, String>(); //map to store all available qualities for the trailer, sorted ascending, k=vid quality, v=page url
-                    while (videoQualityPageMatcher.find()) {
-                        videoQualityPageMap.put(Integer.parseInt(videoQualityPageMatcher.group(2)), videoQualityPageMatcher.group(1));
-                    }
-                    if (videoQualityPageMap.isEmpty()) {
-                        throw new PluginImplementationException("Video quality page not found");
-                    }
-                    //http://trailers.apple.com/trailers/wb/pacificrim/includes/extralarge.html#videos-extralarge
-                    //multiple trailers in the highest quality page
-                    String highestQualityPageUrl = videoQualityPageMap.get(videoQualityPageMap.lastKey());
-
-                    HttpMethod httpMethod;
-                    String highestQualityPageContent;
-                    if (!videoQualityPageCache.containsKey(highestQualityPageUrl)) { //not in cache
-                        httpMethod = getMethodBuilder()
-                                .setReferer(fileURL)
-                                .setBaseURL(fileURL)
-                                .setAction(highestQualityPageUrl)
-                                .toGetMethod();
-                        if (!makeRedirectedRequest(httpMethod)) {
-                            checkProblems();
-                            throw new ServiceConnectionProblemException();
-                        }
-                        checkProblems();
-                        videoQualityPageCache.put(highestQualityPageUrl, getContentAsString());
-                        highestQualityPageContent = getContentAsString();
-                    } else { //already in cache
-                        highestQualityPageContent = videoQualityPageCache.get(highestQualityPageUrl);
-                    }
-
-                    //search trailer video page based on trailer name
-                    Matcher matcher = Pattern.compile("<a href=\"(.+?)\" class=\"block nested-trigger\">.*?<h4>(.+?)</h4>.*?</a>", Pattern.DOTALL).matcher(highestQualityPageContent);
-                    int start = 0;
-                    String action = null;
-                    while (matcher.find(start)) {
-                        if (matcher.group(2).equals(trailerName)) {
-                            action = matcher.group(1);
-                            break;
-                        }
-                        start = matcher.end();
-                    }
-                    if (action == null) {
-                        throw new PluginImplementationException("Trailer video page not found");
-                    }
-                    //http://trailers.apple.com/trailers/wb/pacificrim/includes/featurette2/extralarge.html#overlay-teaser1-extralarge
-                    httpMethod = getMethodBuilder(highestQualityPageContent)
-                            .setReferer(fileURL)
-                            .setBaseURL(fileURL)
-                            .setAction(action)
-                            .toGetMethod();
-                    if (!makeRedirectedRequest(httpMethod)) {
-                        checkProblems();
-                        throw new ServiceConnectionProblemException();
-                    }
-                    checkProblems();
-                    try {
-                        uriList.add(new URI(PlugUtils.replaceEntities(PlugUtils.getStringBetween(getContentAsString(), "\"movieLink\" href=\"", "\"")).replaceFirst("[\\?#].+", "")));
-                    } catch (URISyntaxException e) {
-                        LogUtils.processException(logger, e);
-                    }
+            for (AppleTrailersVideo video : videoList) {
+                try {
+                    uriList.add(new URI(video.url + "?" + TITLE + "=" + URLEncoder.encode(httpFile.getFileName() + " - " + video.title, "UTF-8")));
+                } catch (URISyntaxException e) {
+                    LogUtils.processException(logger, e);
                 }
             }
+
             if (uriList.isEmpty()) throw new PluginImplementationException("Videos not found");
             getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, uriList);
             httpFile.getProperties().put("removeCompleted", true);
@@ -184,6 +126,107 @@ class AppleTrailersFileRunner extends AbstractRunner {
     private void checkProblems() throws ErrorDuringDownloadingException {
         if (getContentAsString().contains("the page you’re looking for can’t be found")) {
             throw new URLNotAvailableAnymoreException("File not found");
+        }
+    }
+
+    private List<AppleTrailersVideo> getSelectedVideoList(JsonNode rootNode) throws PluginImplementationException {
+        JsonNode clipsNodes = rootNode.get("clips");
+        if (clipsNodes == null) {
+            throw new PluginImplementationException("Error parsing trailer data (2)");
+        }
+
+        List<AppleTrailersVideo> videoList = new ArrayList<AppleTrailersVideo>();
+        for (JsonNode clipNode : clipsNodes) {
+            String title = clipNode.findPath("title").getTextValue();
+            if (title == null) {
+                throw new PluginImplementationException("Error parsing trailer data (3)");
+            }
+            JsonNode sizes = clipNode.findPath("sizes");
+            List<AppleTrailersVideo> videoListTemp = new ArrayList<AppleTrailersVideo>();
+            if (!sizes.isMissingNode()) {
+                for (VideoQuality videoQuality : VideoQuality.getItems()) {
+                    JsonNode size = sizes.get(videoQuality.getQualityToken());
+                    if (size != null) {
+                        String src = size.get("src").getTextValue();
+                        if (src == null) {
+                            continue;
+                        }
+                        AppleTrailersVideo video = new AppleTrailersVideo(title, videoQuality, src);
+                        logger.info("Found video: " + video);
+                        videoListTemp.add(video);
+
+                        String srcAlt = size.get("srcAlt").getTextValue();
+                        if (srcAlt != null) {
+                            video = new AppleTrailersVideo(title, videoQuality, srcAlt);
+                            logger.info("Found video: " + video);
+                            videoListTemp.add(video);
+                        }
+                    }
+                }
+
+                AppleTrailersVideo selectedVideo = null;
+                //select quality
+                final int LOWER_QUALITY_PENALTY = 10;
+                int weight = Integer.MAX_VALUE;
+                int selectedVideoQuality = -1;
+                for (AppleTrailersVideo video : videoListTemp) {
+                    int deltaQ = video.videoQuality.getQuality() - config.getVideoQuality().getQuality();
+                    int tempWeight = (deltaQ < 0 ? Math.abs(deltaQ) + LOWER_QUALITY_PENALTY : deltaQ);
+                    if (tempWeight < weight) {
+                        weight = tempWeight;
+                        selectedVideoQuality = video.videoQuality.getQuality();
+                    }
+                }
+
+                if (selectedVideoQuality != -1) {
+                    //select format
+                    weight = Integer.MIN_VALUE;
+                    for (AppleTrailersVideo video : videoListTemp) {
+                        if (video.videoQuality.getQuality() == selectedVideoQuality) {
+                            int tempWeight;
+                            if (config.getVideoFormat() == video.videoFormat) {
+                                tempWeight = 100;
+                            } else if (video.videoFormat == VideoFormat.MOV) {
+                                tempWeight = 50;
+                            } else {
+                                tempWeight = 49;
+                            }
+                            if (tempWeight > weight) {
+                                weight = tempWeight;
+                                selectedVideo = video;
+                            }
+                        }
+                    }
+                    if (selectedVideo != null) {
+                        videoList.add(selectedVideo);
+                    }
+                }
+            }
+        }
+        return videoList;
+    }
+
+    private class AppleTrailersVideo {
+        private final String title;
+        private final VideoQuality videoQuality;
+        private final VideoFormat videoFormat;
+        private final String url;
+
+        private AppleTrailersVideo(final String title, final VideoQuality videoQuality, final String url) {
+            this.title = title;
+            this.videoQuality = videoQuality;
+            this.url = url;
+            this.videoFormat = (url.endsWith(".mov") ? VideoFormat.MOV : VideoFormat.M4V);
+        }
+
+        @Override
+        public String toString() {
+            return "AppleTrailersVideo{" +
+                    "title='" + title + '\'' +
+                    ", videoQuality=" + videoQuality +
+                    ", videoFormat=" + videoFormat +
+                    ", url='" + url + '\'' +
+                    '}';
         }
     }
 

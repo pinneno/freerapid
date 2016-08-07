@@ -54,7 +54,7 @@ class FaceBookFileRunner extends AbstractRunner {
                 processAlbum();
                 return;
             }
-            if (getContentAsString().contains("new SWFObject")) { //video
+            if (getContentAsString().contains("\"videoData\":[{")) { //video
                 if (getContentAsString().contains("\"status\":\"invalid\"")) {
                     throw new URLNotAvailableAnymoreException("This video either has been removed or is not visible due to privacy settings");
                 }
@@ -64,10 +64,13 @@ class FaceBookFileRunner extends AbstractRunner {
                 if (!matcher.find()) {
                     throw new PluginImplementationException("File name not found");
                 }
-                final String name = matcher.group(1).trim();
+                String name = matcher.group(1).trim();
+                if (name.length() > 100) {
+                    name = name.substring(0, 100);
+                }
                 httpFile.setFileName(name + ".mp4");
-                String videoData = (getContentAsString().contains("\"params\",\"") ? PlugUtils.getStringBetween(getContentAsString(), "\"params\",\"", "\"") :
-                        PlugUtils.getStringBetween(getContentAsString(), "\\\"params\\\",\\\"", "\\\"").replace("\\\\", "\\"));
+
+                String videoData = PlugUtils.getStringBetween(getContentAsString(), "\"videoData\":[{", "}]");
                 videoData = PlugUtils.unescapeUnicode(URLDecoder.decode(PlugUtils.unescapeUnicode(videoData), "UTF-8"));
                 final String videoUrl;
                 if (!videoData.contains("\"hd_src\":null")) {  //high quality as default

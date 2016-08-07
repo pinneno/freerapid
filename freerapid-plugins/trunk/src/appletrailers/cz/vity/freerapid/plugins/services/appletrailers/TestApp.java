@@ -19,20 +19,26 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://trailers.apple.com/trailers/paramount/ironman/"));
             //httpFile.setNewURL(new URL("http://trailers.apple.com/movies/paramount/ironman2/ironman2-clip2_h1080p.mov"));
 
-            //httpFile.setNewURL(new URL("http://trailers.apple.com/trailers/wb/pacificrim/#videos-large"));
+            httpFile.setNewURL(new URL("http://trailers.apple.com/trailers/wb/pacificrim/#videos-large"));
             //httpFile.setNewURL(new URL("http://trailers.apple.com/movies/wb/pacificrim/pacificrim-fte2_720p.mov"));
+            //httpFile.setNewURL(new URL("http://movietrailers.apple.com/movies/wb/pacificrim/pacificrim-fte15m_1080p.mov?title=13+min.+Making+Of+Featurette"));
+            //httpFile.setNewURL(new URL("http://movietrailers.apple.com/movies/wb/pacificrim/pacificrim-fte15m_a720p.m4v?title=13+min.+Making+Of+Featurette"));
 
             //httpFile.setNewURL(new URL("http://trailers.apple.com/trailers/sony_pictures/grownups2/"));
             //httpFile.setNewURL(new URL("http://trailers.apple.com/movies/sony_pictures/grownups2/grownups2-sneakpeak_720p.mov"));
 
             //httpFile.setNewURL(new URL("http://trailers.apple.com/trailers/wb/prisoners/"));
-            httpFile.setNewURL(new URL("http://trailers.apple.com/trailers/paramount/worldwarz/"));
+            //httpFile.setNewURL(new URL("http://trailers.apple.com/trailers/paramount/worldwarz/"));
+            //httpFile.setNewURL(new URL("http://trailers.apple.com/trailers/dreamworksstudios/bridgeofspies/"));
 
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
             final AppleTrailersServiceImpl service = new AppleTrailersServiceImpl(); //instance of service - of our plugin
+            SettingsConfig config = new SettingsConfig();
+            config.setVideoFormat(VideoFormat.M4V);
+            service.setConfig(config);
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console
