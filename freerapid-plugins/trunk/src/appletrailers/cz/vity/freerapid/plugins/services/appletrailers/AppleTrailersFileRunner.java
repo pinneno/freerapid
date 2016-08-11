@@ -11,6 +11,9 @@ import cz.vity.freerapid.plugins.webclient.utils.JsonMapper;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import cz.vity.freerapid.utilities.LogUtils;
 import jlibs.core.net.URLUtil;
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HttpMethod;
+import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.codehaus.jackson.JsonNode;
 
@@ -51,31 +54,44 @@ class AppleTrailersFileRunner extends AbstractRunner {
                 //
             }
             if (filename == null) {
-                throw new PluginImplementationException("File name not found");
+                filename = PlugUtils.suggestFilename(fileURL);
+                httpFile.setFileName(HttpUtils.replaceInvalidCharsForFileSystem(filename, "_"));
+            } else {
+                fileURL = url.getProtocol() + "://" + url.getAuthority() + url.getPath();
+                String fileExt = fileURL.substring(fileURL.lastIndexOf("."));
+                httpFile.setFileName(HttpUtils.replaceInvalidCharsForFileSystem(URLDecoder.decode(filename, "UTF-8"), "_") + fileExt);
             }
-
-            fileURL = url.getProtocol() + "://" + url.getAuthority() + url.getPath();
-            String fileExt = fileURL.substring(fileURL.lastIndexOf("."));
-            httpFile.setFileName(HttpUtils.replaceInvalidCharsForFileSystem(URLDecoder.decode(filename, "UTF-8"), "_") + fileExt);
             httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
 
             GetMethod method = new GetMethod(fileURL);
-            setTextContentTypes("video/quicktime");
             if (fileURL.contains(".mov")) {
-                if (!makeRedirectedRequest(method)) {
+                final HttpMethod method2 = getGetMethod(fileURL);
+                processHttpMethod(method2);
+                if (method2.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+                    throw new URLNotAvailableAnymoreException("File not found");
+                }
+
+                final Header contentLength = method2.getResponseHeader("Content-Length");
+                method2.abort();
+                method2.releaseConnection();
+
+                if (contentLength != null && Long.valueOf(contentLength.getValue()) < 128000) {
+                    setTextContentTypes("video/quicktime");
+                    if (!makeRedirectedRequest(method)) {
+                        checkProblems();
+                        throw new ServiceConnectionProblemException();
+                    }
                     checkProblems();
-                    throw new ServiceConnectionProblemException();
+                    String downloadURL;
+                    Matcher matcher = PlugUtils.matcher("(https?://.+\\.mov)", getContentAsString());
+                    if (!matcher.find()) {
+                        throw new PluginImplementationException("Download URL not found");
+                    }
+                    downloadURL = matcher.group(1);
+                    method = getGetMethod(downloadURL);
+                    setFileStreamContentTypes("video/quicktime");
                 }
-                checkProblems();
-                String downloadURL;
-                Matcher matcher = PlugUtils.matcher("(https?://.+\\.mov)", getContentAsString());
-                if (!matcher.find()) {
-                    throw new PluginImplementationException("Download URL not found");
-                }
-                downloadURL = matcher.group(1);
-                method = getGetMethod(downloadURL);
             }
-            setFileStreamContentTypes("video/quicktime");
             if (!tryDownloadAndSaveFile(method)) {
                 checkProblems();
                 throw new ServiceConnectionProblemException("Error starting download");
@@ -87,10 +103,11 @@ class AppleTrailersFileRunner extends AbstractRunner {
                 checkProblems();
                 throw new ServiceConnectionProblemException();
             }
+            checkProblems();
             try {
                 PlugUtils.checkName(httpFile, getContentAsString(), "<title>", "- Movie Trailers");
             } catch (PluginImplementationException e) {
-                LogUtils.processException(logger, e);
+                throw new PluginImplementationException("File name not found");
             }
 
             if (!makeRedirectedRequest(getMethodBuilder().setReferer(fileURL).setAction(fileURL + "data/page.json").toGetMethod())) {
@@ -99,15 +116,8 @@ class AppleTrailersFileRunner extends AbstractRunner {
             }
             checkProblems();
 
-            JsonNode rootNode;
-            try {
-                rootNode = new JsonMapper().getObjectMapper().readTree(getContentAsString());
-            } catch (IOException e) {
-                throw new PluginImplementationException("Error parsing trailer data (1)");
-            }
-
             logger.info("Settings config: " + config);
-            final List<AppleTrailersVideo> videoList = getSelectedVideoList(rootNode);
+            final List<AppleTrailersVideo> videoList = getSelectedVideoList(getContentAsString());
             final List<URI> uriList = new ArrayList<URI>();
             for (AppleTrailersVideo video : videoList) {
                 try {
@@ -124,12 +134,19 @@ class AppleTrailersFileRunner extends AbstractRunner {
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {
-        if (getContentAsString().contains("the page you’re looking for can’t be found")) {
+        if (getContentAsString().contains("page you’re looking for can’t be found")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
     }
 
-    private List<AppleTrailersVideo> getSelectedVideoList(JsonNode rootNode) throws PluginImplementationException {
+    private List<AppleTrailersVideo> getSelectedVideoList(String content) throws PluginImplementationException {
+        JsonNode rootNode;
+        try {
+            rootNode = new JsonMapper().getObjectMapper().readTree(content);
+        } catch (IOException e) {
+            throw new PluginImplementationException("Error parsing trailer data (1)", e);
+        }
+
         JsonNode clipsNodes = rootNode.get("clips");
         if (clipsNodes == null) {
             throw new PluginImplementationException("Error parsing trailer data (2)");
@@ -147,15 +164,14 @@ class AppleTrailersFileRunner extends AbstractRunner {
                 for (VideoQuality videoQuality : VideoQuality.getItems()) {
                     JsonNode size = sizes.get(videoQuality.getQualityToken());
                     if (size != null) {
-                        String src = size.get("src").getTextValue();
-                        if (src == null) {
-                            continue;
+                        String src = size.findPath("src").getTextValue();
+                        AppleTrailersVideo video;
+                        if (src != null) {
+                            video = new AppleTrailersVideo(title, videoQuality, src);
+                            logger.info("Found video: " + video);
+                            videoListTemp.add(video);
                         }
-                        AppleTrailersVideo video = new AppleTrailersVideo(title, videoQuality, src);
-                        logger.info("Found video: " + video);
-                        videoListTemp.add(video);
-
-                        String srcAlt = size.get("srcAlt").getTextValue();
+                        String srcAlt = size.findPath("srcAlt").getTextValue();
                         if (srcAlt != null) {
                             video = new AppleTrailersVideo(title, videoQuality, srcAlt);
                             logger.info("Found video: " + video);
@@ -204,6 +220,13 @@ class AppleTrailersFileRunner extends AbstractRunner {
             }
         }
         return videoList;
+    }
+
+    private void processHttpMethod(HttpMethod method) throws IOException {
+        if (client.getHTTPClient().getHostConfiguration().getProtocol() != null) {
+            client.getHTTPClient().getHostConfiguration().setHost(method.getURI().getHost(), 80, client.getHTTPClient().getHostConfiguration().getProtocol());
+        }
+        client.getHTTPClient().executeMethod(method);
     }
 
     private class AppleTrailersVideo {

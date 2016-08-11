@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
 <plugin class="cz.vity.freerapid.plugins.services.appletrailers.AppleTrailersServiceImpl"
-        id="trailers.apple.com" vendor="ntoskrnl+tong2shot" version="2.0.0">
+        id="trailers.apple.com" vendor="ntoskrnl+tong2shot" version="2.0.1">
     <attributes>
-        <attribute id="urlRegex" value="http://(movie)?trailers\.apple\.com/(trailers|movies)/.+?"/>
+        <attribute id="urlRegex" value="https?://(movie)?trailers\.apple\.com/(trailers|movies)/.+?"/>
         <attribute id="minver" value="0.855"/>
         <attribute id="maxver" value="0.899"/>
         <attribute id="services" value="trailers.apple.com"/>
