@@ -111,33 +111,40 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
         } else if (content.contains("id=\"global\"")) {
             matcher = getMatcherAgainstContent("(?s)id=\"global\".+?<h1>(?:<a[^<>]+>)?(.+?)(?:</a>)?</h1>");
             if (!matcher.find()) {
-                throw new PluginImplementationException("Error getting programme title (3)");
-            }
-            filename = matcher.group(1).trim();
-            if (content.contains("id=\"titleBox\"")) {
-                matcher = getMatcherAgainstContent("<h2>(?:<a[^<>]+>)?(.+?)(?:</a>)?</h2>");
-                if (!matcher.find()) {
-                    throw new PluginImplementationException("Error getting episode name (3)");
+                filename = getGenericTitle(content);
+            } else {
+                filename = matcher.group(1).trim();
+                if (content.contains("id=\"titleBox\"")) {
+                    matcher = getMatcherAgainstContent("<h2>(?:<a[^<>]+>)?(.+?)(?:</a>)?</h2>");
+                    if (!matcher.find()) {
+                        throw new PluginImplementationException("Error getting episode name (3)");
+                    }
+                    filename += " - " + matcher.group(1).trim();
                 }
-                filename += " - " + matcher.group(1).trim();
             }
-        } else if (content.contains("<title>")) {
-            matcher = getMatcherAgainstContent("<title>(.+?)</title>");
-            if (!matcher.find()) {
-                throw new PluginImplementationException("Error getting programme title (4)");
-            }
-            filename = PlugUtils.unescapeHtml(matcher.group(1).trim())
-                    .replace("Video —", "")
-                    .replace("— Česká televize", "")
-                    .replace("— iVysílání", "");
         } else {
-            throw new PluginImplementationException("Error getting programme title (5)");
+            filename = getGenericTitle(content);
         }
 
         filename = filename.replaceAll("[\\t\\n]", "").trim();
         filename += DEFAULT_EXT;
         httpFile.setFileName(filename);
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
+    }
+
+    private String getGenericTitle(String content) throws PluginImplementationException {
+        if (content.contains("<title>")) {
+            Matcher matcher = getMatcherAgainstContent("<title>(.+?)</title>");
+            if (!matcher.find()) {
+                throw new PluginImplementationException("Error getting programme title (4)");
+            }
+            return PlugUtils.unescapeHtml(matcher.group(1).trim())
+                    .replace("Video —", "")
+                    .replace("— Česká televize", "")
+                    .replace("— iVysílání", "");
+        } else {
+            throw new PluginImplementationException("Error getting programme title (5)");
+        }
     }
 
     @Override
