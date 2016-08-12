@@ -5,6 +5,7 @@ import org.apache.commons.httpclient.util.URIUtil;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
@@ -455,6 +456,9 @@ public final class Utils {
 
             final Field isRestrictedField = jceSecurity.getDeclaredField("isRestricted");
             isRestrictedField.setAccessible(true);
+            final Field modifiersField = Field.class.getDeclaredField("modifiers");
+            modifiersField.setAccessible(true);
+            modifiersField.setInt(isRestrictedField, isRestrictedField.getModifiers() & ~Modifier.FINAL);
             isRestrictedField.set(null, false);
 
             final Field defaultPolicyField = jceSecurity.getDeclaredField("defaultPolicy");
