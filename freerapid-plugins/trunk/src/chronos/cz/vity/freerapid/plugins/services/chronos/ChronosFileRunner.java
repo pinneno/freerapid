@@ -1,5 +1,6 @@
 package cz.vity.freerapid.plugins.services.chronos;
 
+import cz.vity.freerapid.plugins.exceptions.BuildMethodException;
 import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
 import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
 import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
@@ -24,7 +25,6 @@ class ChronosFileRunner extends AbstractRunner {
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
-            final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             HttpMethod aMethod = getMethodBuilder().setReferer(fileURL)
                     .setActionFromFormWhereTagContains("Continue", true)
@@ -34,13 +34,17 @@ class ChronosFileRunner extends AbstractRunner {
                 checkProblems();
                 throw new ServiceConnectionProblemException();
             }
-            aMethod = getMethodBuilder().setReferer(fileURL)
-                    .setActionFromFormWhereTagContains("Continue", true)
-                    .setAction(fileURL)
-                    .toPostMethod();
-            if (!makeRedirectedRequest(aMethod)) {
-                checkProblems();
-                throw new ServiceConnectionProblemException();
+            try {
+                aMethod = getMethodBuilder().setReferer(fileURL)
+                        .setActionFromFormWhereTagContains("Continue", true)
+                        .setAction(fileURL)
+                        .toPostMethod();
+                if (!makeRedirectedRequest(aMethod)) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
+                }
+            } catch (BuildMethodException e) {
+                //
             }
             PlugUtils.checkName(httpFile, getContentAsString(), "class=\"pic\" alt=\"", "\"");
             final HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL)

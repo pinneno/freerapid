@@ -77,20 +77,38 @@ class Tune_pkFileRunner extends AbstractRunner {
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
-        if (contentAsString.contains("Not available!")) {
+        Matcher matcher = getMatcherAgainstContent("<p>\\s*Video does not exist\\s*</p>");
+        if (contentAsString.contains("Not available!") && matcher.find()) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
     }
 
     private Tune_pkVideo getSelectedVideo(String content) throws PluginImplementationException {
-        Matcher videoFilesMatcher = Pattern.compile("(?s)var video_files\\s*?=\\s*?(\\[.+?\\];)").matcher(content);
-        Matcher videoFileMatcher = Pattern.compile("(?s)\\{(.+?)\\}").matcher(content);
-        Matcher fileMatcher = Pattern.compile("file\\s*?:\\s*?[\"'](.+?)[\"']").matcher(content);
-        Matcher labelMatcher = Pattern.compile("label\\s*?:\\s*?[\"'](.+?)[\"']").matcher(content);
         List<Tune_pkVideo> videoList = new LinkedList<Tune_pkVideo>();
-        if (!videoFilesMatcher.find()) {
-            throw new PluginImplementationException("Video files not found");
+        if (content.contains("only uploader friends can view this video")) {
+            final String[] qualityLabels = new String[]{"240", "360", "480", "720"};
+            Matcher matcher = PlugUtils.matcher("\"twitter:player:stream\" content=\"([^\"]+)\"", content);
+            if (!matcher.find()) {
+                throw new PluginImplementationException("Video URL not found");
+            }
+            String videoUrl = matcher.group(1);
+            matcher = PlugUtils.matcher("-\\d{3}\\.mp4", videoUrl);
+            if (!matcher.find()) {
+                throw new PluginImplementationException("Invalid video URL");
+            }
+            for (String qualityLabel : qualityLabels) {
+                Tune_pkVideo video = new Tune_pkVideo(Integer.parseInt(qualityLabel), videoUrl.replaceFirst("-\\d{3}\\.mp4", "-" + qualityLabel + ".mp4"));
+                videoList.add(video);
+                logger.info("Found: " + video);
+            }
         } else {
+            Matcher videoFilesMatcher = Pattern.compile("(?s)var video_files\\s*?=\\s*?(\\[.+?\\];)").matcher(content);
+            Matcher videoFileMatcher = Pattern.compile("(?s)\\{(.+?)\\}").matcher(content);
+            Matcher fileMatcher = Pattern.compile("file\\s*?:\\s*?[\"'](.+?)[\"']").matcher(content);
+            Matcher labelMatcher = Pattern.compile("label\\s*?:\\s*?[\"'](.+?)[\"']").matcher(content);
+            if (!videoFilesMatcher.find()) {
+                throw new PluginImplementationException("Video files not found");
+            }
             videoFileMatcher.region(videoFilesMatcher.start(1), videoFilesMatcher.end(1));
             while (videoFileMatcher.find()) {
                 fileMatcher.region(videoFileMatcher.start(1), videoFileMatcher.end(1));
@@ -103,11 +121,11 @@ class Tune_pkFileRunner extends AbstractRunner {
                     logger.info("Found: " + video);
                 }
             }
-            if (videoList.isEmpty()) {
-                throw new PluginImplementationException("No available video");
-            }
-            return Collections.min(videoList);
         }
+        if (videoList.isEmpty()) {
+            throw new PluginImplementationException("No available video");
+        }
+        return Collections.min(videoList);
     }
 
     private class Tune_pkVideo implements Comparable<Tune_pkVideo> {
