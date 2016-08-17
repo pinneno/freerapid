@@ -85,7 +85,7 @@ class Tune_pkFileRunner extends AbstractRunner {
 
     private Tune_pkVideo getSelectedVideo(String content) throws PluginImplementationException {
         List<Tune_pkVideo> videoList = new LinkedList<Tune_pkVideo>();
-        if (content.contains("only uploader friends can view this video")) {
+        if (content.contains("Not available!")) {
             final String[] qualityLabels = new String[]{"240", "360", "480", "720"};
             Matcher matcher = PlugUtils.matcher("\"twitter:player:stream\" content=\"([^\"]+)\"", content);
             if (!matcher.find()) {
