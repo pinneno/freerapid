@@ -54,6 +54,7 @@ class FaceBookFileRunner extends AbstractRunner {
                 processAlbum();
                 return;
             }
+            String downloadUrl;
             if (getContentAsString().contains("\"videoData\":[{")) { //video
                 if (getContentAsString().contains("\"status\":\"invalid\"")) {
                     throw new URLNotAvailableAnymoreException("This video either has been removed or is not visible due to privacy settings");
@@ -78,7 +79,8 @@ class FaceBookFileRunner extends AbstractRunner {
                 } else {
                     videoUrl = PlugUtils.getStringBetween(videoData, "\"sd_src\":\"", "\"");
                 }
-                method = getGetMethod(videoUrl.replace("\\/", "/"));
+                downloadUrl = videoUrl.replace("\\/", "/");
+                method = getGetMethod(downloadUrl);
             } else { //pic
                 final MethodBuilder methodBuilder;
                 //language cookie doesn't seem to work, search link from regex, instead of grabbing link that contains "Download" token.
@@ -98,9 +100,12 @@ class FaceBookFileRunner extends AbstractRunner {
                 }
                 httpFile.setFileName(matcher.group(1));
                 method = methodBuilder.toGetMethod();
+                downloadUrl = method.getURI().getEscapedURI();
             }
             if (!tryDownloadAndSaveFile(method)) {
                 checkProblems();
+                logger.warning("Download URL: " + downloadUrl);
+                logger.warning(getContentAsString());
                 throw new ServiceConnectionProblemException("Error starting download");
             }
         } else {
