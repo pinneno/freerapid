@@ -10,6 +10,7 @@ import org.apache.commons.httpclient.HttpMethod;
 
 import java.net.URI;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -54,8 +55,8 @@ class FaceBookFileRunner extends AbstractRunner {
                 processAlbum();
                 return;
             }
-            String downloadUrl;
-            if (getContentAsString().contains("\"videoData\":[{")) { //video
+            if (getContentAsString().contains("\"videoData\":[{") || getContentAsString().contains("videoData:[{")) { //video
+                String videoId = getVideoId();
                 if (getContentAsString().contains("\"status\":\"invalid\"")) {
                     throw new URLNotAvailableAnymoreException("This video either has been removed or is not visible due to privacy settings");
                 }
@@ -71,17 +72,48 @@ class FaceBookFileRunner extends AbstractRunner {
                 }
                 httpFile.setFileName(name + ".mp4");
 
-                String videoData = PlugUtils.getStringBetween(getContentAsString(), "\"videoData\":[{", "}]");
-                videoData = PlugUtils.unescapeUnicode(URLDecoder.decode(PlugUtils.unescapeUnicode(videoData), "UTF-8"));
-                final String videoUrl;
-                if (!videoData.contains("\"hd_src\":null")) {  //high quality as default
-                    videoUrl = PlugUtils.getStringBetween(videoData, "\"hd_src\":\"", "\"");
-                } else {
-                    videoUrl = PlugUtils.getStringBetween(videoData, "\"sd_src\":\"", "\"");
+                String videoDataContent = null;
+                Matcher videoDataMatcher = PlugUtils.matcher("\"?videoData\"?:\\[\\{(.+?)\\}\\]", content);
+                while (videoDataMatcher.find()) {
+                    Matcher videoIdMatcher = PlugUtils.matcher(String.format("\"?video_id\"?\\s*?:\\s*?\"%s\"", videoId), videoDataMatcher.group(1));
+                    if (videoIdMatcher.find()) {
+                        videoDataContent = PlugUtils.unescapeUnicode(URLDecoder.decode(PlugUtils.unescapeUnicode(videoDataMatcher.group(1)), "UTF-8"));
+                    }
                 }
-                logger.info(getContentAsString());
-                downloadUrl = videoUrl.replace("\\/", "/");
-                method = getGetMethod(downloadUrl);
+                if (videoDataContent == null) {
+                    throw new PluginImplementationException("Video data content not found");
+                }
+
+                List<FacebookVideoPattern> videoPatternList = new ArrayList<FacebookVideoPattern>();
+                videoPatternList.add(new FacebookVideoPattern("\"?hd_src\"?\\s*?:\\s*?\"(http[^\"]+)\"", VideoQuality.HD));
+                videoPatternList.add(new FacebookVideoPattern("\"?sd_src\"?\\s*?:\\s*?\"(http[^\"]+)\"", VideoQuality.SD));
+                List<FacebookVideo> facebookVideos = new ArrayList<FacebookVideo>();
+                for (FacebookVideoPattern liveLeakVideoPattern : videoPatternList) {
+                    matcher = PlugUtils.matcher(liveLeakVideoPattern.pattern, content);
+                    if (matcher.find()) {
+                        FacebookVideo video = new FacebookVideo(liveLeakVideoPattern.videoQuality, PlugUtils.unescapeUnicode(matcher.group(1)).replace("\\/", "/"));
+                        logger.info("Found video: " + video);
+                        facebookVideos.add(video);
+                    }
+                }
+                if (facebookVideos.isEmpty()) {
+                    throw new PluginImplementationException("No available videos");
+                }
+
+                boolean succeed = false;
+                for (FacebookVideo facebookVideo : facebookVideos) {
+                    method = getMethodBuilder().setReferer(fileURL).setAction(facebookVideo.url).toGetMethod();
+                    if (tryDownloadAndSaveFile(method)) {
+                        succeed = true;
+                        break;
+                    } else {
+                        logger.warning("Failed to download " + facebookVideo);
+                    }
+                }
+                if (!succeed) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException("Error starting download");
+                }
             } else { //pic
                 final MethodBuilder methodBuilder;
                 //language cookie doesn't seem to work, search link from regex, instead of grabbing link that contains "Download" token.
@@ -101,18 +133,23 @@ class FaceBookFileRunner extends AbstractRunner {
                 }
                 httpFile.setFileName(matcher.group(1));
                 method = methodBuilder.toGetMethod();
-                downloadUrl = method.getURI().getEscapedURI();
-            }
-            if (!tryDownloadAndSaveFile(method)) {
-                checkProblems();
-                logger.warning("Download URL: " + downloadUrl);
-                logger.warning(getContentAsString());
-                throw new ServiceConnectionProblemException("Error starting download");
+                if (!tryDownloadAndSaveFile(method)) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException("Error starting download");
+                }
             }
         } else {
             checkProblems();
             throw new ServiceConnectionProblemException();
         }
+    }
+
+    private String getVideoId() throws PluginImplementationException {
+        Matcher matcher = PlugUtils.matcher("(?:video\\.php\\?v=|/videos/(?:vb\\.\\d+/)?)(\\d+)(?:/|&|$)", fileURL);
+        if (!matcher.find()) {
+            throw new PluginImplementationException("Video ID not found");
+        }
+        return matcher.group(1);
     }
 
     //If already logged-in, add the cookies. This way we only have to login once for entire FRD session (until we close FRD)
@@ -183,6 +220,51 @@ class FaceBookFileRunner extends AbstractRunner {
         getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, uriList);
         httpFile.getProperties().put("removeCompleted", true);
         logger.info(String.valueOf(uriList.size()));
+    }
+
+
+    enum VideoQuality {
+        SD(480),
+        HD(720);
+        private int quality;
+
+        VideoQuality(int quality) {
+            this.quality = quality;
+        }
+    }
+
+    private class FacebookVideoPattern {
+        private final String pattern;
+        private final VideoQuality videoQuality;
+
+        public FacebookVideoPattern(String pattern, VideoQuality videoQuality) {
+            this.pattern = pattern;
+            this.videoQuality = videoQuality;
+        }
+    }
+
+    private class FacebookVideo implements Comparable<FacebookVideo> {
+        private final VideoQuality videoQuality;
+        private final String url;
+
+        public FacebookVideo(final VideoQuality videoQuality, final String url) {
+            this.videoQuality = videoQuality;
+            this.url = url;
+        }
+
+        @SuppressWarnings("NullableProblems")
+        @Override
+        public int compareTo(final FacebookVideo that) {
+            return Integer.valueOf(videoQuality.quality).compareTo(that.videoQuality.quality);
+        }
+
+        @Override
+        public String toString() {
+            return "FacebookVideo{" +
+                    "videoQuality=" + videoQuality +
+                    ", url='" + url + '\'' +
+                    '}';
+        }
     }
 
 }
