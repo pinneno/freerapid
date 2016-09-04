@@ -79,6 +79,7 @@ class FaceBookFileRunner extends AbstractRunner {
                 } else {
                     videoUrl = PlugUtils.getStringBetween(videoData, "\"sd_src\":\"", "\"");
                 }
+                logger.info(getContentAsString());
                 downloadUrl = videoUrl.replace("\\/", "/");
                 method = getGetMethod(downloadUrl);
             } else { //pic
