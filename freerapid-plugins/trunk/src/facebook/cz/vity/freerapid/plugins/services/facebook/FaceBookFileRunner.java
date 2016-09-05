@@ -78,6 +78,7 @@ class FaceBookFileRunner extends AbstractRunner {
                     Matcher videoIdMatcher = PlugUtils.matcher(String.format("\"?video_id\"?\\s*?:\\s*?\"%s\"", videoId), videoDataMatcher.group(1));
                     if (videoIdMatcher.find()) {
                         videoDataContent = PlugUtils.unescapeUnicode(URLDecoder.decode(PlugUtils.unescapeUnicode(videoDataMatcher.group(1)), "UTF-8"));
+                        break;
                     }
                 }
                 if (videoDataContent == null) {
@@ -88,10 +89,10 @@ class FaceBookFileRunner extends AbstractRunner {
                 videoPatternList.add(new FacebookVideoPattern("\"?hd_src\"?\\s*?:\\s*?\"(http[^\"]+)\"", VideoQuality.HD));
                 videoPatternList.add(new FacebookVideoPattern("\"?sd_src\"?\\s*?:\\s*?\"(http[^\"]+)\"", VideoQuality.SD));
                 List<FacebookVideo> facebookVideos = new ArrayList<FacebookVideo>();
-                for (FacebookVideoPattern liveLeakVideoPattern : videoPatternList) {
-                    matcher = PlugUtils.matcher(liveLeakVideoPattern.pattern, content);
+                for (FacebookVideoPattern facebookVideoPattern : videoPatternList) {
+                    matcher = PlugUtils.matcher(facebookVideoPattern.pattern, videoDataContent);
                     if (matcher.find()) {
-                        FacebookVideo video = new FacebookVideo(liveLeakVideoPattern.videoQuality, PlugUtils.unescapeUnicode(matcher.group(1)).replace("\\/", "/"));
+                        FacebookVideo video = new FacebookVideo(facebookVideoPattern.videoQuality, matcher.group(1).replace("\\/", "/"));
                         logger.info("Found video: " + video);
                         facebookVideos.add(video);
                     }
