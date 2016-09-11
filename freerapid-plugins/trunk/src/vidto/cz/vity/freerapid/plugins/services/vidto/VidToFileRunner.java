@@ -1,5 +1,7 @@
 package cz.vity.freerapid.plugins.services.vidto;
 
+import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
+import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandler;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandlerNoSize;
@@ -40,4 +42,13 @@ class VidToFileRunner extends XFileSharingRunner {
     protected MethodBuilder getXFSMethodBuilder(final String content) throws Exception {
         return getXFSMethodBuilder(content, "download1");
     }
+
+    @Override
+    protected void checkDownloadProblems(final String content) throws ErrorDuringDownloadingException {
+        super.checkDownloadProblems(content);
+        if (content.contains("more|any|availabe|Not|File")) {
+            throw new URLNotAvailableAnymoreException("File not found");
+        }
+    }
+
 }

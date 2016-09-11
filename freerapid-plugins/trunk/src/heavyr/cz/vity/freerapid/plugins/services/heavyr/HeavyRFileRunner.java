@@ -6,6 +6,7 @@ import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
+import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.util.logging.Logger;
@@ -46,8 +47,9 @@ class HeavyRFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);
-            final String dlUrl = PlugUtils.getStringBetween(contentAsString, "file: '", "'");
-            if (!tryDownloadAndSaveFile(getGetMethod(dlUrl))) {
+            final HttpMethod dlMethod = getMethodBuilder().setReferer(fileURL)
+                    .setActionFromAHrefWhereATagContains("cloud-download").toGetMethod();
+            if (!tryDownloadAndSaveFile(dlMethod)) {
                 checkProblems();//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
             }

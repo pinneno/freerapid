@@ -62,6 +62,7 @@ class UsersCloudFileRunner extends XFileSharingRunner {
     protected List<String> getDownloadPageMarkers() {
         final List<String> downloadPageMarkers = super.getDownloadPageMarkers();
         downloadPageMarkers.add("dl_manager = new DownloadManager(");
+        downloadPageMarkers.add("If your download doesn't start automatically");
         return downloadPageMarkers;
     }
 
@@ -69,6 +70,7 @@ class UsersCloudFileRunner extends XFileSharingRunner {
     protected List<String> getDownloadLinkRegexes() {
         final List<String> downloadLinkRegexes = super.getDownloadLinkRegexes();
         downloadLinkRegexes.add("url\\s*[=:]\\s*[\"'](http.+?" + Pattern.quote(httpFile.getFileName()) + ")[\"']");
+        downloadLinkRegexes.add("<a[^<>]+?href=\"(http.+?" + Pattern.quote(httpFile.getFileName()) + ")\"[^<>]*>click here");
         return downloadLinkRegexes;
     }
 }

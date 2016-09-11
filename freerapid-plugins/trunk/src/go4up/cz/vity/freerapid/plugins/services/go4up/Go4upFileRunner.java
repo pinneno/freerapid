@@ -117,6 +117,7 @@ class Go4upFileRunner extends AbstractRunner {
         final String contentAsString = getContentAsString();
         if (contentAsString.contains("download does not exist") || contentAsString.contains("not found on this server")
                 || contentAsString.contains("Page Not Found") || contentAsString.contains("page you requested was not found")
+                || contentAsString.contains("Error link not available")
                 || contentAsString.contains("page you are looking for cannot be found")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }

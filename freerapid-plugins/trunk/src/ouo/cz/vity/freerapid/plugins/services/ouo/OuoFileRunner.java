@@ -26,12 +26,15 @@ class OuoFileRunner extends AbstractRunner {
         logger.info("Starting download in TASK " + fileURL);
         HttpMethod httpMethod = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(httpMethod)) { //we make the main request
+            fileURL = httpMethod.getURI().getURI();
             checkProblems(httpMethod);//check problems
-            httpMethod = stepCaptcha(fileURL);
-            if (!makeRedirectedRequest(httpMethod)) {
-                checkProblems(httpMethod);
-                throw new ServiceConnectionProblemException();
-            }
+            do {
+                httpMethod = stepCaptcha(fileURL);
+                if (!makeRedirectedRequest(httpMethod)) {
+                    checkProblems(httpMethod);
+                    throw new ServiceConnectionProblemException();
+                }
+            } while (getContentAsString().contains("form-captcha"));
             final Matcher m = getMatcherAgainstContent("<a href=\"([^\"]+?)\"[^>]+?btn-main");
             if (!m.find()) throw new PluginImplementationException("Link not found");
 
@@ -45,7 +48,8 @@ class OuoFileRunner extends AbstractRunner {
     }
 
     private void checkProblems(HttpMethod method) throws Exception {
-        if (method.getURI().getURI().equals("http://ouo.io/")) {
+        if (method.getURI().getURI().equals("http://ouo.press/") ||
+                method.getURI().getURI().equals("http://ouo.io/")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
     }
