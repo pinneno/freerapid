@@ -38,7 +38,10 @@ class PreFilesFileRunner extends XFileSharingRunner {
         fileSizeHandlers.add(new FileSizeHandler() {
             @Override
             public void checkFileSize(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
-                httpFile.setFileSize(PlugUtils.getFileSizeFromString(PlugUtils.getStringBetween(content, "<sup>", "</sup>")));
+                Matcher match = PlugUtils.matcher("<sup[^<>]*>(.+?)</sup>", content);
+                if (!match.find())
+                    throw new PluginImplementationException("File size not found");
+                httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1)));
             }
         });
         return fileSizeHandlers;

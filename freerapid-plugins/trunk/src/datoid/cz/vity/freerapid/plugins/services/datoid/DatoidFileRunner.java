@@ -84,7 +84,7 @@ class DatoidFileRunner extends AbstractRunner {
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String content = getContentAsString();
-        if (content.contains("<h1 class=\"error-404\">Omlouv")) {
+        if (content.contains("<h1 class=\"error-404\">Omlouv") || content.contains("Page Not Found")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
         if (content.contains("error\":\"IP in use")) {
@@ -121,7 +121,7 @@ class DatoidFileRunner extends AbstractRunner {
             final PremiumAccount pa = service.getConfig();
             if (pa.isSet()) {
                 final HttpMethod method = getMethodBuilder()
-                        .setActionFromFormWhereActionContains("signInForm", true)
+                        .setActionFromFormWhereTagContains("signInForm", true)
                         .setParameter("username", pa.getUsername())
                         .setParameter("password", pa.getPassword())
                         .setReferer(fileURL)

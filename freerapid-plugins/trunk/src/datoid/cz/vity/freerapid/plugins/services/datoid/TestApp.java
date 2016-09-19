@@ -16,7 +16,7 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://datoid.cz/a4zyxr/metro-last-light-part02-rar"));     // < 1gb
+            httpFile.setNewURL(new URL("https://datoid.cz/p1eSWP/jan-cimbura-by-senior-avi"));      // < 1gb
             //httpFile.setNewURL(new URL("http://datoid.cz/QhYg0X/europe-905-4754-part1-rar"));       // > 1gb
             //httpFile.setNewURL(new URL("http://datoid.cz/CxB5WA/krotitele-duchu-2-mkv"));           // > 3gb
             //the way we connect to the internet
@@ -30,7 +30,7 @@ public class TestApp extends PluginDevApplication {
             config.setUsername("****");
             config.setPassword("****");
             service.setConfig(config);
-            */
+            //*/
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console
