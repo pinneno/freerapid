@@ -48,13 +48,12 @@ class UptoBoxFileRunner extends XFileSharingRunner {
     }
 
     @Override
-    protected void checkDownloadProblems() throws ErrorDuringDownloadingException {
-        final String content = getContentAsString();
+    protected void checkDownloadProblems(final String content) throws ErrorDuringDownloadingException {
         if (content.contains("Vous ne pouvez pas t&eacute;l&eacute;charger des fichiers de taille sup&eacute;rieur &agrave")) {
             throw new NotRecoverableDownloadException(PlugUtils.getStringBetween(content, " class=\"err\">", "<br").replace("Vous ne pouvez pas t&eacute;l&eacute;charger des fichiers de taille sup&eacute;rieur &agrave", "You can not download file sizes greater than"));
         }
         try {
-            super.checkDownloadProblems();
+            super.checkDownloadProblems(content.replaceAll("you have to wait", "You have to wait"));
         } catch (PluginImplementationException x) {
             if (!x.getMessage().contains("Skipped countdown"))      // ignore error
                 throw new PluginImplementationException(x.getMessage());

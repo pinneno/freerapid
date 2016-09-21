@@ -63,6 +63,7 @@ class UsersCloudFileRunner extends XFileSharingRunner {
         final List<String> downloadPageMarkers = super.getDownloadPageMarkers();
         downloadPageMarkers.add("dl_manager = new DownloadManager(");
         downloadPageMarkers.add("If your download doesn't start automatically");
+        downloadPageMarkers.add("Your Download is ready");
         return downloadPageMarkers;
     }
 
