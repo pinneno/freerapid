@@ -113,7 +113,7 @@ class OneFichierFileRunner extends AbstractRunner {
                 checkProblems();//check problems
                 checkNameAndSize(contentAsString);//extract file name and size from the page
                 final HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL)
-                        .setActionFromFormWhereTagContains("Download the file", true).toPostMethod();
+                        .setActionFromFormWhereTagContains("Access to download", true).toPostMethod();
 
                 //here is the download link extraction
                 if (!tryDownloadAndSaveFile(httpMethod)) {

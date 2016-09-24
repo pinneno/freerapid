@@ -49,7 +49,11 @@ class YandexDiskFileRunner extends AbstractRunner {
             try {
                 filesize = PlugUtils.getStringBetween(content, "Size:</span>", "<");
             } catch (PluginImplementationException e1) {
-                throw new PluginImplementationException("File size not found");
+                try {
+                    filesize = PlugUtils.getStringBetween(content, "\"size\":", "},");
+                } catch (PluginImplementationException e2) {
+                    throw new PluginImplementationException("File size not found");
+                }
             }
         }
         filesize = filesize.replace("М", "M").replace("Б", "B").replaceFirst("<[^<>]+>", "");

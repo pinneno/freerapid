@@ -22,6 +22,7 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://yadi.sk/d/IuILKPwmclGU"));
             //httpFile.setNewURL(new URL("http://yadi.sk/d/W9-9gP2KYhAm"));
             httpFile.setNewURL(new URL("https://yadi.sk/i/2CHquObOphAmo"));
+            httpFile.setNewURL(new URL("https://yadi.sk/d/-rpkoRR7vcm2J"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             final YandexDiskServiceImpl service = new YandexDiskServiceImpl();
