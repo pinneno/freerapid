@@ -27,7 +27,13 @@ class AdfFileRunner extends AbstractRunner {
         final HttpMethod method = getGetMethod(fileURL);
         if (makeRedirectedRequest(method)) {
             checkProblems();
-
+            if (fileURL.contains("/redirecting/")) {
+                String url = PlugUtils.getStringBetween(getContentAsString(), "window.location = '", "'");
+                httpFile.setNewURL(new URL(url));
+                httpFile.setPluginID("");
+                httpFile.setState(DownloadState.QUEUED);
+                return;
+            }
             String eu = PlugUtils.getStringBetween(getContentAsString(), "var eu = '", "';");
             int idx1 = eu.indexOf("!HiTommy");
             if (idx1 != -1) {
@@ -63,7 +69,8 @@ class AdfFileRunner extends AbstractRunner {
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {
-        if (getContentAsString().contains("that link has been deleted")) {
+        if (getContentAsString().contains("that link has been deleted") ||
+                getContentAsString().contains("This AdF.ly account has been suspended")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
     }

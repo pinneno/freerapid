@@ -17,7 +17,7 @@ public class TestApp extends PluginDevApplication {
         try {
             //httpFile.setNewURL(new URL("http://bc.vc/dwRTiI"));
             httpFile.setNewURL(new URL("http://bc.vc/FdE93r"));
-
+            httpFile.setNewURL(new URL("http://bc.vc/7pSbJxk"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             final BcVcServiceImpl service = new BcVcServiceImpl();

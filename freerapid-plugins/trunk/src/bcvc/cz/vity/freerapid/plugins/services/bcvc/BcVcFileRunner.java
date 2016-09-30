@@ -30,7 +30,7 @@ class BcVcFileRunner extends AbstractRunner {
         final GetMethod method = getGetMethod(fileURL);
         if (makeRedirectedRequest(method)) {
             checkProblems();
-            final Matcher matcher = getMatcherAgainstContent("aid\\:(.*?)\\,lid\\:(.*?)\\,oid\\:(.*?)\\,ref\\: ?'(.*?)'");
+            final Matcher matcher = getMatcherAgainstContent("aid\\:(.*?)\\,\\s*lid\\:(.*?)\\,\\s*oid\\:(.*?)\\,\\s*ref\\: ?'(.*?)'");
             if (!matcher.find()) {
                 throw new PluginImplementationException("Cannot find parameters");
             }

@@ -96,7 +96,7 @@ class UpStoreFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
-
+            fileURL = method.getURI().getURI();
             final HttpMethod pMethod = getMethodBuilder()
                     .setActionFromFormWhereTagContains("Slow", true)
                     .setReferer(fileURL).setAction(fileURL)
