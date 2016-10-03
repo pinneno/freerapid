@@ -112,6 +112,7 @@ class FaceBookFileRunner extends AbstractRunner {
                     }
                 }
                 if (!succeed) {
+                    logger.warning(content);
                     checkProblems();
                     throw new ServiceConnectionProblemException("Error starting download");
                 }

@@ -61,6 +61,11 @@ class ItvFileRunner extends AbstractRtmpRunner {
         matcher = getMatcherAgainstContent("\"episode-info__series\">Series (\\d+) [^<>]*?Episode (\\d+)");
         if (matcher.find()) {
             name = String.format("%s - S%02dE%02d", name, Integer.parseInt(matcher.group(1)), Integer.parseInt(matcher.group(2)));
+        } else {
+            matcher = getMatcherAgainstContent("data-video-episode=['\"]Series (\\d+) [^'\"]*?Episode (\\d+)");
+            if (matcher.find()) {
+                name = String.format("%s - S%02dE%02d", name, Integer.parseInt(matcher.group(1)), Integer.parseInt(matcher.group(2)));
+            }
         }
         httpFile.setFileName(name + ".flv");
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
@@ -108,7 +113,7 @@ class ItvFileRunner extends AbstractRtmpRunner {
             throw new URLNotAvailableAnymoreException("File not found");
         }
         if (getContentAsString().contains("InvalidGeoRegion")) {
-            throw new NotRecoverableDownloadException("UK Tor Exit Node blocked; try again via \"Cancel & Resume\"");
+            throw new NotRecoverableDownloadException("This video is not available in your area");
         }
     }
 

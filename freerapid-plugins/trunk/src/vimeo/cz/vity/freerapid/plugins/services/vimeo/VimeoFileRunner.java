@@ -54,8 +54,12 @@ class VimeoFileRunner extends AbstractRunner {
     }
 
     private void checkUrl() {
-        fileURL = fileURL.replaceFirst("://player.vimeo", "://vimeo");
-        fileURL = fileURL.replaceFirst("/video/", "/");
+        fileURL = fileURL.replaceFirst("://player.vimeo", "://vimeo").replaceFirst("/video/", "/").replaceFirst("http://", "https://");
+    }
+
+    @Override
+    protected String getBaseURL() {
+        return "https://vimeo.com";
     }
 
     private void checkNameAndSize() throws ErrorDuringDownloadingException {
@@ -170,7 +174,7 @@ class VimeoFileRunner extends AbstractRunner {
         }
 
         if (videoList.isEmpty()) {
-            throw new PluginImplementationException("Quality list is empty");
+            throw new PluginImplementationException("No available videos");
         }
         return Collections.min(videoList);
     }
@@ -198,15 +202,13 @@ class VimeoFileRunner extends AbstractRunner {
                 throw new PluginImplementationException("Error parsing 'download config' content", e);
             }
             JsonNode sourceFileNode = rootNode.findPath("source_file");
-            if (sourceFileNode == null) {
-                throw new PluginImplementationException("Error parsing 'download config' content (2)");
+            if (sourceFileNode != null) {
+                String extension = sourceFileNode.findPath("extension").getTextValue();
+                String downloadUrl = sourceFileNode.findPath("download_url").getTextValue();
+                if (downloadUrl != null) {
+                    return new VimeoVideo(VideoQuality.Original.getQuality(), downloadUrl, extension == null ? ".mp4" : "." + extension.toLowerCase(Locale.ENGLISH));
+                }
             }
-            String extension = sourceFileNode.findPath("extension").getTextValue();
-            String downloadUrl = sourceFileNode.findPath("download_url").getTextValue();
-            if (downloadUrl == null) {
-                throw new PluginImplementationException("Error parsing 'download config' content (3)");
-            }
-            return new VimeoVideo(VideoQuality.Original.getQuality(), downloadUrl, extension == null ? ".mp4" : "." + extension.toLowerCase(Locale.ENGLISH));
         } catch (Exception e) {
             logger.warning("Error getting original video");
             LogUtils.processException(logger, e);
@@ -223,12 +225,16 @@ class VimeoFileRunner extends AbstractRunner {
     }
 
     private boolean isPasswordProtected() {
-        return getContentAsString().contains("please provide the correct password");
+        return getContentAsString().contains("please provide the correct password") || getContentAsString().contains("id=\"pw_form\"");
     }
 
     private void stepPassword() throws Exception {
         while (isPasswordProtected()) {
-            final String xsrft = PlugUtils.getStringBetween(getContentAsString(), "xsrft: '", "'");
+            Matcher matcher = getMatcherAgainstContent("\"?xsrft\"?\\s*?:\\s*?['\"]([^'\"]+)['\"]");
+            if (!matcher.find()) {
+                throw new PluginImplementationException("Password token not found");
+            }
+            final String xsrft = matcher.group(1);
             final String password = getDialogSupport().askForPassword("Vimeo");
             if (password == null) {
                 throw new NotRecoverableDownloadException("This file is secured with a password");
