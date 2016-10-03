@@ -10,7 +10,6 @@ import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Class which contains main code
@@ -53,15 +52,7 @@ class SolidFilesFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);
-            String name = httpFile.getFileName();
-            name = getMethodBuilder().setAction(name).getEscapedURI().replace(getBaseURL(), "");
-            if (name.contains(" "))
-                name = name.substring(name.lastIndexOf(" ") +1);
-            final Matcher match = PlugUtils.matcher("<a[^<>]*href=[\"']?(http[^\"']+?" + Pattern.quote(name) + ")[ \"'][^<>]*>\\s*Download", contentAsString);
-            if (!match.find()) {
-                throw new PluginImplementationException("Download link not found");
-            }
-            final HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setAction(match.group(1)).toGetMethod();
+            final HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setActionFromTextBetween("download_url\":\"", "\"}").toGetMethod();
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
