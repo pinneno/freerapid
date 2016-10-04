@@ -51,22 +51,35 @@ class StreaminFileRunner extends AbstractRtmpRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
-            final HttpMethod aMethod = getMethodBuilder().setReferer(fileURL)
+            HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL)
                     .setActionFromFormWhereTagContains("download", true)
                     .setAction(fileURL).toPostMethod();
             final Matcher match = PlugUtils.matcher("Wait\\s*?<.+?>(\\d+?)<", getContentAsString());
             if (match.find())
                 downloadTask.sleep(1 + Integer.parseInt(match.group(1)));
-            if (!makeRedirectedRequest(aMethod)) {
+            if (!makeRedirectedRequest(httpMethod)) {
                 checkProblems();
                 throw new ServiceConnectionProblemException();
             }
             checkProblems();
-            final String streamer = PlugUtils.getStringBetween(getContentAsString(), "streamer: \"", "\"");
-            final String file = PlugUtils.getStringBetween(getContentAsString(), "file: \"", "\"");
-            final String playName = ((file.contains(".mp4") && !file.startsWith("mp4:")) ? "mp4:" + file : file);
-            final RtmpSession rtmpSession = new RtmpSession(streamer, playName);
-            tryDownloadAndSaveFile(rtmpSession);
+            if (getContentAsString().contains("streamer: \"")) {
+                final String streamer = PlugUtils.getStringBetween(getContentAsString(), "streamer: \"", "\"");
+                final String file = PlugUtils.getStringBetween(getContentAsString(), "file: \"", "\"");
+                final String playName = ((file.contains(".mp4") && !file.startsWith("mp4:")) ? "mp4:" + file : file);
+                final RtmpSession rtmpSession = new RtmpSession(streamer, playName);
+                tryDownloadAndSaveFile(rtmpSession);
+            } else {
+                final String file = PlugUtils.getStringBetween(getContentAsString(), "file: \"", "\"");
+                httpMethod = getMethodBuilder()
+                        .setReferer(fileURL)
+                        .setAction(file)
+                        .toGetMethod();
+                if (!tryDownloadAndSaveFile(httpMethod)) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException("Error starting download");
+                }
+            }
+
         } else {
             checkProblems();
             throw new ServiceConnectionProblemException();
