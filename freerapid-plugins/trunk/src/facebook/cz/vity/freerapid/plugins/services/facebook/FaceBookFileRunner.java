@@ -60,9 +60,8 @@ class FaceBookFileRunner extends AbstractRunner {
                 if (getContentAsString().contains("\"status\":\"invalid\"")) {
                     throw new URLNotAvailableAnymoreException("This video either has been removed or is not visible due to privacy settings");
                 }
-                //the unicode directional formatting codes confuse Matcher, so remove them
-                final String content = getContentAsString().replaceAll("[\\u202A\\u202B\\u202C]", "");
-                Matcher matcher = PlugUtils.matcher("<title id=\"pageTitle\">([^<>\\|]+)(?:\\| Facebook)?</title>", content);
+                final String content = getContentAsString();
+                Matcher matcher = PlugUtils.matcher("<title id=\"pageTitle\">(.+?)(?:\\| Facebook)?</title>", content);
                 if (!matcher.find()) {
                     throw new PluginImplementationException("File name not found");
                 }
