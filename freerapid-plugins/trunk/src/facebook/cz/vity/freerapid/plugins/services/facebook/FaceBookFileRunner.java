@@ -8,8 +8,10 @@ import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpMethod;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -76,7 +78,7 @@ class FaceBookFileRunner extends AbstractRunner {
                 while (videoDataMatcher.find()) {
                     Matcher videoIdMatcher = PlugUtils.matcher(String.format("\"?video_id\"?\\s*?:\\s*?\"%s\"", videoId), videoDataMatcher.group(1));
                     if (videoIdMatcher.find()) {
-                        videoDataContent = PlugUtils.unescapeUnicode(URLDecoder.decode(PlugUtils.unescapeUnicode(videoDataMatcher.group(1)), "UTF-8"));
+                        videoDataContent = URLDecoder.decode(unescapeUnicode(videoDataMatcher.group(1)), "UTF-8");
                         break;
                     }
                 }
@@ -221,6 +223,80 @@ class FaceBookFileRunner extends AbstractRunner {
         getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, uriList);
         httpFile.getProperties().put("removeCompleted", true);
         logger.info(String.valueOf(uriList.size()));
+    }
+
+    public String unescapeUnicode(final String str) throws PluginImplementationException, UnsupportedEncodingException {
+        final StringBuilder buf = new StringBuilder();
+        for (int i = 0, len = str.length(); i < len; i++) {
+            char c = str.charAt(i);
+            label0:
+            switch (c) {
+                case '\\':
+                    if (i == str.length() - 1) {
+                        buf.append('\\');
+                        break;
+                    }
+                    c = str.charAt(++i);
+                    switch (c) {
+                        case 'n':
+                            buf.append('\n');
+                            break label0;
+                        case 't':
+                            buf.append('\t');
+                            break label0;
+                        case 'r':
+                            buf.append('\r');
+                            break label0;
+                        case 'u':
+                            int value = 0;
+                            for (int j = 0; j < 4; j++) {
+                                c = str.charAt(++i);
+                                switch (c) {
+                                    case '0':
+                                    case '1':
+                                    case '2':
+                                    case '3':
+                                    case '4':
+                                    case '5':
+                                    case '6':
+                                    case '7':
+                                    case '8':
+                                    case '9':
+                                        value = ((value << 4) + c) - 48;
+                                        break;
+                                    case 'a':
+                                    case 'b':
+                                    case 'c':
+                                    case 'd':
+                                    case 'e':
+                                    case 'f':
+                                        value = ((value << 4) + 10 + c) - 97;
+                                        break;
+                                    case 'A':
+                                    case 'B':
+                                    case 'C':
+                                    case 'D':
+                                    case 'E':
+                                    case 'F':
+                                        value = ((value << 4) + 10 + c) - 65;
+                                        break;
+                                    default:
+                                        throw new PluginImplementationException("Malformed \\uxxxx encoding: " + str);
+                                }
+                            }
+                            buf.append(URLEncoder.encode(String.valueOf((char) value), "UTF-8"));
+                            break;
+                        default:
+                            buf.append(c);
+                            break;
+                    }
+                    break;
+                default:
+                    buf.append(c);
+                    break;
+            }
+        }
+        return buf.toString();
     }
 
 
