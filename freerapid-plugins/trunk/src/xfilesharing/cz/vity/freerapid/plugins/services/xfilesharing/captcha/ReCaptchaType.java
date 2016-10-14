@@ -20,7 +20,7 @@ import java.util.regex.Matcher;
 public class ReCaptchaType implements CaptchaType {
 
     protected String getReCaptchaKeyRegex() {
-        return "recaptcha/api/challenge\\?k=(.+?)\"|recaptcha\" data-sitekey=\"(.+?)\"";
+        return "(?:recaptcha/api/challenge\\?k=|recaptcha\" data-sitekey=\")(.+?)\"";
     }
 
     @Override
@@ -30,11 +30,12 @@ public class ReCaptchaType implements CaptchaType {
 
     @Override
     public void handleCaptcha(final MethodBuilder methodBuilder, final HttpDownloadClient client, final CaptchaSupport captchaSupport, final HttpFileDownloadTask downloadTask) throws Exception {
-        final Matcher reCaptchaKeyMatcher = PlugUtils.matcher(getReCaptchaKeyRegex(), client.getContentAsString());
+        final String content = client.getContentAsString();
+        final Matcher reCaptchaKeyMatcher = PlugUtils.matcher(getReCaptchaKeyRegex(), content);
         if (!reCaptchaKeyMatcher.find()) {
             throw new PluginImplementationException("ReCaptcha key not found");
         }
-        if (client.getContentAsString().contains("/api/challenge")) {
+        if (content.contains("/api/challenge")) {
             final String reCaptchaKey = reCaptchaKeyMatcher.group(1).trim();
             final ReCaptcha r = new ReCaptcha(reCaptchaKey, client);
             final String captcha = captchaSupport.getCaptcha(r.getImageURL());
@@ -45,7 +46,7 @@ public class ReCaptchaType implements CaptchaType {
             r.modifyResponseMethod(methodBuilder);
         }
         else {
-            final String reCaptchaKey = reCaptchaKeyMatcher.group(2).trim();
+            final String reCaptchaKey = reCaptchaKeyMatcher.group(1).trim();
             final String fileUrl = downloadTask.getDownloadFile().getFileUrl().toString();
             final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileUrl);
             r.modifyResponseMethod(methodBuilder);
