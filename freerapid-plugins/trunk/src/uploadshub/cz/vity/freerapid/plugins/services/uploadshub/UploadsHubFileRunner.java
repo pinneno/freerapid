@@ -21,6 +21,7 @@ class UploadsHubFileRunner extends XFileSharingRunner {
     @Override
     protected void correctURL() throws Exception {
         fileURL = fileURL.replaceFirst("https?://(www\\.)?uploadshub\\.com", "https://upload.so");
+        fileURL = fileURL.replaceFirst("https?://(www\\.)?upload\\.so", "https://uplod.ws");
     }
 
     @Override

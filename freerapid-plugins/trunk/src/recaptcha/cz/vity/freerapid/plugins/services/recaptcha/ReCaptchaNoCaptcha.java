@@ -119,10 +119,12 @@ public class ReCaptchaNoCaptcha {
     }
 
     public String getResponse() {
+        if (response.contains("0.0") && !response.endsWith("0.0"))
+            return response.substring(3 + response.lastIndexOf("0.0"));
         return response;
     }
 
     public MethodBuilder modifyResponseMethod(MethodBuilder methodBuilder) {
-        return methodBuilder.setParameter("g-recaptcha-response", response);
+        return methodBuilder.setParameter("g-recaptcha-response", getResponse());
     }
 }
