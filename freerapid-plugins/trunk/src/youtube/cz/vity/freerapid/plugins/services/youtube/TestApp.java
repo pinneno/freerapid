@@ -71,7 +71,8 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("https://www.youtube.com/watch?v=FOnBM0QeJNc"));
             //httpFile.setNewURL(new URL("https://www.youtube.com/watch?v=RsYQeoz_EQY"));
             //httpFile.setNewURL(new URL("https://www.youtube.com/watch?v=RsYQeoz_EQY&dashaudioitag=140"));
-            httpFile.setNewURL(new URL("https://www.youtube.com/watch?v=SrU9YDoXE88"));
+            //httpFile.setNewURL(new URL("https://www.youtube.com/watch?v=SrU9YDoXE88"));
+            httpFile.setNewURL(new URL("https://www.youtube.com/watch?v=VVjMP2DPDBo")); //age restricted
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8118); //eg we can use local proxy to sniff HTTP communication

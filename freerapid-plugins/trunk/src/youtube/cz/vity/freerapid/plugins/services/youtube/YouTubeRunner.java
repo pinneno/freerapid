@@ -954,8 +954,9 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
             }
             String embedSwfContent = YouTubeSigDecipher.readSwfStreamToString(is);
 
-            Matcher matcher = PlugUtils.matcher("swf.*?(https?://.+?\\.swf)", embedSwfContent);
+            Matcher matcher = PlugUtils.matcher("(?:swf|ssl|WEB|=).*?(https?://.+?\\.swf)", embedSwfContent);
             if (!matcher.find()) {
+                logger.warning(embedSwfContent);
                 throw new PluginImplementationException("SWF URL not found");
             }
             swfUrl = matcher.group(1).replace("cps.swf", "watch_as3.swf");
