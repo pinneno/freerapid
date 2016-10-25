@@ -41,7 +41,11 @@ public class DailymotionServiceImpl extends AbstractFileShareService {
             if (!storage.configFileExists(CONFIG_FILE)) {
                 config = new DailymotionSettingsConfig();
             } else {
-                config = storage.loadConfigFromFile(CONFIG_FILE, DailymotionSettingsConfig.class);
+                try {
+                    config = storage.loadConfigFromFile(CONFIG_FILE, DailymotionSettingsConfig.class);
+                } catch (Exception e) {
+                    config = new DailymotionSettingsConfig();
+                }
             }
         }
         return config;

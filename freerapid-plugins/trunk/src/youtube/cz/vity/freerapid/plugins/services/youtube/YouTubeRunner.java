@@ -52,6 +52,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
     @Override
     public void runCheck() throws Exception {
         super.runCheck();
+        checkUrl();
         addCookie(new Cookie(".youtube.com", "PREF", "hl=en", "/", 86400, false));
         if (isAttributionLink()) {
             processAttributionLink();
@@ -76,6 +77,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
     public void run() throws Exception {
         super.run();
         logger.info("Starting download in TASK " + fileURL);
+        checkUrl();
         addCookie(new Cookie(".youtube.com", "PREF", "hl=en", "/", 86400, false));
         setConfig();
         if (isAttributionLink()) {
@@ -324,6 +326,10 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
         }
         httpFile.setFileName(fileName);
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
+    }
+
+    private void checkUrl() {
+        fileURL = fileURL.replaceFirst("://m\\.", "://www.");
     }
 
     private void setConfig() throws Exception {
