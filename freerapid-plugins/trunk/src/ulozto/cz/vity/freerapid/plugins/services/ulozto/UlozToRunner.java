@@ -1,6 +1,7 @@
 package cz.vity.freerapid.plugins.services.ulozto;
 
 import cz.vity.freerapid.plugins.exceptions.*;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.services.ulozto_captcha.SoundReader;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadClientConsts;
@@ -59,7 +60,7 @@ class UlozToRunner extends AbstractRunner {
     }
 
     private void passwordProtectedCheck() throws Exception {
-        while (getContentAsString().contains("passwordProtected")) {
+        while (isPasswordProtected()) {
             final String password = getDialogSupport().askForPassword("Ulozto password protected file");
             if (password == null) {
                 throw new PluginImplementationException("This file is secured with a password");
@@ -76,6 +77,27 @@ class UlozToRunner extends AbstractRunner {
         }
     }
 
+    private boolean isRobotSecurityPage() {
+        return getContentAsString().contains("g-recaptcha\" data-sitekey");
+    }
+
+    private void robotSecurityCheck() throws Exception {
+        while (isRobotSecurityPage()) {
+            HttpMethod httpMethod = stepReCaptcha(getMethodBuilder().setReferer(fileURL)
+                    .setActionFromFormWhereTagContains("g-recaptcha", true)
+            ).toPostMethod();
+            if (!makeRedirectedRequest(httpMethod)) {
+                checkProblems();
+                throw new ServiceConnectionProblemException();
+            }
+        }
+        final GetMethod getMethod = getGetMethod(fileURL);  //reload fileURL page
+        if (!makeRedirectedRequest(getMethod)) {
+            checkProblems();
+            throw new ServiceConnectionProblemException();
+        }
+    }
+
     @Override
     public void runCheck() throws Exception {
         super.runCheck();
@@ -86,10 +108,12 @@ class UlozToRunner extends AbstractRunner {
         }
         final GetMethod getMethod = getGetMethod(fileURL);
         if (makeRedirectedRequest(getMethod)) {
-            checkProblems();
-            if (!isPasswordProtected()) {
-                ageCheck(getContentAsString());
-                checkNameAndSize(getContentAsString());
+            if (!isRobotSecurityPage()) {
+                checkProblems();
+                if (!isPasswordProtected()) {
+                    ageCheck(getContentAsString());
+                    checkNameAndSize(getContentAsString());
+                }
             }
         } else {
             checkProblems();
@@ -104,6 +128,7 @@ class UlozToRunner extends AbstractRunner {
         setClientParameter(DownloadClientConsts.USER_AGENT, USER_AGENT);
         final GetMethod getMethod = getGetMethod(fileURL);
         if (makeRedirectedRequest(getMethod)) {
+            robotSecurityCheck();
             checkProblems();
             fileURL = getMethod.getURI().toString(); // '/m/' folder redirected to '/soubory/'
             passwordProtectedCheck();
@@ -377,5 +402,13 @@ class UlozToRunner extends AbstractRunner {
             reader.close();
         }
         return engine;
+    }
+
+    private MethodBuilder stepReCaptcha(MethodBuilder builder) throws Exception {
+        final Matcher m = getMatcherAgainstContent("['\"]?sitekey['\"]?\\s*[:=]\\s*['\"]([^\"]+)['\"]");
+        if (!m.find()) throw new PluginImplementationException("ReCaptcha key not found");
+        final String reCaptchaKey = m.group(1);
+        final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
+        return r.modifyResponseMethod(builder);
     }
 }
