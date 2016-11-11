@@ -146,6 +146,9 @@ class UpStoreFileRunner extends AbstractRunner {
         if (content.contains("This file is available only for Premium users")) {
             throw new NotRecoverableDownloadException("File is only for Premium users"); //let to know user in FRD
         }
+        if (content.contains("you have already downloaded several files recently")) {
+            throw new YouHaveToWaitException("You should wait before downloading next file", 60*10);
+        }
         if (content.contains("already downloaded another file recently from your IP")) {
             final Matcher match = PlugUtils.matcher("Please wait (.+?)\\s(.+?) before", content);
             int wait = 300;

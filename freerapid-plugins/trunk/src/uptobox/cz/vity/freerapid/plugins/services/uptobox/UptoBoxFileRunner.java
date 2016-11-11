@@ -53,7 +53,7 @@ class UptoBoxFileRunner extends XFileSharingRunner {
             throw new NotRecoverableDownloadException(PlugUtils.getStringBetween(content, " class=\"err\">", "<br").replace("Vous ne pouvez pas t&eacute;l&eacute;charger des fichiers de taille sup&eacute;rieur &agrave", "You can not download file sizes greater than"));
         }
         try {
-            super.checkDownloadProblems(content.replaceAll("you have to wait", "You have to wait"));
+            super.checkDownloadProblems(content.replaceAll("you have to wait", "You have to wait").replaceAll("you can wait", "You have to wait"));
         } catch (PluginImplementationException x) {
             if (!x.getMessage().contains("Skipped countdown"))      // ignore error
                 throw new PluginImplementationException(x.getMessage());

@@ -99,8 +99,9 @@ class IFolderFileRunner extends AbstractRunner {
                 logger.info("Captcha URL " + s);
                 MethodBuilder builder = getMethodBuilder().setReferer("").setActionFromFormByName("form1", true);
                 try {
-                    final String interstitials_session = PlugUtils.getStringBetween(getContentAsString(), "if(tag){tag.value = \"", "\"");
-                    builder.setParameter("interstitials_session", interstitials_session).setBaseURL("http://ints.ifolder.ru/ints/frame/");
+                    final Matcher match = PlugUtils.matcher("if\\(tag\\)\\{\\s*tag.value = \"(.+?)\"", getContentAsString());
+                    if (!match.find())  throw new PluginImplementationException("interstitials_session not found");
+                    builder.setParameter("interstitials_session", match.group(1)).setBaseURL("http://ints.ifolder.ru/ints/frame/");
                 } catch (Exception e) {
                     final String hidden_code = PlugUtils.getStringBetween(getContentAsString(), "'hidden_code', '", "'];");
                     builder.setParameter("hidden_code", hidden_code.substring(2)).setAction(fileURL);
