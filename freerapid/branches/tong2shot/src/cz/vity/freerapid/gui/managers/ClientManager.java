@@ -4,6 +4,7 @@ import cz.vity.freerapid.core.AppPrefs;
 import cz.vity.freerapid.core.FWProp;
 import cz.vity.freerapid.core.UserProp;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
+import cz.vity.freerapid.plugins.webclient.ssl.EasySSLProtocolSocketFactory;
 import cz.vity.freerapid.plugins.webclient.ssl.SSLProtocolSocketFactory;
 import cz.vity.freerapid.utilities.LogUtils;
 import cz.vity.freerapid.utilities.Utils;
@@ -59,7 +60,9 @@ public class ClientManager {
     private void initSSL() {
         try {
             boolean verifyHostname = AppPrefs.getProperty(UserProp.SSL_VERIFY_HOSTNAME, UserProp.SSL_VERIFY_HOSTNAME_DEFAULT);
-            ProtocolSocketFactory sf = new SSLProtocolSocketFactory(context, verifyHostname);
+            ProtocolSocketFactory sf = (AppPrefs.getProperty(UserProp.SSL_CUSTOM_CA_CERT, UserProp.SSL_CUSTOM_CA_CERT_DEFAULT) ?
+                    new SSLProtocolSocketFactory(context, verifyHostname) :
+                    new EasySSLProtocolSocketFactory());
             Protocol p = new Protocol("https", sf, 443);
             Protocol.registerProtocol("https", p);
         } catch (Exception e) {
