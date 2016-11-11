@@ -132,10 +132,10 @@ public class ToolbarDialog extends AppDialog {
             int index = toolbarList.getSelectedIndex();
             if (index >= 0) {
                 toolbarModel.add(index, btn);
-                toolbarList.setSelectedIndex(index);
+                toolbarList.setSelectedIndex(index + 1);
             } else {
                 toolbarModel.add(toolbarModel.size()-1, btn);
-                toolbarList.setSelectedIndex(toolbarModel.size()-2);
+                toolbarList.setSelectedIndex(-1);
             }
         }
     }
@@ -300,6 +300,10 @@ public class ToolbarDialog extends AppDialog {
             {
                 buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.LINE_AXIS));
                 buttonPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+                defaultButton.setPreferredSize(new Dimension(80, 25));
+                resetButton.setPreferredSize(defaultButton.getPreferredSize());
+                okButton.setPreferredSize(defaultButton.getPreferredSize());
+                cancelButton.setPreferredSize(defaultButton.getPreferredSize());
 
                 defaultButton.setName("defaultButton");
                 resetButton.setName("resetButton");
