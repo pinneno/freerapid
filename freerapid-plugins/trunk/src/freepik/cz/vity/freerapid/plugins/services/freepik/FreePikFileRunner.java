@@ -43,7 +43,7 @@ class FreePikFileRunner extends AbstractRunner {
     }
 
     private boolean isDownloadPage(String content) {
-        Matcher match = PlugUtils.matcher("/index\\.php\\?goto.+?idfoto", content);
+        Matcher match = PlugUtils.matcher("/index\\.php\\?goto[^>\"]+?idfoto", content);
         return match.find();
     }
 
@@ -60,10 +60,10 @@ class FreePikFileRunner extends AbstractRunner {
             checkNameAndSize(content);
 
             if (isDownloadPage(content)) {
-                Matcher match = PlugUtils.matcher("<a[^>]+?href=\"(https?://(www\\.)?freepik.com/index\\.php\\?goto[^>\"]+?idfoto[^>\"]+?)\"", content);
+                Matcher match = PlugUtils.matcher("<a[^>]+?href=\"([^>\"]*/index\\.php\\?goto[^>\"]+?idfoto[^>\"]+?)\"", content);
                 if (!match.find())
                     throw new PluginImplementationException("Download link not found");
-                if (!makeRedirectedRequest(getGetMethod(match.group(1)))) {
+                if (!makeRedirectedRequest(getMethodBuilder().setReferer(fileURL).setAction(match.group(1)).toGetMethod())) {
                     checkProblems();
                     throw new ServiceConnectionProblemException();
                 }
@@ -104,17 +104,24 @@ class FreePikFileRunner extends AbstractRunner {
         }
     }
 
+    final static String loginPage = "https://profile.freepik.com/login?lang=en";
     private void doLogin() throws Exception {
         logger.info("Starting login");
         synchronized (FreePikFileRunner.class) {
             FreePikServiceImpl service = (FreePikServiceImpl) getPluginService();
             PremiumAccount pa = service.getConfig();
             if (pa.isSet()) {
+                final GetMethod getMethod = getGetMethod(loginPage);
+                if (!makeRedirectedRequest(getMethod)) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
+                }
+                checkProblems();
                 String accountsApiKey = PlugUtils.getStringBetween(getContentAsString(), "var ACCOUNTS_API_KEY = '", "';");
                 String time = "" + System.currentTimeMillis();
                 String action = "https://profile.freepik.com/request/login?o=" + accountsApiKey + "&kfc=" + time;
                 HttpMethod postMethod = getMethodBuilder().setAjax()
-                        .setReferer("https://profile.freepik.com/login?lang=en")
+                        .setReferer(loginPage)
                         .setAction(action)
                         .setParameter("username", pa.getUsername())
                         .setParameter("password", pa.getPassword())

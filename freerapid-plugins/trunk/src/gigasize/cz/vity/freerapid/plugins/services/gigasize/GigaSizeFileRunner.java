@@ -6,7 +6,6 @@ import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
 import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
-import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 
@@ -44,40 +43,28 @@ class GigaSizeFileRunner extends AbstractRunner {
     public void run() throws Exception {
         super.run();
         logger.info("Starting download in TASK " + fileURL);
-        String fileId;
-        do {
-            HttpMethod method = getGetMethod(fileURL);
-            if (!makeRedirectedRequest(method)) {
-                checkProblems();
-                throw new ServiceConnectionProblemException();
-            }
+        HttpMethod method = getGetMethod(fileURL);
+        if (!makeRedirectedRequest(method)) {
             checkProblems();
-            checkNameAndSize();
-            fileId = PlugUtils.getParameter("fileId", getContentAsString());
-            final MethodBuilder captchaBuilder = getMethodBuilder().setActionFromFormByName("downloadForm", true);
-            method = getMethodBuilder().setActionFromIFrameSrcWhereTagContains("adscaptcha").toGetMethod();
-            if (!makeRedirectedRequest(method)) {
-                checkProblems();
-                throw new ServiceConnectionProblemException();
-            }
-            final String captchaUrl = getMethodBuilder().setActionFromImgSrcWhereTagContains("AdsCaptcha Challenge").getEscapedURI();
-            final String challenge = PlugUtils.getStringBetween(getContentAsString(), "<td class=\"code\">", "</td>");
-            final String captcha = getCaptchaSupport().getCaptcha(captchaUrl);
-            method = captchaBuilder.setParameter("adscaptcha_response_field", captcha).setParameter("adscaptcha_challenge_field", challenge).toPostMethod();
-            if (!makeRedirectedRequest(method)) {
-                checkProblems();
-                throw new ServiceConnectionProblemException();
-            }
-        } while (!PlugUtils.find("\"status\"\\s*:\\s*1", getContentAsString()));
+            throw new ServiceConnectionProblemException();
+        }
+        checkProblems();
+        checkNameAndSize();
 
+        String fileId = PlugUtils.getParameter("fileId", getContentAsString());
+        method = getMethodBuilder().setReferer(fileURL).setAction("/getoken").setParameter("fileId", fileId).toPostMethod();
+        if (!makeRedirectedRequest(method)) {
+            checkProblems();
+            throw new ServiceConnectionProblemException();
+        }
         downloadTask.sleep(31);
-        HttpMethod method = getMethodBuilder().setReferer(fileURL).setAction("/formtoken").toGetMethod();
+        method = getMethodBuilder().setReferer(fileURL).setAction("/formtoken").toGetMethod();
         if (!makeRedirectedRequest(method)) {
             checkProblems();
             throw new ServiceConnectionProblemException();
         }
         final String token = getContentAsString().trim();
-        method = getMethodBuilder().setReferer(fileURL).setAction("/getoken").setParameter("fileId", fileId).setParameter("token", token).setParameter("rnd", String.valueOf(System.nanoTime())).toPostMethod();
+        method = getMethodBuilder().setReferer(fileURL).setAction("/getoken").setParameter("fileId", fileId).setParameter("token", token).toPostMethod();
         if (!makeRedirectedRequest(method)) {
             checkProblems();
             throw new ServiceConnectionProblemException();
