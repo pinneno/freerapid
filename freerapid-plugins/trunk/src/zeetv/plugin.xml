@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
 <plugin class="cz.vity.freerapid.plugins.services.zeetv.ZeeTvServiceImpl"
-        id="zeetv.com" vendor="tong2shot" version="1.0.0">
+        id="zeetv.com" vendor="tong2shot" version="1.1.0">
     <attributes>
-        <attribute id="urlRegex" value="https?://(www\.)?zeetv\.com/shows/.+"/>
+        <attribute id="urlRegex" value="https?://(www\.)?(zeetv|ozee)\.com/shows/.+"/>
         <attribute id="minver" value="0.855"/>
         <attribute id="maxver" value="0.899"/>
-        <attribute id="services" value="zeetv.com"/>
+        <attribute id="services" value="zeetv.com ozee.com"/>
         <attribute id="maxDownloads" value="10"/>
         <attribute id="hasOptions" value="true"/>
         <attribute id="faviconImage" value="resources/favicon.png"/>

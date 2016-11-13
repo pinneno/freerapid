@@ -16,7 +16,8 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile();
         try {
             //httpFile.setNewURL(new URL("http://www.zeetv.com/shows/kumkum-bhagya/video/kumkum-bhagya-episode-216-february-6-2015-full-episode.html"));
-            httpFile.setNewURL(new URL("http://www.zeetv.com/shows/sa-re-ga-ma-pa-lil-champs-season-5/videos/sa-re-ga-ma-pa-lil-champs-5-episode-11-january-31-2015-full-episode.html"));
+            //httpFile.setNewURL(new URL("http://www.zeetv.com/shows/sa-re-ga-ma-pa-lil-champs-season-5/videos/sa-re-ga-ma-pa-lil-champs-5-episode-11-january-31-2015-full-episode.html"));
+            httpFile.setNewURL(new URL("http://www.ozee.com/shows/agar-tum-saath-ho/video/agar-tum-saath-ho-episode-1-october-3-2016-full-episode.html"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             final ZeeTvServiceImpl service = new ZeeTvServiceImpl();
