@@ -6,6 +6,7 @@ import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
+import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.util.logging.Logger;
@@ -49,7 +50,10 @@ class RedTubeFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);
-            if (!tryDownloadAndSaveFile(getGetMethod(PlugUtils.getStringBetween(contentAsString, "<source src=\"", "\" type")))) {
+            String downloadUrl = PlugUtils.getStringBetween(contentAsString, "<source src=\"", "\" type").replaceFirst("^//", "http://");
+            downloadUrl = (downloadUrl.startsWith("http://") ? "" : "http://") + downloadUrl;
+            HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setAction(downloadUrl).toGetMethod();
+            if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
             }

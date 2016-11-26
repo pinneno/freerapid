@@ -10,7 +10,6 @@ import org.apache.commons.httpclient.HttpMethod;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -78,7 +77,7 @@ class FaceBookFileRunner extends AbstractRunner {
                 while (videoDataMatcher.find()) {
                     Matcher videoIdMatcher = PlugUtils.matcher(String.format("\"?video_id\"?\\s*?:\\s*?\"%s\"", videoId), videoDataMatcher.group(1));
                     if (videoIdMatcher.find()) {
-                        videoDataContent = URLDecoder.decode(unescapeUnicode(videoDataMatcher.group(1)), "UTF-8");
+                        videoDataContent = unescapeUnicode(videoDataMatcher.group(1));
                         break;
                     }
                 }
@@ -225,7 +224,7 @@ class FaceBookFileRunner extends AbstractRunner {
         logger.info(String.valueOf(uriList.size()));
     }
 
-    public String unescapeUnicode(final String str) throws PluginImplementationException, UnsupportedEncodingException {
+    private String unescapeUnicode(final String str) throws PluginImplementationException, UnsupportedEncodingException {
         final StringBuilder buf = new StringBuilder();
         for (int i = 0, len = str.length(); i < len; i++) {
             char c = str.charAt(i);
