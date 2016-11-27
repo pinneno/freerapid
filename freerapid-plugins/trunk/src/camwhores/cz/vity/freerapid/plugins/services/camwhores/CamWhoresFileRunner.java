@@ -73,6 +73,9 @@ class CamWhoresFileRunner extends AbstractRunner {
         if (contentAsString.contains("requested URL was not found")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
+        if (contentAsString.contains("You are not allowed to watch this video")) {
+            throw new NotRecoverableDownloadException("You are not allowed to watch this video");
+        }
     }
 
 }

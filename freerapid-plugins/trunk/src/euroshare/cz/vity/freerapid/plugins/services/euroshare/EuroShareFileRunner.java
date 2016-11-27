@@ -114,6 +114,9 @@ class EuroShareFileRunner extends AbstractRunner {
         if (contentAsString.contains("Server overloaded. Use PREMIUM downloading")) {
             throw new YouHaveToWaitException("Server overloaded. Use PREMIUM downloading", 300); //let to know user in FRD
         }
+        if (contentAsString.contains(" All download slots are taken")) {
+            throw new YouHaveToWaitException("All download slots are taken", 300);
+        }
         if (contentAsString.contains("Z Vasej IP uz prebieha stahovanie") ||
                 contentAsString.contains("Ako free uzivatel mozete stahovat iba jeden subor")) {
             throw new ServiceConnectionProblemException("Free users can only download one file at a time"); //let to know user in FRD

@@ -17,6 +17,7 @@ public class TestApp extends PluginDevApplication {
         try {
             //we set file URL
             httpFile.setNewURL(new URL("http://www.camwhores.tv/videos/28406/thekittykatbar-webcam-show-2015-november-21-11-46/"));
+            httpFile.setNewURL(new URL("http://www.camwhores.tv/videos/45507/cherrycrush-ashleyvex-creamy-kitty-in-private-premium-video/"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
