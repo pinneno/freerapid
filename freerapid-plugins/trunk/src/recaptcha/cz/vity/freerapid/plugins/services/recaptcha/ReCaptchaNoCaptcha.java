@@ -3,6 +3,7 @@ package cz.vity.freerapid.plugins.services.recaptcha;
 import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
+import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import cz.vity.freerapid.utilities.LogUtils;
 import cz.vity.freerapid.utilities.Utils;
 
@@ -13,12 +14,14 @@ import java.io.IOException;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 
 /**
  * @author tong2shot
  */
 public class ReCaptchaNoCaptcha {
     private final static Logger logger = Logger.getLogger(ReCaptchaNoCaptcha.class.getName());
+    private final static String CAPTCHA_TOKEN_SIGN = "SLIMERJSRECAPTCHANOCAPTCHAFRD";
 
     private final String response;
     private final String publicKey;
@@ -60,7 +63,7 @@ public class ReCaptchaNoCaptcha {
         String jsContent =
                 "var page = require(\"webpage\").create();\n" +
                         "page.onAlert = function(text) {\n" +
-                        "    console.log(text);\n" +
+                        "    console.log('SLIMERJSRECAPTCHANOCAPTCHAFRD'+text+'SLIMERJSRECAPTCHANOCAPTCHAFRD');\n" +
                         "    page.close();\n" +
                         "    slimer.exit();\n" +
                         "}\n" +
@@ -92,7 +95,7 @@ public class ReCaptchaNoCaptcha {
             final Process process = processBuilder.start();
             scanner = new Scanner(process.getInputStream());
             StringBuilder builder = new StringBuilder();
-            final String s;
+            String s;
             while (scanner.hasNext()) {
                 builder.append(scanner.next());
             }
@@ -103,6 +106,11 @@ public class ReCaptchaNoCaptcha {
             process.waitFor();
             if (process.exitValue() != 0)
                 throw new IOException("SlimerJS process exited abnormally");
+            Matcher matcher = PlugUtils.matcher(CAPTCHA_TOKEN_SIGN + "(.+?)" + CAPTCHA_TOKEN_SIGN, s);
+            if (!matcher.find())
+                throw new IOException("ReCaptcha (SlimerJS) challenge not found");
+            s = matcher.group(1);
+            logger.info(s);
             return s;
         } catch (Exception e) {
             LogUtils.processException(logger, e);
