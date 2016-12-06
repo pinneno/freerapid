@@ -160,7 +160,7 @@ public class TurboBitFileRunner extends AbstractRunner {
     }
 
     private HttpMethod stepCaptcha(final String action) throws Exception {
-        if (getContentAsString().contains("recaptcha")) {
+        if (getContentAsString().contains("recaptcha") && getContentAsString().contains("data-sitekey")) {
             logger.info("Handling ReCaptcha");
             final Matcher m = getMatcherAgainstContent("data-sitekey=\"([^\"]+)\"");
             if (!m.find()) throw new PluginImplementationException("ReCaptcha key not found");
