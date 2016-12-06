@@ -3,6 +3,7 @@ package cz.vity.freerapid.plugins.services.filejoker;
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileNameHandler;
+import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.hoster.PremiumAccount;
 import cz.vity.freerapid.plugins.webclient.interfaces.HttpFile;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
@@ -55,6 +56,9 @@ class FileJokerFileRunner extends XFileSharingRunner {
         if (match.find()) {
             throw new NotRecoverableDownloadException("This file is only available to premium users");
         }
+        if (content.contains("No free download slots are available at this time")) {
+            throw new YouHaveToWaitException("No free download slots are available at this time", 300);
+        }
         if (content.contains("until the next download")) {
             final Matcher matcher = getMatcherAgainstContent("(?:(\\d+) hours? )?(?:(\\d+) minutes? )?(?:(\\d+) seconds?)");
             int waitHours = 0, waitMinutes = 0, waitSeconds = 0;
@@ -70,6 +74,21 @@ class FileJokerFileRunner extends XFileSharingRunner {
             final int waitTime = (waitHours * 60 * 60) + (waitMinutes * 60) + waitSeconds;
             throw new YouHaveToWaitException("You have to wait " + matcher.group(), waitTime);
         }
+    }
+
+    @Override
+    protected int getWaitTime() throws Exception {
+        final Matcher matcher = getMatcherAgainstContent("<span[^>]*id=\"count\"[^>]*>[^\\d]*(\\d+).*</span>");
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1)) + 1;
+        }
+        return 0;
+    }
+
+    @Override
+    protected boolean stepCaptcha(final MethodBuilder methodBuilder) throws Exception {
+        super.stepCaptcha(methodBuilder);
+        return false;
     }
 
     @Override

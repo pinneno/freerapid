@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.sh;
+package cz.vity.freerapid.plugins.services.imgtrex;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -8,7 +8,7 @@ import org.jdesktop.application.Application;
 import java.net.URL;
 
 /**
- * @author CrazyCoder
+ * @author birchie
  */
 public class TestApp extends PluginDevApplication {
     @Override
@@ -16,13 +16,12 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://sh.st/wETie"));
-            httpFile.setNewURL(new URL("http://viid.me/qwGA1k"));
+            httpFile.setNewURL(new URL("http://imgtrex.com/ckuk4547henj/aly_pres_(4).jpg"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
-            final ShServiceImpl service = new ShServiceImpl(); //instance of service - of our plugin
+            final ImgTrexServiceImpl service = new ImgTrexServiceImpl(); //instance of service - of our plugin
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console

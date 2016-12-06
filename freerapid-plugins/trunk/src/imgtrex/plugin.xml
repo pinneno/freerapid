@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
-<plugin class="cz.vity.freerapid.plugins.services.flashx.FlashXServiceImpl"
-        id="flashx.tv" vendor="ntoskrnl+birchie" version="1.3.2">
+<plugin class="cz.vity.freerapid.plugins.services.imgtrex.ImgTrexServiceImpl"
+        id="imgtrex.com" vendor="birchie" version="1.0.0">
     <attributes>
-        <attribute id="urlRegex" value="https?://(www\.)?flashx\.(tv|pw)/.+"/>
+        <attribute id="urlRegex" value="https?://(www\.)?imgtrex\.com/.+"/>
         <attribute id="minver" value="0.855"/>
         <attribute id="maxver" value="0.899"/>
-        <attribute id="services" value="flashx.tv flashx.pw"/>
+        <attribute id="services" value="imgtrex.com"/>
         <attribute id="maxDownloads" value="10"/>
-        <attribute id="hasOptions" value="true"/>
         <attribute id="faviconImage" value="resources/favicon.png"/>
     </attributes>
 
     <runtime>
-        <library id="flashx.tv" path="/" type="code"/>
+        <library id="imgtrex.com" path="/" type="code"/>
     </runtime>
 </plugin>

@@ -65,7 +65,20 @@ class FlashXFileRunner extends AbstractRunner {
             checkNameAndSize(contentAsString);//extract file name and size from the page
             setConfig();
             final String quality = config.toString();
-            logger.info("Preferred Quality : " + quality);
+            String qualityTag;
+            switch (config.getVideoQuality().ordinal()) {
+                case 0 :
+                    qualityTag = "Low";
+                    break;
+                case 2 :
+                    qualityTag = "High";
+                    break;
+                case 1 :
+                default :
+                    qualityTag = "Middle";
+                    break;
+            }
+            logger.info("Preferred Quality : " + quality + " (" + qualityTag + ")");
 
             final HttpMethod aMethod = getMethodBuilder().setReferer(fileURL)
                     .setActionFromFormWhereTagContains("download", true)
@@ -87,7 +100,7 @@ class FlashXFileRunner extends AbstractRunner {
                 jsText = getContentAsString();
             }
 
-            final Matcher matcher = PlugUtils.matcher("file:\"([^\"]+?)\",label:\"" + quality, jsText);
+            final Matcher matcher = PlugUtils.matcher("file:\"([^\"]+?)\",label:\"" + qualityTag, jsText);
             if (!matcher.find())
                 throw new PluginImplementationException("Video for preferred quality not found");
             HttpMethod httpMethod = getGetMethod(matcher.group(1).trim());
@@ -111,11 +124,11 @@ class FlashXFileRunner extends AbstractRunner {
     }
 
     private void checkURL() {
-        fileURL = fileURL.replaceFirst("flashx\\.tv", "flashx.pw");
+        fileURL = fileURL.replaceFirst("http://", "https://");
     }
 
     protected String unPackJavaScript() throws ErrorDuringDownloadingException {
-        final Matcher jsMatcher = getMatcherAgainstContent("<script type='text/javascript'>\\s*?(" + Pattern.quote("eval(function(p,a,c,k,e,d)") + ".+?)\\s*?</script>");
+        final Matcher jsMatcher = getMatcherAgainstContent("<script type=['\"]text/javascript['\"]>\\s*?(" + Pattern.quote("eval(function(p,a,c,k,e,d)") + ".+?)\\s*?</script>");
         String jsString = null;
         while (jsMatcher.find()) {
             jsString = jsMatcher.group(1).substring(4);

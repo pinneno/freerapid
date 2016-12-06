@@ -57,7 +57,7 @@ class EuroShareFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
-            final Matcher match = PlugUtils.matcher("<a[^<>]*?href=\"(.+?)\"[^<>]*?>STIAHNUŤ</a>", contentAsString);
+            final Matcher match = PlugUtils.matcher("<a[^<>]*?href=\"(.+?)\"[^<>]*?>STIAHNU", contentAsString);
             if (!match.find())
                 throw new PluginImplementationException("Download link not found");
             final HttpMethod httpMethod = getGetMethod(PlugUtils.unescapeHtml(match.group(1).trim()));
