@@ -74,7 +74,7 @@ public class HlsDownloader {
 
         client.getHTTPClient().getParams().setBooleanParameter(DownloadClientConsts.NO_CONTENT_LENGTH_AVAILABLE, true);
 
-        final SegmentRequester requester = getFragmentRequester(hlsPlaylist.getMediaList());
+        final SegmentRequester requester = getFragmentRequester(hlsPlaylist.getMediaList(), hlsPlaylist.getCrypto());
         InputStream in = new HlsInputStream(requester);
         try {
             downloadTask.saveToFile(in);
@@ -87,8 +87,8 @@ public class HlsDownloader {
         return Collections.max(mediaList);
     }
 
-    protected SegmentRequester getFragmentRequester(List<HlsMedia> mediaList) {
-        return new SegmentRequester(httpFile, client, mediaList);
+    protected SegmentRequester getFragmentRequester(List<HlsMedia> mediaList, Crypto crypto) {
+        return new SegmentRequester(httpFile, client, mediaList, crypto);
     }
 
 }

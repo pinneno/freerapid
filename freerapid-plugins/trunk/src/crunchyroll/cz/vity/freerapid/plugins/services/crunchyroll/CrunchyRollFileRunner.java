@@ -1,6 +1,7 @@
 package cz.vity.freerapid.plugins.services.crunchyroll;
 
 import cz.vity.freerapid.plugins.exceptions.*;
+import cz.vity.freerapid.plugins.services.applehls.HlsDownloader;
 import cz.vity.freerapid.plugins.services.rtmp.AbstractRtmpRunner;
 import cz.vity.freerapid.plugins.services.rtmp.RtmpSession;
 import cz.vity.freerapid.plugins.services.rtmp.SwfVerificationHelper;
@@ -74,7 +75,12 @@ class CrunchyRollFileRunner extends AbstractRtmpRunner {
 
             logger.info("Config settings : " + config);
             logger.info("Selected video : " + selectedQualityUrl);
-            final String loaderSwfUrl = PlugUtils.getStringBetween(getContentAsString(), ".embedSWF(\"", "\"").replace("\\/", "/");
+            String loaderSwfUrl = null;
+            try {
+                loaderSwfUrl = PlugUtils.getStringBetween(getContentAsString(), ".embedSWF(\"", "\"").replace("\\/", "/");
+            } catch (PluginImplementationException e) {
+                //
+            }
             final String configUrl = URLDecoder.decode(PlugUtils.getStringBetween(getContentAsString(), "\"config_url\":\"", "\""), "UTF-8");
             method = getMethodBuilder().setReferer(null).setAction(configUrl).setParameter("current_page", fileURL).toPostMethod();
             if (!makeRedirectedRequest(method)) {
@@ -83,21 +89,35 @@ class CrunchyRollFileRunner extends AbstractRtmpRunner {
             }
             checkProblems();
 
-            final String host = PlugUtils.replaceEntities(PlugUtils.getStringBetween(getContentAsString(), "<host>", "</host>"));
-            final String file = PlugUtils.replaceEntities(PlugUtils.getStringBetween(getContentAsString(), "<file>", "</file>"));
-            final String playerSwfUrl = PlugUtils.replaceEntities(PlugUtils.getStringBetween(getContentAsString(), "<default:chromelessPlayerUrl>", "</default:chromelessPlayerUrl>"));
-            final String swfUrl;
+            String host = null;
             try {
-                swfUrl = new URI(loaderSwfUrl).resolve(new URI(playerSwfUrl)).toString();
-            } catch (final URISyntaxException e) {
-                throw new PluginImplementationException("Invalid SWF URL", e);
+                host = PlugUtils.replaceEntities(PlugUtils.getStringBetween(getContentAsString(), "<host>", "</host>"));
+            } catch (PluginImplementationException e) {
+                //
             }
+            final String file = PlugUtils.replaceEntities(PlugUtils.getStringBetween(getContentAsString(), "<file>", "</file>"));
             if (config.isDownloadSubtitle()) {
                 new SubtitleDownloader().downloadSubtitle(httpFile, getContentAsString());
             }
-            final RtmpSession rtmpSession = new RtmpSession(host, file);
-            setSwfVerification(rtmpSession, swfUrl);
-            tryDownloadAndSaveFile(rtmpSession);
+            if (host == null && file.contains(".m3u8")) {
+                httpFile.setFileName(httpFile.getFileName().replaceFirst("\\..{3,4}$", ".ts"));
+                HlsDownloader downloader = new HlsDownloader(client, httpFile, downloadTask);
+                downloader.tryDownloadAndSaveFile(file);
+            } else {
+                if (host == null || loaderSwfUrl == null) {
+                    throw new PluginImplementationException("Invalid RTMP url");
+                }
+                final String playerSwfUrl = PlugUtils.replaceEntities(PlugUtils.getStringBetween(getContentAsString(), "<default:chromelessPlayerUrl>", "</default:chromelessPlayerUrl>"));
+                final String swfUrl;
+                try {
+                    swfUrl = new URI(loaderSwfUrl).resolve(new URI(playerSwfUrl)).toString();
+                } catch (final URISyntaxException e) {
+                    throw new PluginImplementationException("Invalid SWF URL", e);
+                }
+                final RtmpSession rtmpSession = new RtmpSession(host, file);
+                setSwfVerification(rtmpSession, swfUrl);
+                tryDownloadAndSaveFile(rtmpSession);
+            }
         } else {
             checkProblems();
             throw new ServiceConnectionProblemException();

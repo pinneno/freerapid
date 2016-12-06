@@ -21,13 +21,15 @@ public class SegmentRequester {
     protected final HttpFile httpFile;
     protected final HttpDownloadClient client;
     protected final List<HlsMedia> mediaList;
+    protected final Crypto crypto;
     private int currentSegment;
     private long totalSegmentsSize;
 
-    public SegmentRequester(final HttpFile httpFile, final HttpDownloadClient client, final List<HlsMedia> mediaList) {
+    public SegmentRequester(final HttpFile httpFile, final HttpDownloadClient client, final List<HlsMedia> mediaList, final Crypto crypto) {
         this.httpFile = httpFile;
         this.client = client;
         this.mediaList = mediaList;
+        this.crypto = crypto;
         Long segmentLastPos = (Long) httpFile.getProperties().get(HlsConsts.SEGMENT_LAST_POST);
         this.totalSegmentsSize = (segmentLastPos == null ? 0 : segmentLastPos);
         Integer currentSegment = (Integer) httpFile.getProperties().get(HlsConsts.CURRENT_SEGMENT);
@@ -70,6 +72,9 @@ public class SegmentRequester {
         if (in == null) {
             throw new IOException("Failed to request segment " + currentSegment);
         }
+        if (crypto != null && crypto.hasKey()) {
+            in = crypto.wrapInputStream(in);
+        }
 
         final Header header = method.getResponseHeader("Content-Length");
         if (header != null) {
@@ -89,7 +94,7 @@ public class SegmentRequester {
         client.getHTTPClient().executeMethod(method);
     }
 
-    public InputStream makeRequestForFile(HttpMethod method) throws IOException {
+    private InputStream makeRequestForFile(HttpMethod method) throws IOException {
         processHttpMethod(method);
         int statuscode = method.getStatusCode();
         if (statuscode == HttpStatus.SC_OK) {

@@ -22,16 +22,18 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://www.crunchyroll.com/naruto-shippuden/episode-233-narutos-imposter-585248"));
             //httpFile.setNewURL(new URL("http://www.crunchyroll.com/jojos-bizarre-adventure/episode-8-the-devil-652591"));
             //httpFile.setNewURL(new URL("http://www.crunchyroll.com/food-wars-shokugeki-no-soma/episode-1-what-fills-the-box-715209"));
-            httpFile.setNewURL(new URL("http://www.crunchyroll.com/food-wars-shokugeki-no-soma/episode-1-what-fills-the-box-715209?ssid=208205"));
+            //httpFile.setNewURL(new URL("http://www.crunchyroll.com/food-wars-shokugeki-no-soma/episode-1-what-fills-the-box-715209?ssid=208205"));
+            httpFile.setNewURL(new URL("http://www.crunchyroll.com/jojos-bizarre-adventure/episode-1-dio-the-invader-652081"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
-            //connectionSettings.setProxy("localhost", 9050, Proxy.Type.SOCKS); //eg we can use local proxy to sniff HTTP communication
+            connectionSettings.setProxy("localhost", 8120); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
             final CrunchyRollServiceImpl service = new CrunchyRollServiceImpl(); //instance of service - of our plugin
             SettingsConfig config = new SettingsConfig();
             config.setVideoQuality(VideoQuality._360);
-            config.setDownloadSubtitle(true);
+            config.setDownloadSubtitle(false);
             service.setConfig(config);
+            setUseTempFiles(true);
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console

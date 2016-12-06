@@ -26,6 +26,7 @@ class HlsPlaylist {
 
     private final List<HlsMedia> mediaList;
     private final boolean master;
+    private Crypto crypto;
 
     public HlsPlaylist(final HttpDownloadClient client, final String playlistUrl, final boolean master, final int bandwidth, final int quality) throws IOException {
         try {
@@ -56,6 +57,7 @@ class HlsPlaylist {
         final String content = client.getContentAsString();
         final Scanner scanner = new Scanner(content);
         final List<HlsMedia> mediaList = new ArrayList<HlsMedia>();
+        crypto = new Crypto(getBaseUrl(playlistUrl));
         Matcher matcher;
         while (scanner.hasNext()) {
             String line = scanner.nextLine();
@@ -82,6 +84,11 @@ class HlsPlaylist {
                     mediaList.add(new HlsMedia(getUrl(playlistUrl, line), bandwidth, quality));
                 }
             } else { //segments playlist
+                if ((line.length() > 0) && line.contains("#EXT-X-KEY")) {
+                    crypto.updateKeyString(line);
+                    logger.info("Current key: " + crypto.getCurrentKey());
+                    logger.info("Current IV: " + crypto.getCurrentIV());
+                }
                 if ((line.length() > 0) && (!line.startsWith("#"))) {
                     mediaList.add(new HlsMedia(getUrl(playlistUrl, line), bandwidth, quality));
                 }
@@ -101,12 +108,21 @@ class HlsPlaylist {
         return ret;
     }
 
+    private String getBaseUrl(String urlString) {
+        int index = urlString.lastIndexOf('/');
+        return urlString.substring(0, ++index);
+    }
+
     public boolean isMaster() {
         return master;
     }
 
     public List<HlsMedia> getMediaList() {
         return mediaList;
+    }
+
+    public Crypto getCrypto() {
+        return crypto;
     }
 
 }
