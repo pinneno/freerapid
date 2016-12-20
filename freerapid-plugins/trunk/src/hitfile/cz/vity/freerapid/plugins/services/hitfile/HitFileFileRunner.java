@@ -1,6 +1,8 @@
 package cz.vity.freerapid.plugins.services.hitfile;
 
-import cz.vity.freerapid.plugins.exceptions.*;
+import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
+import cz.vity.freerapid.plugins.exceptions.NotRecoverableDownloadException;
+import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.services.turbobit.TurboBitFileRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
@@ -16,16 +18,14 @@ class HitFileFileRunner extends TurboBitFileRunner {
 
     @Override
     protected void checkNameAndSize() throws ErrorDuringDownloadingException {
-        Matcher matcher = getMatcherAgainstContent("download.+?(?:</?span.+?>)+(.+?)</span>");
+        Matcher matcher = PlugUtils.matcher("<title>\\s*?Download file (.+?) \\(([^\\(]+?)\\)\\s*?\\|\\s*?Hitfile", getContentAsString());
         if (!matcher.find()) {
-            throw new PluginImplementationException("File name not found");
+            throw new PluginImplementationException("File name and size not found");
         }
-        httpFile.setFileName(matcher.group(1));
-        matcher = getMatcherAgainstContent("file-size.+?\\((.+?)\\)");
-        if (!matcher.find()) {
-            throw new PluginImplementationException("File size not found");
-        }
-        httpFile.setFileSize(PlugUtils.getFileSizeFromString(matcher.group(1).replaceAll("б", "B")));
+        String filename = matcher.group(1);
+        long filesize = PlugUtils.getFileSizeFromString(matcher.group(2));
+        httpFile.setFileName(filename);
+        httpFile.setFileSize(filesize);
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 

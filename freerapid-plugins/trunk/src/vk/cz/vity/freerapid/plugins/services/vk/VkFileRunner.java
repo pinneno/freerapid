@@ -115,11 +115,12 @@ class VkFileRunner extends AbstractRunner {
         checkProblems();
 
         String hash;
-        try {
-            hash = PlugUtils.getStringBetween(getContentAsString(), "\\\"hash2\\\":\\\"", "\\\"");
-        } catch (PluginImplementationException e) {
+        matcher = getMatcherAgainstContent("(?:\\\"|\")hash2(?:\\\"|\"):(?:\\\"|\")(.+?)(?:\\\"|\")");
+        if (!matcher.find()) {
             throw new PluginImplementationException("Error getting hash");
         }
+        hash = matcher.group(1);
+
         String embeddedUrl = String.format("%s://vk.com/video_ext.php?oid=%s&id=%s&hash=%s", protocol, userId, videoId, hash);
         logger.info("Embedded URL : " + embeddedUrl);
         return embeddedUrl;
