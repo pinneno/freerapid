@@ -25,7 +25,7 @@ class KingFilesFileRunner extends XFileSharingRunner {
         final Matcher match = PlugUtils.matcher("kingfiles\\.net/([\\w\\d]+)", fileURL);
         if (!match.find())
             throw new InvalidURLOrServiceProblemException("File ID missing from URL");
-        fileURL = "http://www.kingfiles.net/" + match.group(1);
+        fileURL = "http://kingfiles.net/" + match.group(1);
     }
 
     @Override

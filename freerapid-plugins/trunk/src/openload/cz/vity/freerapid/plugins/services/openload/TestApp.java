@@ -17,6 +17,7 @@ public class TestApp extends PluginDevApplication {
         try {
             //we set file URL
             httpFile.setNewURL(new URL("https://openload.co/f/4iGzLXwsp4k/Vela_-_MFSA_Directors_Certificate.pdf"));
+            httpFile.setNewURL(new URL("https://ol.link/f/prPjUuTICUY/inside.men.2015.480p.bluray.x264.rmteam.mp4"));
             //httpFile.setNewURL(new URL("https://openload.co/f/z-vS-Xs0XG8"));   // API captcha
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection

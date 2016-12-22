@@ -80,7 +80,9 @@ class RapidGatorFileRunner extends AbstractRunner {
                 List<URI> list = new LinkedList<URI>();
                 final Matcher m = PlugUtils.matcher("class=\"(?:odd|even)\"><td><a href=\"(.+?)\"", getContentAsString());
                 while (m.find()) {
-                    list.add(new URI("http://rapidgator.net" + m.group(1).trim()));
+                    try{
+                        list.add(new URI("http://rapidgator.net" + m.group(1).trim()));
+                    } catch (Exception x) {/*ignore invalid url*/}
                 }
                 if (list.isEmpty()) throw new PluginImplementationException("No links found");
                 getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, list);

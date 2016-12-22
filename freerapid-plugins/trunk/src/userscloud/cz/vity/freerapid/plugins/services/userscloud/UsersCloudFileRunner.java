@@ -71,7 +71,7 @@ class UsersCloudFileRunner extends XFileSharingRunner {
     protected List<String> getDownloadLinkRegexes() {
         final List<String> downloadLinkRegexes = super.getDownloadLinkRegexes();
         downloadLinkRegexes.add("url\\s*[=:]\\s*[\"'](http.+?" + Pattern.quote(httpFile.getFileName()) + ")[\"']");
-        downloadLinkRegexes.add("<a[^<>]+?href=\"(http.+?" + Pattern.quote(httpFile.getFileName()) + ")\"[^<>]*>click here");
+        downloadLinkRegexes.add(0, "<a[^<>]+?href=\"(http.+?" + Pattern.quote(httpFile.getFileName()) + ")\"[^<>]*>(?:<[^<>]*>\\s*)*.*click here");
         return downloadLinkRegexes;
     }
 }

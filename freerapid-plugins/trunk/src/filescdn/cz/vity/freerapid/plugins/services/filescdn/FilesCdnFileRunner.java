@@ -42,7 +42,7 @@ class FilesCdnFileRunner extends XFileSharingRunner {
         fileSizeHandlers.add(0, new FileSizeHandler() {
             @Override
             public void checkFileSize(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
-                final Matcher match = PlugUtils.matcher("\\((?:<[^>]+?>)*(\\d.+?)(?:<[^>]+?>)*\\)", content);
+                final Matcher match = PlugUtils.matcher(" \\((?:<[^>]+?>)*(\\d.+?)(?:<[^>]+?>)*\\)", content);
                 if (!match.find()) throw new PluginImplementationException("File size not found");
                 httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1).trim()));
             }
