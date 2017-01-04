@@ -77,7 +77,7 @@ class ZippyShareFileRunner extends AbstractRunner {
                         final String script = matcher.group(1);
                         if (script.isEmpty() || script.contains("tumblr") || script.contains("swfobject") || script.contains("videojs")
                                 || script.contains("RtpDataChannels") || script.contains("eval(window.atob(")
-                                || !script.contains(buttonId.group(1))) {
+                                || !script.contains("'"+buttonId.group(1))) {
                             continue;
                         }
                         logger.info("Evaluating script:\n" + script);

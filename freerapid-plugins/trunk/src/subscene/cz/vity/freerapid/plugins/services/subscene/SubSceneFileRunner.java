@@ -38,7 +38,8 @@ class SubSceneFileRunner extends AbstractRunner {
         PlugUtils.checkName(httpFile, content, "<title>Subscene - ", "</title>");
         final Matcher match = PlugUtils.matcher("Files:</strong>\\s*?.*?\\((.+?)\\)", content.replaceAll("\\s+", " "));
         if (!match.find()) throw new PluginImplementationException("File size not found");
-        httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1).replace(",", "")));
+        try { httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1).replace(",", "")));
+        } catch (Exception x) {/* ignores  N/A bytes */}
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 

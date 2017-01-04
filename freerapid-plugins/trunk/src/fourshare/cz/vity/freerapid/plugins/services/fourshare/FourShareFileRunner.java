@@ -1,10 +1,10 @@
 package cz.vity.freerapid.plugins.services.fourshare;
 
 import cz.vity.freerapid.plugins.exceptions.*;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
-import cz.vity.freerapid.plugins.webclient.hoster.CaptchaSupport;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.URI;
@@ -29,7 +29,7 @@ class FourShareFileRunner extends AbstractRunner {
         final GetMethod getMethod = getGetMethod(fileURL);//make first request
         if (makeRedirectedRequest(getMethod)) {
             checkProblems();
-            if (PlugUtils.matcher("http://(?:www\\.)?up\\.4share\\.vn/f/.+", fileURL).find()) { //file URL
+            if (PlugUtils.matcher("http://(?:www\\.|up\\.)?4share\\.vn/f/.+", fileURL).find()) { //file URL
                 checkNameAndSize(getContentAsString());//ok let's extract file name and size from the page
             }
         } else {
@@ -39,7 +39,7 @@ class FourShareFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        final String regexRule = "Downloading: <strong>(.+?)<.+?<strong>(.+?)<";
+        final String regexRule = "<h4>.+?:\\s*<strong>(.+?)<.+?<strong>(.+?)<";
         final Matcher matcher = PlugUtils.matcher(regexRule, content);
         if (matcher.find()) {
             httpFile.setFileName(matcher.group(1).trim());
@@ -58,18 +58,18 @@ class FourShareFileRunner extends AbstractRunner {
         if (makeRedirectedRequest(method)) { //we make the main request
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
-            if (PlugUtils.matcher("http://(?:www\\.)?up\\.4share\\.vn/d/.+", fileURL).find()) { //list URL
+            if (PlugUtils.matcher("http://(?:www\\.|up\\.)?4share\\.vn/d/.+", fileURL).find()) { //list URL
                 final List<java.net.URI> uriList = new LinkedList<java.net.URI>();
                 stepBuildList("<a href='(http://up\\.4share\\.vn/[fd]/.+?)'", uriList);
                 getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, uriList);
                 httpFile.getProperties().put("removeCompleted", true);
 
-            } else if (PlugUtils.matcher("http://(?:www\\.)?up\\.4share\\.vn/dlist/.+", fileURL).find()) { //list URL
+            } else if (PlugUtils.matcher("http://(?:www\\.|up\\.)?4share\\.vn/dlist/.+", fileURL).find()) { //list URL
                 final List<java.net.URI> uriList = new LinkedList<java.net.URI>();
                 stepBuildList(">(http://up\\.4share\\.vn/[fd]/.+?)<", uriList);
                 getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, uriList);
                 httpFile.getProperties().put("removeCompleted", true);
-            } else if (PlugUtils.matcher("http://(?:www\\.)?up\\.4share\\.vn/f/.+", fileURL).find()) {  //file URL
+            } else if (PlugUtils.matcher("http://(?:www\\.|up\\.)?4share\\.vn/f/.+", fileURL).find()) {  //file URL
                 checkNameAndSize(contentAsString);//extract file name and size from the page
 
                 if (contentAsString.contains("var counter=")) {
@@ -82,9 +82,8 @@ class FourShareFileRunner extends AbstractRunner {
 
                 MethodBuilder methodBuilder = getMethodBuilder()
                         .setReferer(fileURL)
-                        .setActionFromFormWhereTagContains("absmiddle", true)
+                        .setActionFromFormWhereTagContains("recaptcha", true)
                         .setAction(fileURL);
-                logger.info("########" + getContentAsString());
                 methodBuilder = stepCaptcha(methodBuilder);
 
                 final HttpMethod httpMethod = methodBuilder.toPostMethod();
@@ -94,7 +93,8 @@ class FourShareFileRunner extends AbstractRunner {
                     checkProblems();//if downloading failed
                     throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
                 }
-            }
+            } else
+                throw new InvalidURLOrServiceProblemException("Invalid URL");
         } else {
             checkProblems();
             throw new ServiceConnectionProblemException();
@@ -109,11 +109,14 @@ class FourShareFileRunner extends AbstractRunner {
     }
 
     private MethodBuilder stepCaptcha(MethodBuilder methodBuilder) throws Exception {
-        final CaptchaSupport captchaSupport = getCaptchaSupport();
-        final String captchaSrc = getMethodBuilder().setActionFromImgSrcWhereTagContains("security_code").getEscapedURI();
-        final String captcha = captchaSupport.getCaptcha(captchaSrc);
-        if (captcha == null) throw new CaptchaEntryInputMismatchException();
-        return methodBuilder.setParameter("security_code", captcha);
+        final String reCaptchaKey = PlugUtils.getStringBetween(getContentAsString(), "api/challenge?k=", "\"");
+        final ReCaptcha r = new ReCaptcha(reCaptchaKey, client);
+        final String captcha = getCaptchaSupport().getCaptcha(r.getImageURL());
+        if (captcha == null)
+            throw new CaptchaEntryInputMismatchException();
+        r.setRecognized(captcha);
+        r.modifyResponseMethod(methodBuilder);
+        return methodBuilder;
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {

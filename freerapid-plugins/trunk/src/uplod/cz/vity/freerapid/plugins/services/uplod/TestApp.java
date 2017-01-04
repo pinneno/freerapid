@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.zippyshare;
+package cz.vity.freerapid.plugins.services.uplod;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -8,7 +8,7 @@ import org.jdesktop.application.Application;
 import java.net.URL;
 
 /**
- * @author Kajda
+ * @author birchie
  */
 public class TestApp extends PluginDevApplication {
     @Override
@@ -16,14 +16,20 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://www54.zippyshare.com/v/w1FxWixq/file.html"));
-            //httpFile.setNewURL(new URL("http://www68.zippyshare.com/v/96235043/file.html"));//filename is an image
-            //httpFile.setNewURL(new URL("http://www109.zippyshare.com/v/vs67PGjg/file.html"));//video
+            httpFile.setNewURL(new URL("https://uplod.it/vl9t1yss8hlf"));
+            httpFile.setNewURL(new URL("https://uploads.to/vl9t1yss8hlf"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
-            //then we tries to download
-            final ZippyShareServiceImpl service = new ZippyShareServiceImpl(); //instance of service - of our plugin
+            final UpLodServiceImpl service = new UpLodServiceImpl(); //instance of service - of our plugin
+            /*
+            //we set premium account details
+            final PremiumAccount config = new PremiumAccount();
+            config.setUsername("****");
+            config.setPassword("****");
+            service.setConfig(config);
+            //*/
+            //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console
         } catch (Exception e) {//catch possible exception

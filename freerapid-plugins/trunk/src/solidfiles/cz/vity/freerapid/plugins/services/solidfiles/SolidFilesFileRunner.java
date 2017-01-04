@@ -36,9 +36,12 @@ class SolidFilesFileRunner extends AbstractRunner {
         final Matcher matchN = PlugUtils.matcher("<h1[^<>]*>([^<>]+?)<", content);
         if (!matchN.find()) throw new PluginImplementationException("File name not found");
         httpFile.setFileName(matchN.group(1));
-        final Matcher match = PlugUtils.matcher("(?:\"size\":(\\d+?),|<p class=meta>(\\d.+?) - )", content);
+        final Matcher match = PlugUtils.matcher("(?:\"size\":(\\d+?),|(?:<p class=meta>|</h1>(?:\\s*<[^>]+>\\s*)*)(\\d.+?) - )", content);
         if (!match.find()) throw new PluginImplementationException("File size not found");
-        httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1)));
+        if (match.group(1) != null)
+            httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1)));
+        else
+            httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(2)));
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 
@@ -52,7 +55,7 @@ class SolidFilesFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);
-            final HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setActionFromTextBetween("download_url\":\"", "\"}").toGetMethod();
+            final HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setActionFromTextBetween("downloadUrl\":\"", "\"").toGetMethod();
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
