@@ -101,6 +101,9 @@ class Publish2FileRunner extends AbstractRunner {
         if (contentAsString.contains("This file is no longer available")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
+        if (contentAsString.contains("file is available<br>only for premium member")) {
+            throw new NotSupportedDownloadByServiceException("Premium members only");
+        }
     }
 
     private MethodBuilder stepCaptcha(MethodBuilder builder) throws Exception {
