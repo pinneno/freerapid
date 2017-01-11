@@ -57,7 +57,7 @@ public class SSLProtocolSocketFactory implements SecureProtocolSocketFactory {
         try {
             //Mozilla CA certs
             //https://curl.haxx.se/docs/caextract.html
-            String location = AppPrefs.getProperty(UserProp.CA_CERT_URL, "https://curl.haxx.se/ca/cacert.pem"); //https is a must
+            String location = AppPrefs.getProperty(UserProp.CA_CERT_URL, UserProp.CA_CERT_URL_DEFAULT); //https is a must
             File cachedPemFile = new File(applicationContext.getLocalStorage().getDirectory(), "pemfile_cached");
             boolean remote = true;
             if (cachedPemFile.exists()
@@ -293,6 +293,13 @@ public class SSLProtocolSocketFactory implements SecureProtocolSocketFactory {
         }
         //get the common name from the first cert
         String cn = getCN(dn);
+        if (cn != null && cn.startsWith("*.")) { //wildcard cert
+            int hostnameDotCount = hostname.length() - hostname.replace(".", "").length();
+            if (hostnameDotCount > 1) {
+                hostname = hostname.substring(hostname.indexOf(".") + 1);
+            }
+            cn = cn.substring(2);
+        }
         if (hostname.equalsIgnoreCase(cn)) {
             if (logger.isLoggable(Level.FINE)) {
                 logger.fine("Target hostname valid: " + cn);

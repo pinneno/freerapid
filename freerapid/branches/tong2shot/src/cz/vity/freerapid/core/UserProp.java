@@ -405,6 +405,7 @@ final public class UserProp {
     public static final String SSL_CUSTOM_CA_CERT = "sslCustomCaCert";
     public static final boolean SSL_CUSTOM_CA_CERT_DEFAULT = false;
     public static final String CA_CERT_URL = "caCertUrl";
+    public static final String CA_CERT_URL_DEFAULT = "https://curl.haxx.se/ca/cacert.pem";
     public static final String SSL_VERIFY_HOSTNAME = "sslVerifyHostName";
     public static final boolean SSL_VERIFY_HOSTNAME_DEFAULT = false;
 
