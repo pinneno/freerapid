@@ -22,6 +22,7 @@ class FileBoomFileRunner extends AbstractRunner {
     @Override
     public void runCheck() throws Exception { //this method validates file
         super.runCheck();
+        checkUrl();
         final GetMethod getMethod = getGetMethod(fileURL);//make first request
         if (makeRedirectedRequest(getMethod)) {
             checkProblems();
@@ -44,6 +45,7 @@ class FileBoomFileRunner extends AbstractRunner {
     @Override
     public void run() throws Exception {
         super.run();
+        checkUrl();
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
@@ -90,8 +92,7 @@ class FileBoomFileRunner extends AbstractRunner {
                 checkProblems();
 
                 dlLink = getMethodBuilder().setReferer(fileURL).setActionFromAHrefWhereATagContains("this").getEscapedURI();
-            }
-            else {
+            } else {
                 dlLink = getMethodBuilder().setReferer(fileURL).setActionFromTextBetween("window.location.href = '", "'").getEscapedURI();
             }
             final HttpMethod httpMethod = getGetMethod(dlLink);
@@ -104,6 +105,17 @@ class FileBoomFileRunner extends AbstractRunner {
             checkProblems();
             throw new ServiceConnectionProblemException();
         }
+    }
+
+    private void checkUrl() {
+        if (fileURL.contains("fileboom.me/")) {
+            fileURL = fileURL.replace("fileboom.me/", "fboom.me/");
+        }
+    }
+
+    @Override
+    protected String getBaseURL() {
+        return httpFile.getFileUrl().getProtocol() + "://" + "fboom.me";
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {
