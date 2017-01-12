@@ -57,9 +57,9 @@ class Keep2ShareFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
+            fileURL = method.getURI().getURI();
+            baseUrl = method.getURI().getURI().split("/file/")[0];
             if (!contentAsString.contains("This link will be available for")) {
-                fileURL = method.getURI().getURI();
-                baseUrl = method.getURI().getURI().split("/file/")[0];
                 final MethodBuilder aMethod = getMethodBuilder()
                         .setBaseURL(baseUrl).setReferer(fileURL)
                         .setActionFromFormWhereTagContains("slow_id", true);
@@ -78,37 +78,39 @@ class Keep2ShareFileRunner extends AbstractRunner {
                     }
                     return;
                 }
-                do {
-                    final MethodBuilder captchaMethod = getMethodBuilder()
+                if (!getContentAsString().contains(">Download now<")) {
+                    do {
+                        final MethodBuilder captchaMethod = getMethodBuilder()
+                                .setBaseURL(baseUrl)
+                                .setActionFromFormWhereTagContains("Slow download", true);
+                        if (!makeRedirectedRequest(doCaptcha(captchaMethod).toPostMethod())) {
+                            checkProblems();
+                            throw new ServiceConnectionProblemException();
+                        }
+                        checkProblems();
+                    } while (getContentAsString().contains("The verification code is incorrect"));
+
+                    final Matcher match = PlugUtils.matcher("<div id=\"download-wait-timer\"[^<>]*?>\\s*?(.+?)\\s*?</div>", getContentAsString());
+                    if (!match.find())
+                        throw new PluginImplementationException("Wait time not found");
+                    downloadTask.sleep(1 + Integer.parseInt(match.group(1).trim()));
+                    final MethodBuilder dlBuilder = getMethodBuilder()
                             .setBaseURL(baseUrl)
-                            .setActionFromFormWhereTagContains("Slow download", true);
-                    if (!makeRedirectedRequest(doCaptcha(captchaMethod).toPostMethod())) {
+                            .setAjax()
+                            .setAction(PlugUtils.getStringBetween(getContentAsString(), "url: '", "',"));
+                    final String[] params = PlugUtils.getStringBetween(getContentAsString(), "data: {", "},").split(",");
+                    for (String p : params) {
+                        final String[] param = p.split(":");
+                        dlBuilder.setParameter(param[0].replaceAll("'", "").trim(), param[1].replaceAll("'", "").trim());
+                    }
+                    if (!makeRedirectedRequest(dlBuilder.toPostMethod())) {
                         checkProblems();
                         throw new ServiceConnectionProblemException();
                     }
                     checkProblems();
-                } while (getContentAsString().contains("The verification code is incorrect"));
-
-                final Matcher match = PlugUtils.matcher("<div id=\"download-wait-timer\"[^<>]*?>\\s*?(.+?)\\s*?</div>", getContentAsString());
-                if (!match.find())
-                    throw new PluginImplementationException("Wait time not found");
-                downloadTask.sleep(1 + Integer.parseInt(match.group(1).trim()));
-                final MethodBuilder dlBuilder = getMethodBuilder()
-                        .setBaseURL(baseUrl)
-                        .setAjax()
-                        .setAction(PlugUtils.getStringBetween(getContentAsString(), "url: '", "',"));
-                final String[] params = PlugUtils.getStringBetween(getContentAsString(), "data: {", "},").split(",");
-                for (String p : params) {
-                    final String[] param = p.split(":");
-                    dlBuilder.setParameter(param[0].replaceAll("'", "").trim(), param[1].replaceAll("'", "").trim());
                 }
-                if (!makeRedirectedRequest(dlBuilder.toPostMethod())) {
-                    checkProblems();
-                    throw new ServiceConnectionProblemException();
-                }
-                checkProblems();
             }
-            final Matcher match = PlugUtils.matcher("<a[^<>]+?href=\"(.+?)\"[^<>]+?>this\\s+?link", getContentAsString());
+            final Matcher match = PlugUtils.matcher("<a[^<>]+?href=\"(.+?)\"[^<>]*>(?:this\\s+?link|Download now<)", getContentAsString());
             if (!match.find())
                 throw new PluginImplementationException("download link url not found");
             final HttpMethod httpMethod = getGetMethod(baseUrl + match.group(1));
