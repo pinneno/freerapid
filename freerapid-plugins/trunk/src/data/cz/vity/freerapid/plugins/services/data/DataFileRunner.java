@@ -1,8 +1,10 @@
 package cz.vity.freerapid.plugins.services.data;
 
 import cz.vity.freerapid.plugins.exceptions.*;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
+import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -48,9 +50,19 @@ class DataFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();
             checkProblems();
             checkNameAndSize(contentAsString);
-            final Matcher matcher = getMatcherAgainstContent("<a.*?href='(.+?)'>Lassú letöltés</a");
+            HttpMethod httpMethod = stepCaptcha(getMethodBuilder().setReferer(fileURL)
+                    .setActionFromFormWhereActionContains("free", true).setAjax()
+                    , fileURL).toPostMethod();
+            do {
+                if (!makeRedirectedRequest(httpMethod)) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
+                }
+            } while (!getContentAsString().contains("redirect"));
+
+            final Matcher matcher = getMatcherAgainstContent("redirect\":\"(.+?)\"");
             if (matcher.find()) {
-                final String downURL = matcher.group(1);
+                final String downURL = matcher.group(1).replace("\\/", "/");
                 logger.info("downURL: " + downURL);
                 final GetMethod getmethod = getGetMethod(downURL);
                 if (!tryDownloadAndSaveFile(getmethod)) {
@@ -60,7 +72,6 @@ class DataFileRunner extends AbstractRunner {
                 }
             } else {
                 checkProblems();
-                logger.warning(getContentAsString());
                 throw new PluginImplementationException("Download link not found");
             }
         } else {
@@ -80,4 +91,12 @@ class DataFileRunner extends AbstractRunner {
 
     }
 
+
+    private MethodBuilder stepCaptcha(MethodBuilder builder, final String referrer) throws Exception {
+        final Matcher m = getMatcherAgainstContent("['\"]?sitekey['\"]?\\s*[:=]\\s*['\"]([^'\"]+)['\"]");
+        if (!m.find()) throw new PluginImplementationException("ReCaptcha key not found");
+        final String reCaptchaKey = m.group(1);
+        final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, referrer);
+        return r.modifyResponseMethod(builder);
+    }
 }

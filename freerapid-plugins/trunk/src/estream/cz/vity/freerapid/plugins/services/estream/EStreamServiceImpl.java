@@ -12,7 +12,7 @@ public class EStreamServiceImpl extends AbstractFileShareService {
 
     @Override
     public String getName() {
-        return "estream.co";
+        return "estream.to";
     }
 
     @Override
