@@ -50,6 +50,15 @@ class KingFilesFileRunner extends XFileSharingRunner {
     }
 
     @Override
+    protected int getWaitTime() throws Exception {
+        final Matcher matcher = getMatcherAgainstContent("id=\"countdown.*?<span.*?>.*?(\\d+).*?</span");
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1)) + 1;
+        }
+        return 0;
+    }
+
+    @Override
     protected void checkFileProblems() throws ErrorDuringDownloadingException {
         final String content = getContentAsString();
         try {
