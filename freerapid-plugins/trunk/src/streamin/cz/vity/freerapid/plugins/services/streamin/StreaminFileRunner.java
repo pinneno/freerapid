@@ -11,13 +11,18 @@ import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Class which contains main code
  *
  * @author birchie
+ * @author tong2shot
  */
 class StreaminFileRunner extends AbstractRtmpRunner {
     private final static Logger logger = Logger.getLogger(StreaminFileRunner.class.getName());
@@ -48,15 +53,15 @@ class StreaminFileRunner extends AbstractRtmpRunner {
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
-            final String contentAsString = getContentAsString();//check for response
+            String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
             HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL)
                     .setActionFromFormWhereTagContains("download", true)
                     .setAction(fileURL).toPostMethod();
-            final Matcher match = PlugUtils.matcher("Wait\\s*?<.+?>(\\d+?)<", getContentAsString());
-            if (match.find())
-                downloadTask.sleep(1 + Integer.parseInt(match.group(1)));
+            Matcher matcher = PlugUtils.matcher("Wait\\s*?<.+?>(\\d+?)<", getContentAsString());
+            if (matcher.find())
+                downloadTask.sleep(1 + Integer.parseInt(matcher.group(1)));
             if (!makeRedirectedRequest(httpMethod)) {
                 checkProblems();
                 throw new ServiceConnectionProblemException();
@@ -69,10 +74,25 @@ class StreaminFileRunner extends AbstractRtmpRunner {
                 final RtmpSession rtmpSession = new RtmpSession(streamer, playName);
                 tryDownloadAndSaveFile(rtmpSession);
             } else {
-                final String file = PlugUtils.getStringBetween(getContentAsString(), "file: \"", "\"");
+                contentAsString = getContentAsString();
+                if (contentAsString.contains("eval(function(p,a,c,k,e,d)")) {
+                    contentAsString = unPackJavaScript();
+                }
+                matcher = PlugUtils.matcher("file\\s*?:\\s*?\"([^\"]+)\"", contentAsString);
+                if (!matcher.find()) {
+                    throw new PluginImplementationException("Video URL not found");
+                }
+                final String videoURL = matcher.group(1);
+                final String filename = PlugUtils.suggestFilename(videoURL);
+                if (filename.lastIndexOf(".") != -1) {
+                    final String fileExt = filename.substring(filename.lastIndexOf("."));
+                    if (!fileExt.isEmpty()) {
+                        httpFile.setFileName(httpFile.getFileName().replaceFirst("\\..{2,4}$", fileExt));
+                    }
+                }
                 httpMethod = getMethodBuilder()
                         .setReferer(fileURL)
-                        .setAction(file)
+                        .setAction(videoURL)
                         .toGetMethod();
                 if (!tryDownloadAndSaveFile(httpMethod)) {
                     checkProblems();
@@ -91,6 +111,27 @@ class StreaminFileRunner extends AbstractRtmpRunner {
         if (content.contains("File Not Found") || content.contains("file was deleted") ||
                 content.contains(">File Removed") || content.contains(">File Deleted")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
+        }
+    }
+
+    private String unPackJavaScript() throws ErrorDuringDownloadingException {
+        final Matcher jsMatcher = getMatcherAgainstContent("<script type='text/javascript'>\\s*?(" + Pattern.quote("eval(function(p,a,c,k,e,d)") + ".+?)\\s*?</script>");
+        String jsString = null;
+        while (jsMatcher.find()) {
+            jsString = jsMatcher.group(1).replaceFirst(Pattern.quote("eval(function(p,a,c,k,e,d)"), "function test(p,a,c,k,e,d)")
+                    .replaceFirst(Pattern.quote("return p}"), "return p};test").replaceFirst(Pattern.quote(".split('|')))"), ".split('|'));");
+            if (jsString.contains("jwplayer"))
+                break;
+        }
+        if (jsString == null) {
+            throw new PluginImplementationException("Javascript not found");
+        }
+        final ScriptEngineManager manager = new ScriptEngineManager();
+        final ScriptEngine engine = manager.getEngineByName("javascript");
+        try {
+            return (String) engine.eval(jsString);
+        } catch (ScriptException e) {
+            throw new PluginImplementationException("JavaScript eval failed");
         }
     }
 }
