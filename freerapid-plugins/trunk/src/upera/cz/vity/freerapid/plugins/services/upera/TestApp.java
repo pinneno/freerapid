@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.uploading_site;
+package cz.vity.freerapid.plugins.services.upera;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -16,18 +16,12 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://uploading.site/w3tl1x11yd4x.htm"));
+            httpFile.setNewURL(new URL("http://public.upera.co/1HW2ro4j"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
-            final Uploading_siteServiceImpl service = new Uploading_siteServiceImpl(); //instance of service - of our plugin
-            /*
-            //we set premium account details
-            final PremiumAccount config = new PremiumAccount();
-            config.setUsername("****");
-            config.setPassword("****");
-            service.setConfig(config);
-            //*/
+            //then we tries to download
+            final UperaServiceImpl service = new UperaServiceImpl(); //instance of service - of our plugin
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console

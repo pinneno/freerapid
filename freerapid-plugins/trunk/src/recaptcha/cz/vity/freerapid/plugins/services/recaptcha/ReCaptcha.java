@@ -40,12 +40,12 @@ public class ReCaptcha {
     /**
      * Constructor of ReCaptcha
      *
-     * @param publicKey Public API key for ReCaptcha (Included in every page which uses ReCaptcha)
-     * @param c         Client to do requests with
+     * @param public_Key Public API key for ReCaptcha (Included in every page which uses ReCaptcha)
+     * @param c          Client to do requests with
      * @throws Exception When something goes wrong
      */
-    public ReCaptcha(String publicKey, HttpDownloadClient c) throws Exception {
-        this.publicKey = publicKey;
+    public ReCaptcha(String public_Key, HttpDownloadClient c) throws Exception {
+        this.publicKey = public_Key.replace("%5f", "_").replace("%2d", "-");
         this.client = c;
 
         if (!publicKey.matches("[0-9a-zA-Z_-]{40}")) {

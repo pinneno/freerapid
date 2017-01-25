@@ -117,7 +117,7 @@ public abstract class XFilePlayerRunner extends XFileSharingRunner {
     }
 
     protected String unPackJavaScript() throws ErrorDuringDownloadingException {
-        final Matcher jsMatcher = getMatcherAgainstContent("<script type='text/javascript'>\\s*?(" + Pattern.quote("eval(function(p,a,c,k,e,d)") + ".+?)\\s*?</script>");
+        final Matcher jsMatcher = getMatcherAgainstContent("<script type=[\"']text/\\w*script[\"']>\\s*?(" + Pattern.quote("eval(function(p,a,c,k,e,d)") + ".+?)\\s*?</script>");
         String jsString = null;
         while (jsMatcher.find()) {
             jsString = jsMatcher.group(1).replaceFirst(Pattern.quote("eval(function(p,a,c,k,e,d)"), "function test(p,a,c,k,e,d)")

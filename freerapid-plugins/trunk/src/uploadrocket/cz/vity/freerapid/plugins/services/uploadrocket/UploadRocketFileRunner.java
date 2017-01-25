@@ -44,6 +44,7 @@ class UploadRocketFileRunner extends XFileSharingRunner {
     protected List<String> getDownloadLinkRegexes() {
         final List<String> downloadLinkRegexes =  new LinkedList<String>();
         downloadLinkRegexes.add("<a[^<>]*href=\"(.+?)\"[^<>]*>[^<>]*Download Link");
+        downloadLinkRegexes.add("<a[^<>]*href=\"(.+?)\"[^<>]*><[^<>]*free-download.png");
         return downloadLinkRegexes;
     }
 

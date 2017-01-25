@@ -35,10 +35,18 @@ class Uploading_siteFileRunner extends XFileSharingRunner {
     }
 
     @Override
+    protected List<String> getDownloadLinkRegexes() {
+        final List<String> downloadLinkRegexes = super.getDownloadLinkRegexes();
+        downloadLinkRegexes.add("<a[^<>]*href\\s*=\\s*[\"'](http[^<>\"']+?)[\"'][^<>]*>\\s*(?:Click here to download|Direct Download)");
+        return downloadLinkRegexes;
+    }
+
+    @Override
     protected String getDownloadLinkFromRegexes() throws ErrorDuringDownloadingException {
-        String file = getMethodBuilder().setActionFromAHrefWhereATagContains("Click here to download").getEscapedURI();
+        httpFile.setFileName("File_Name.temp");
+        final String file = super.getDownloadLinkFromRegexes();
         httpFile.setFileName(file.substring(1 + file.lastIndexOf("/")));
-        return super.getDownloadLinkFromRegexes();
+        return file;
     }
 
     @Override
