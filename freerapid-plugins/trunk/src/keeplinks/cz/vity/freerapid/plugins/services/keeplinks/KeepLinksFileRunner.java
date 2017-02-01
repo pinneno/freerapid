@@ -10,6 +10,7 @@ import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.hoster.CaptchaSupport;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.awt.*;
@@ -60,10 +61,12 @@ class KeepLinksFileRunner extends AbstractRunner {
         if (fileURL.contains("/d")) {
             list.add(stepDirectLink(fileURL));
         } else if (fileURL.contains("/p")) {
-            if (!makeRedirectedRequest(getGetMethod(fileURL))) { //we make the main request
+            HttpMethod method = getGetMethod(fileURL);
+            if (!makeRedirectedRequest(method)) { //we make the main request
                 checkProblems();//check problems
                 throw new PluginImplementationException();
             }
+            fileURL = method.getURI().getURI();
             int count = 0;
             MethodBuilder builder;
             String content;

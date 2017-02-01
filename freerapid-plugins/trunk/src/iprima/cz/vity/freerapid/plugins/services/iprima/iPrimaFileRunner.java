@@ -130,7 +130,7 @@ class iPrimaFileRunner extends AbstractRunner {
     }
 
     private IPrimaVideo getSelectedVideo(String videoPlayerContent) throws ErrorDuringDownloadingException {
-        Matcher matcher = PlugUtils.matcher("(?s)'HLS':.+?'src'\\s*?:\\s*?'([^']+?)'", videoPlayerContent);
+        Matcher matcher = PlugUtils.matcher("(?s)'?HLS'?:[^}]+?'?src'?\\s*:\\s*'([^']+?)'", videoPlayerContent);
         if (!matcher.find()) {
             throw new PluginImplementationException("HLS playlist not found");
         }

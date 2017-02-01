@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.relink;
+package cz.vity.freerapid.plugins.services.linktl;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -8,7 +8,7 @@ import org.jdesktop.application.Application;
 import java.net.URL;
 
 /**
- * @author ntoskrnl
+ * @author birchie
  */
 public class TestApp extends PluginDevApplication {
     @Override
@@ -16,14 +16,12 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://www.relink.us/view.php?id=4b4ce5a41594dbf1d070d72704b5b1"));
-            httpFile.setNewURL(new URL("http://relink.to/f/92b7cfa468b7d3f92a926fd7ec00e3"));
-            httpFile.setNewURL(new URL("http://www.relink.to/f/16480d19590c9c99c839bbd8b44a27"));
+            httpFile.setNewURL(new URL("http://link.tl/QtJ1"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
-            final RelinkServiceImpl service = new RelinkServiceImpl(); //instance of service - of our plugin
+            final LinkTLServiceImpl service = new LinkTLServiceImpl(); //instance of service - of our plugin
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console

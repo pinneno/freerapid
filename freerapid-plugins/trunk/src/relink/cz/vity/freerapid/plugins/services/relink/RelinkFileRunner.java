@@ -9,6 +9,7 @@ import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
 import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.services.circlecaptcha.CircleCaptcha;
 import cz.vity.freerapid.plugins.services.relink.captcha.CaptchaPreparer;
+import cz.vity.freerapid.plugins.services.solvemediacaptcha.SolveMediaCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
@@ -57,11 +58,11 @@ class RelinkFileRunner extends AbstractRunner {
     }
 
     private void stepCaptcha() throws Exception {
+        final MethodBuilder mb = getMethodBuilder()
+                .setReferer(fileURL)
+                .setActionFromFormByName("form", true);
         final Matcher matcher = getMatcherAgainstContent("src=\"(core/captcha/.+?)\"");
         if (matcher.find()) {
-            final MethodBuilder mb = getMethodBuilder()
-                    .setReferer(fileURL)
-                    .setActionFromFormByName("form", true);
             final String captchaUrl = getMethodBuilder()
                     .setAction(matcher.group(1))
                     .getEscapedURI();
@@ -84,6 +85,19 @@ class RelinkFileRunner extends AbstractRunner {
                     }
                 }
             }
+        }
+        else if (getContentAsString().contains("solvemedia.com/papi/challenge")) {
+            final Matcher captchaKeyMatcher = getMatcherAgainstContent("papi/challenge\\.noscript\\?k=(.*?)\"");
+            if (!captchaKeyMatcher.find()) throw new PluginImplementationException("Captcha key not found");
+            final String captchaKey = captchaKeyMatcher.group(1);
+            final SolveMediaCaptcha solveMediaCaptcha = new SolveMediaCaptcha(captchaKey, client, getCaptchaSupport(), downloadTask);
+            do {
+                solveMediaCaptcha.askForCaptcha();
+                solveMediaCaptcha.modifyResponseMethod(mb);
+                if (!makeRedirectedRequest(mb.toPostMethod())) {
+                    throw new ServiceConnectionProblemException();
+                }
+            } while (getContentAsString().contains("You have solved the captcha wrong"));
         }
     }
 
