@@ -1,6 +1,7 @@
 package cz.vity.freerapid.plugins.services.linkshrink;
 
 import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
+import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
 import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
@@ -8,8 +9,11 @@ import cz.vity.freerapid.plugins.webclient.DownloadState;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 import java.net.URL;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 
 /**
  * Class which contains main code
@@ -27,7 +31,7 @@ class LinkShrinkFileRunner extends AbstractRunner {
         if (makeRedirectedRequest(method)) { //we make the main request
             checkProblems();//check problems
             final HttpMethod getMethod = getMethodBuilder().setReferer(fileURL)
-                    .setActionFromAHrefWhereATagContains("Continue").toGetMethod();
+                    .setAction(decodeNextLink()).toGetMethod();
             if (!makeRedirectedRequest(getMethod)) {
                 checkProblems();
                 throw new ServiceConnectionProblemException();
@@ -43,9 +47,20 @@ class LinkShrinkFileRunner extends AbstractRunner {
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
-        if (contentAsString.contains("LinkShrink is a free URL shortening service")) {//errors redirect to main page
+        if (contentAsString.contains("Link does not exist") ||
+                contentAsString.contains("LinkShrink is a free URL shortening service")) {//errors redirect to main page
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
     }
 
+    private String decodeNextLink() throws Exception {
+        Matcher match = getMatcherAgainstContent("<script>(function.+?)</script><script>.+?(href.+?)</script>");
+        if (!match.find()) throw new PluginImplementationException("Script not found");
+        try {
+            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+            return engine.eval(match.group(1) + match.group(2)).toString();
+        } catch (Exception e) {
+            throw new PluginImplementationException("JS evaluation error " + e.getLocalizedMessage());
+        }
+    }
 }
