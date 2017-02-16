@@ -151,6 +151,27 @@ class PornHubFileRunner extends AbstractRunner {
         }
     }
 
+    private String deJsVideoQualityUrl(String content, String quality) throws Exception {
+        if ((quality != null) && (quality.trim().length() > 0)) {
+            if (content.matches("(?s).+?player_quality_\\d+p\\s*=\\s*/\\*.+")) {
+                final Matcher match = PlugUtils.matcher("(var.+?player_quality_\\d+p\\s*=\\s*/\\*.+?)flashvar", content);
+                if (match.find()) {
+                    String script = match.group(1);
+                    if (script.contains(quality)) {
+                        try {
+                            final String function = "OUTPUT=" + quality ;
+                            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+                            return engine.eval(script + function).toString();
+                        } catch (Exception e) {
+                            throw new PluginImplementationException("JS 2 evaluation error " + e.getLocalizedMessage());
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     private List<PornHubVideo> getVideoList(final String content) throws Exception {
         final List<PornHubVideoPattern> videoPatterns = new ArrayList<PornHubVideoPattern>();
         videoPatterns.add(new PornHubVideoPattern("\"quality_720p\"\\s*?:\\s*?\"(.+?)\"", VideoQuality._720));
@@ -161,6 +182,7 @@ class PornHubFileRunner extends AbstractRunner {
         videoPatterns.add(new PornHubVideoPattern("player_quality_720p\\s*?=\\s*?'(.+?)'", VideoQuality._720));
         videoPatterns.add(new PornHubVideoPattern("player_quality_480p\\s*?=\\s*?'(.+?)'", VideoQuality._480));
         videoPatterns.add(new PornHubVideoPattern("player_quality_240p\\s*?=\\s*?'(.+?)'", VideoQuality._240));
+        videoPatterns.add(new PornHubVideoPattern("player_quality_180p\\s*?=\\s*?'(.+?)'", VideoQuality._180));
 
         final List<PornHubVideo> videos = new ArrayList<PornHubVideo>();
         Matcher matcher;
@@ -169,6 +191,10 @@ class PornHubFileRunner extends AbstractRunner {
             if (matcher.find()) {
                 PornHubVideo video = new PornHubVideo(videoPattern.videoQuality, matcher.group(1).replaceFirst("^//", "http://"));
                 videos.add(video);
+            }
+            String url = deJsVideoQualityUrl(content, videoPattern.pattern.split("[^\\w\\d_]+")[0]);
+            if (url != null) {
+                videos.add(new PornHubVideo(videoPattern.videoQuality, url));
             }
         }
         if (videos.isEmpty()) {

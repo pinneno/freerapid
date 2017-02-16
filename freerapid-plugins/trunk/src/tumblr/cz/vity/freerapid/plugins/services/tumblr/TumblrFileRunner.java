@@ -104,7 +104,8 @@ class TumblrFileRunner extends AbstractRunner {
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
         if (contentAsString.contains("The URL you requested could not be found") ||
-                contentAsString.contains("Not Found</title>")) {
+                contentAsString.contains("Whatever you were looking for doesn't currently exist at this address") ||
+                contentAsString.contains("Not found.</title>") || contentAsString.contains("Not Found</title>")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
     }

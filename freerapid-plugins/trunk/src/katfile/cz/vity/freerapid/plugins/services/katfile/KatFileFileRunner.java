@@ -3,7 +3,8 @@ package cz.vity.freerapid.plugins.services.katfile;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileNameHandler;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileNameHandlerC;
-import cz.vity.freerapid.plugins.webclient.MethodBuilder;
+import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandler;
+import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandlerNoSize;
 
 import java.util.List;
 import java.util.regex.Matcher;
@@ -23,8 +24,10 @@ class KatFileFileRunner extends XFileSharingRunner {
     }
 
     @Override
-    protected MethodBuilder getXFSMethodBuilder(final String content) throws Exception {
-        return super.getXFSMethodBuilder(content + "</form>");
+    protected List<FileSizeHandler> getFileSizeHandlers() {
+        final List<FileSizeHandler> fileSizeHandlers = super.getFileSizeHandlers();
+        fileSizeHandlers.add(new FileSizeHandlerNoSize());
+        return fileSizeHandlers;
     }
 
     @Override

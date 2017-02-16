@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.katfile;
+package cz.vity.freerapid.plugins.services.sendit;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -16,11 +16,11 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://katfile.com/6x6j2ny0lhox.html"));
+            httpFile.setNewURL(new URL("https://sendit.cloud/5rz9dwfmr0ia/Big.Dreams.Small.Spaces.S03E02.WEB-DL.x264-JIVE.mp4"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
-            final KatFileServiceImpl service = new KatFileServiceImpl(); //instance of service - of our plugin
+            final SendItServiceImpl service = new SendItServiceImpl(); //instance of service - of our plugin
             /*
             //we set premium account details
             final PremiumAccount config = new PremiumAccount();
