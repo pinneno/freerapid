@@ -4,9 +4,11 @@ import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
 import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
+import cz.vity.freerapid.plugins.services.solvemediacaptcha.SolveMediaCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadState;
 import cz.vity.freerapid.plugins.webclient.FileState;
+import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -34,6 +36,8 @@ class MultiUpFileRunner extends AbstractRunner {
             checkNameAndSize(getContentAsString());//ok let's extract file name and size from the page
         } else {
             checkProblems();
+            if (getMethod.getStatusCode() == 404)
+                throw new URLNotAvailableAnymoreException("File not found");
             throw new ServiceConnectionProblemException();
         }
     }
@@ -72,8 +76,14 @@ class MultiUpFileRunner extends AbstractRunner {
                     checkProblems();
                 }
             } else {
-                final HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL)
-                        .setActionFromAHrefWhereATagContains("<h5>DOWNLOAD").toGetMethod();
+                HttpMethod httpMethod;
+                try {
+                    httpMethod = getMethodBuilder().setReferer(fileURL)
+                            .setActionFromAHrefWhereATagContains("<h5>DOWNLOAD").toGetMethod();
+                } catch(Exception x) {
+                    httpMethod = doCaptcha(getMethodBuilder().setReferer(fileURL)
+                            .setActionFromFormWhereTagContains("<h5>DOWNLOAD", true)).toPostMethod();
+                }
                 if (!makeRedirectedRequest(httpMethod)) {
                     checkProblems();
                     throw new ServiceConnectionProblemException();
@@ -93,15 +103,31 @@ class MultiUpFileRunner extends AbstractRunner {
             httpFile.getProperties().put("removeCompleted", true);
         } else {
             checkProblems();
+            if (method.getStatusCode() == 404)
+                throw new URLNotAvailableAnymoreException("File not found");
             throw new ServiceConnectionProblemException();
         }
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
-        if (contentAsString.contains("File not found")) {
+        if (contentAsString.contains("File not found")
+                || contentAsString.contains("File might have been deleted")
+                || contentAsString.contains("File might have never existed")
+                || contentAsString.contains("Link might be incorrect")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
     }
 
+    private MethodBuilder doCaptcha(MethodBuilder builder) throws Exception {
+        if (getContentAsString().contains("/papi/challenge")) {
+            final Matcher captchaKeyMatcher = PlugUtils.matcher("/papi/challenge\\.noscript\\?k=(.+?)\"", getContentAsString());
+            if (!captchaKeyMatcher.find())  throw new PluginImplementationException("Captcha key not found");
+            final String captchaKey = captchaKeyMatcher.group(1);
+            final SolveMediaCaptcha solveMediaCaptcha = new SolveMediaCaptcha(captchaKey, client, getCaptchaSupport(), downloadTask);
+            solveMediaCaptcha.askForCaptcha();
+            solveMediaCaptcha.modifyResponseMethod(builder);
+        }
+        return builder;
+    }
 }

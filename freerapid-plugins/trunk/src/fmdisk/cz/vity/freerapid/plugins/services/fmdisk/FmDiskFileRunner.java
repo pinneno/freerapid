@@ -1,9 +1,6 @@
 package cz.vity.freerapid.plugins.services.fmdisk;
 
-import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
-import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
-import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
-import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
+import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
@@ -36,11 +33,12 @@ class FmDiskFileRunner extends AbstractRunner {
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
         PlugUtils.checkName(httpFile, content, "<h1>", "</h1>");
-        Matcher match = PlugUtils.matcher("class=\"info-txt\">.*?：(.+?)&nbsp;", content);
+        Matcher match = PlugUtils.matcher("文件大小：(.+?)&nbsp;&nbsp;&nbsp;", content);
         if (!match.find())
             throw new PluginImplementationException("File size not found");
         httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1).trim() + "b"));
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
+        httpFile.setResumeSupported(true);
     }
 
     @Override
@@ -52,19 +50,13 @@ class FmDiskFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
-            final String fileId = PlugUtils.getStringBetween(contentAsString, "(\"", "\",\"" + httpFile.getFileName());
+            fileURL = method.getURI().toString();
+            final String fileId = PlugUtils.getStringBetween(fileURL, "-", ".");
+            logger.info("fileId= " + fileId + "; fileURL = "+fileURL);
 
             HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL)
-                    .setActionFromTextBetween(".attr(\"href\",\"", "\")").toGetMethod();
-            if (!makeRedirectedRequest(httpMethod)) {
-                checkProblems();
-                throw new ServiceConnectionProblemException();
-            }
-            checkProblems();
-
-            httpMethod = getMethodBuilder().setReferer(fileURL)
-                    .setAction("ajax.php").setAjax()
-                    .setParameter("action", "load_down_addr3")
+                    .setAction("https://www.feemoo.com/yythems_ajax_file.php").setAjax()
+                    .setParameter("action", "load_down_addr2")
                     .setParameter("file_id", fileId)
                     .toPostMethod();
             if (!makeRedirectedRequest(httpMethod)) {
@@ -80,9 +72,10 @@ class FmDiskFileRunner extends AbstractRunner {
             }
             checkProblems();
 
-            String dlUrl = PlugUtils.getStringBetween(getContentAsString(), "file_url= '", "'");
-            httpMethod = getGetMethod(dlUrl);
-            if (!tryDownloadAndSaveFile(httpMethod)) {
+            String finalURL = PlugUtils.getStringBetween(getContentAsString(), "file_url= '", "'");
+            logger.info("finalURL = "+finalURL);
+            final HttpMethod finalMethod = getMethodBuilder().setAction(finalURL).setReferer(finalURL).toGetMethod();
+            if (!tryDownloadAndSaveFile(finalMethod)) {
                 checkProblems();//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
             }

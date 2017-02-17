@@ -16,7 +16,7 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://www.multiup.org/download/51f746e1637cb431ecc72c7357e57f35/Pny.2008.720p.TuMovie.NeT.rar"));
+            httpFile.setNewURL(new URL("http://www.multiup.org/download/74b503fbd602a5b1e096c05332326f50/TS.102.x264.tuserie.com.zip"));
             //httpFile.setNewURL(new URL("http://www.multiup.org/download/acf44b0e4b2588b05cbc07380d8b29d2/SAw.720p.YourSerie.CoM.mp4"));  //pass=069bc
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
