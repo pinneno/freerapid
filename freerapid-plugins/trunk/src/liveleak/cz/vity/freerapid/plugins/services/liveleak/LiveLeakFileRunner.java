@@ -94,6 +94,8 @@ class LiveLeakFileRunner extends AbstractRunner {
         liveLeakVideoPatterns.add(new LiveLeakVideoPattern("file_url=(.+?)&", VideoQuality.SD));
         liveLeakVideoPatterns.add(new LiveLeakVideoPattern("(?s)\\{\\s*?file:\\s*?\"([^\"]+?)\",\\s*?label:\\s*?\"720p HD\".+?\\}", VideoQuality.HD));
         liveLeakVideoPatterns.add(new LiveLeakVideoPattern("(?s)\\{\\s*?file:\\s*?\"([^\"]+?)\",\\s*?label:\\s*?\"Mobile - SD\".+?\\}", VideoQuality.SD));
+        liveLeakVideoPatterns.add(new LiveLeakVideoPattern("<source[^>]+?src=\"([^\"]+?)\"[^>]+?(?:res|label)=\"HD\"", VideoQuality.HD));
+        liveLeakVideoPatterns.add(new LiveLeakVideoPattern("<source[^>]+?src=\"([^\"]+?)\"[^>]+?(?:res|label)=\"SD\"", VideoQuality.SD));
 
         List<LiveLeakVideo> liveLeakVideos = new ArrayList<LiveLeakVideo>();
         Matcher matcher;

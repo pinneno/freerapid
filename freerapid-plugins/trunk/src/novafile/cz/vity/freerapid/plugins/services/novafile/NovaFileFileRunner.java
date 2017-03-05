@@ -25,6 +25,11 @@ import java.util.regex.Pattern;
 class NovaFileFileRunner extends XFileSharingRunner {
 
     @Override
+    protected void correctURL() throws Exception {
+        fileURL = fileURL.replaceFirst("https?://", "https://");
+    }
+
+    @Override
     protected List<FileSizeHandler> getFileSizeHandlers() {
         final List<FileSizeHandler> fileSizeHandlers = super.getFileSizeHandlers();
         fileSizeHandlers.add(0, new NovaFileFileSizeHandler());
