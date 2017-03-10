@@ -92,7 +92,8 @@ class UlozToRunner extends AbstractRunner {
             }
         }
         final GetMethod getMethod = getGetMethod(fileURL);  //reload fileURL page
-        if (!makeRedirectedRequest(getMethod)) {
+        final int status = client.makeRequest(getMethod, true);
+        if (!(status == 200 || status == 401)) {
             checkProblems();
             throw new ServiceConnectionProblemException();
         }
@@ -117,7 +118,8 @@ class UlozToRunner extends AbstractRunner {
             }
         } else {
             checkProblems();
-            throw new ServiceConnectionProblemException();
+            if (getMethod.getStatusCode() != 401)
+                throw new ServiceConnectionProblemException();
         }
     }
 
@@ -127,7 +129,8 @@ class UlozToRunner extends AbstractRunner {
         checkURL();
         setClientParameter(DownloadClientConsts.USER_AGENT, USER_AGENT);
         final GetMethod getMethod = getGetMethod(fileURL);
-        if (makeRedirectedRequest(getMethod)) {
+        final int status = client.makeRequest(getMethod, true);
+        if (status == 200 || status == 401) {
             robotSecurityCheck();
             checkProblems();
             fileURL = getMethod.getURI().toString(); // '/m/' folder redirected to '/soubory/'

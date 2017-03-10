@@ -69,7 +69,11 @@ class Go4upFileRunner extends AbstractRunner {
                 }
             }
             // add urls to queue
-            if (list.isEmpty()) throw new PluginImplementationException("No links found");
+            if (list.isEmpty()) {
+                if (getContentAsString().contains("Upload in progress"))
+                    throw new ServiceConnectionProblemException("WAIT: Upload in progress");
+                throw new PluginImplementationException("No links found");
+            }
             getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, list);
             httpFile.setFileName("Link(s) Extracted !");
             httpFile.setState(DownloadState.COMPLETED);

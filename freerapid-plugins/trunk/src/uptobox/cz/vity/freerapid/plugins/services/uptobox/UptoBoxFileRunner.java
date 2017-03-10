@@ -27,6 +27,12 @@ class UptoBoxFileRunner extends XFileSharingRunner {
     }
 
     @Override
+    protected void checkFileName() throws ErrorDuringDownloadingException {
+        super.checkFileName();
+        httpFile.setFileName(PlugUtils.unescapeHtml(httpFile.getFileName()));
+    }
+
+    @Override
     protected int getWaitTime() throws Exception {
         final Matcher matcher = getMatcherAgainstContent("[Ww]ait.*?<.+?\">.*?(\\d+).*?</span");
         if (matcher.find()) {
