@@ -3,6 +3,7 @@ package cz.vity.freerapid.plugins.services.uplea;
 import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
 import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
 import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
+import cz.vity.freerapid.plugins.exceptions.YouHaveToWaitException;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
@@ -72,6 +73,10 @@ class UpleaFileRunner extends AbstractRunner {
         final String contentAsString = getContentAsString();
         if (contentAsString.contains("invalid or expired link")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
+        }
+        if (contentAsString.contains("Download limit exceded")) {
+            int time = PlugUtils.getNumberBetween(contentAsString, "timeText:", ",");
+            throw new YouHaveToWaitException("Download limit exceded", time);
         }
     }
 
