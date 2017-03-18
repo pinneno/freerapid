@@ -51,6 +51,7 @@ class KProtectorFileRunner extends AbstractRunner {
         if (makeRedirectedRequest(method)) { //we make the main request
             checkProblems();//check problems
             checkNameAndSize();//extract file name and size from the page
+            fileURL = method.getURI().getURI();
             int loop = 0;
             do {
                 if (loop++ > 10) {
@@ -58,7 +59,8 @@ class KProtectorFileRunner extends AbstractRunner {
                 }
                 HttpMethod httpMethod = doCaptcha(doPassword(getMethodBuilder()
                         .setActionFromFormByName("frmprotect", true)
-                        .setReferer(fileURL))).toPostMethod();
+                        .setAction(fileURL).setReferer(fileURL))
+                        ).toPostMethod();
                 if (!makeRedirectedRequest(httpMethod)) {
                     checkProblems();
                     throw new ServiceConnectionProblemException();

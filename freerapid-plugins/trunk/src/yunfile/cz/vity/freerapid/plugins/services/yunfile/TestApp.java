@@ -25,6 +25,7 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://page1.yunfile.com/file/adslabc/8e044660/"));
             //httpFile.setNewURL(new URL("http://page1.yunfile.com/file/bjfrj/1196f8c5/")); //File Size: 74.64 MB
             httpFile.setNewURL(new URL("http://page2.yunfile.com/fs/2a6r7s3ebnfa8lcfan9996/"));
+            httpFile.setNewURL(new URL("http://skpan.com/fs/cbbdprfesfs50f47/"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("127.0.0.1", 9080, Proxy.Type.SOCKS); //eg we can use local proxy to sniff HTTP communication

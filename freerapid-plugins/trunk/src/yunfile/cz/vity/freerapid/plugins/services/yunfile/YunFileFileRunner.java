@@ -54,10 +54,11 @@ class YunFileFileRunner extends AbstractRunner {
         while (matcher.find()) {
             String group1 = matcher.group(1);
             if (!group1.contains("Please") || !group1.contains("premium")) {
-                filename = PlugUtils.unescapeHtml(group1)
+                filename = decodeFileName(PlugUtils.unescapeHtml(group1)
                         .replaceAll("</?[a-z0-9]{1,2}?>", "")
                         .replaceAll("<!--.*?-->", "")
-                        .trim();
+                        .replaceAll("<[^>]+?>", "")
+                        .trim());
             }
             fileSize = PlugUtils.getFileSizeFromString(matcher.group(2));
         }
@@ -91,11 +92,11 @@ class YunFileFileRunner extends AbstractRunner {
                 final int waitTime = !matcher.find() ? 30 : Integer.parseInt(matcher.group(1));
 
                 matcher = getMatcherAgainstContent("<a (.*?id=\"downpage_link\"[^<>]+?)>");
-                Matcher downpageHref = getMatcherAgainstContent("href=\"([^\"]+?)\"");
+                Matcher downpageHref = getMatcherAgainstContent("var url = \"([^\"]+?)\"");
                 if (!matcher.find()) {
                     throw new PluginImplementationException("Download page anchor tag not found");
                 }
-                downpageHref.region(matcher.start(1), matcher.end(1));
+                //downpageHref.region(matcher.start(1), matcher.end(1));
                 if (!downpageHref.find()) {
                     throw new PluginImplementationException("Download page link not found");
                 }
@@ -144,6 +145,7 @@ class YunFileFileRunner extends AbstractRunner {
                 final String fileId;
                 final String vid;
                 final String varVid;
+                String action;
                 Matcher matcher = getMatcherAgainstContent("fileId\\.value\\s*=\\s*[\"'](.+?)[\"']\\s*;");
                 if (!matcher.find()) {
                     fileId = getFileIdFromUrl();
@@ -160,11 +162,18 @@ class YunFileFileRunner extends AbstractRunner {
                     if (!matcher.find()) throw new PluginImplementationException("Error parsing var vid");
                     vid = matcher.group(1);
                 }
+                matcher = getMatcherAgainstContent("form.action\\s*=\\s*(\\w+?)\\+\"(.+?)\"");
+                if (!matcher.find()) throw new PluginImplementationException("action parameters not found");
+                action = matcher.group(2).trim();
+                matcher = getMatcherAgainstContent(matcher.group(1) + "\\s*=\\s*\"(http.+?)\";");
+                if (!matcher.find()) throw new PluginImplementationException("action not found");
+                action = matcher.group(1) + action;
                 httpMethod = getMethodBuilder()
                         .setReferer(downloadPageUrl)
                         .setActionFromFormWhereTagContains("fileId", true)
                         .setParameter("fileId", fileId)
                         .setParameter("vid", vid)
+                        .setAction(action)
                         .toPostMethod();
                 addCookie(new Cookie(".yunfile.com", "referer", URLEncoder.encode(downloadPageUrl, "UTF-8"), "/", 86400, false));
             }
@@ -195,7 +204,7 @@ class YunFileFileRunner extends AbstractRunner {
 
         String buttonId = "cvimg2";
         List<BufferedImage> images = new LinkedList<BufferedImage>();
-        matcher = PlugUtils.matcher("['\"](/verifyimg/getPcv/\\d+\\.html|/verifyimg/getPcv\"\\+\"/\\d+\"\\+\"\\.html)['\"]",
+        matcher = PlugUtils.matcher("['\"](/verifyimg/getPcv/\\d+\\.html|/verifyimg/getPcv\"\\+\"\"\\+\".html|/verifyimg/getPcv\"\\+\"/\\d+\"\\+\"\\.html)['\"]",
                 bodyContent.replaceAll("(?sm)(?:([\\s;])+//(?:.*)$)|(?:/\\*(?:[\\s\\S]*?)\\*/)", "").replaceAll("<!--.*?-->", ""));
         int totalWidth = 0, maxHeight = 0;
         int imageType = 0;
@@ -314,5 +323,23 @@ class YunFileFileRunner extends AbstractRunner {
             reader.close();
         }
         return engine;
+    }
+
+    private String decodeFileName(String filename) {
+        final Matcher matcher = PlugUtils.matcher("(?s)<script>\\s*(function codeAndEncode.+?)document", getContentAsString());
+        if (matcher.find()) {
+
+            final ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+            if (engine == null) {
+                throw new RuntimeException("JavaScript engine not found");
+            }
+            try {
+                engine.eval(matcher.group(1));
+                return engine.get("filename").toString();
+            } catch (ScriptException e) {
+                LogUtils.processException(logger, e);
+            }
+        }
+        return filename;
     }
 }

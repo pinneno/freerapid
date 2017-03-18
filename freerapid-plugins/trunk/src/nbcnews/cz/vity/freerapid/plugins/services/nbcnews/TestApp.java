@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.go4up;
+package cz.vity.freerapid.plugins.services.nbcnews;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -16,15 +16,13 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://go4up.com/dl/1rkJN8Powm8T"));
-            httpFile.setNewURL(new URL("https://go4up.com/dl/9edf46c1fa3563"));
-            //httpFile.setNewURL(new URL("http://go4up.com/rd/1rkJN8Powm8T/utb"));
-            //httpFile.setNewURL(new URL("http://go4up.com/link.php?id=1rkJN8Powm8T"));
+            httpFile.setNewURL(new URL("http://www.nbcnews.com/nightly-news/video/nightly-news-full-broadcast-march-9th-894484547904"));
+            httpFile.setNewURL(new URL("http://nbcnews.to/2n5uynX"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
-            final Go4upServiceImpl service = new Go4upServiceImpl(); //instance of service - of our plugin
+            final NbcNewsServiceImpl service = new NbcNewsServiceImpl(); //instance of service - of our plugin
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console
