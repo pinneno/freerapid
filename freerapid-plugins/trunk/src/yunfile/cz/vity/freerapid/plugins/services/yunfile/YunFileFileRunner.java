@@ -79,14 +79,18 @@ class YunFileFileRunner extends AbstractRunner {
         checkFileURL();
         addCookie(new Cookie(".yunfile.com", "language", "en_us", "/", 86400, false));
         logger.info("Starting download in TASK " + fileURL);
-        final GetMethod method = getGetMethod(fileURL);
-        if (makeRedirectedRequest(method)) {
+        HttpMethod httpMethod;
+        synchronized(YunFileFileRunner.class) {
+            final GetMethod method = getGetMethod(fileURL);
+            if (!makeRedirectedRequest(method)) {
+                checkProblems();
+                throw new ServiceConnectionProblemException();
+            }
             final String contentAsString = getContentAsString();
             checkProblems();
             checkNameAndSize(contentAsString);
             String baseURL = "http://" + method.getURI().getAuthority();
             String referer = method.getURI().toString();
-            HttpMethod httpMethod;
             do {
                 Matcher matcher = getMatcherAgainstContent("Please wait <span.+?>(.+?)</span>");
                 final int waitTime = !matcher.find() ? 30 : Integer.parseInt(matcher.group(1));
@@ -177,14 +181,11 @@ class YunFileFileRunner extends AbstractRunner {
                         .toPostMethod();
                 addCookie(new Cookie(".yunfile.com", "referer", URLEncoder.encode(downloadPageUrl, "UTF-8"), "/", 86400, false));
             }
-            setClientParameter(DownloadClientConsts.DONT_USE_HEADER_FILENAME, true); //they send non-standard filename attachment header
-            if (!tryDownloadAndSaveFile(httpMethod)) {
-                checkProblems();
-                throw new ServiceConnectionProblemException("Error starting download");
-            }
-        } else {
+        }
+        setClientParameter(DownloadClientConsts.DONT_USE_HEADER_FILENAME, true); //they send non-standard filename attachment header
+        if (!tryDownloadAndSaveFile(httpMethod)) {
             checkProblems();
-            throw new ServiceConnectionProblemException();
+            throw new ServiceConnectionProblemException("Error starting download");
         }
     }
 

@@ -20,7 +20,7 @@ import java.util.regex.Matcher;
 /**
  * Class which contains main code
  *
- * @author birchie'
+ * @author birchie
  */
 class TwoDdlFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(TwoDdlFileRunner.class.getName());
