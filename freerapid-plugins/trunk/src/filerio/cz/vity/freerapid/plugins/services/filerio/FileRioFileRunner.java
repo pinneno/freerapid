@@ -1,7 +1,6 @@
 package cz.vity.freerapid.plugins.services.filerio;
 
-import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
-import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
+import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.util.URIUtil;
@@ -50,6 +49,14 @@ class FileRioFileRunner extends XFileSharingRunner {
             }
         }
         throw new PluginImplementationException("Download link not found");
+    }
+
+    @Override
+    protected void checkFileProblems(final String content) throws ErrorDuringDownloadingException {
+        if (content.contains("File has been removed")) {
+            throw new URLNotAvailableAnymoreException("File not found");
+        }
+        super.checkFileProblems(content);
     }
 
     @Override

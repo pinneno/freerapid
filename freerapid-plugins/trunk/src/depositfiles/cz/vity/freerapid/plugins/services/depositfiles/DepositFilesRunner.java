@@ -184,6 +184,7 @@ class DepositFilesRunner extends AbstractRunner {
                 }
             }
             String finalDownloadUrl = matcher.group(1);
+            finalDownloadUrl = finalDownloadUrl.replaceFirst(".*//", "https://");
             logger.info("Download URL: " + finalDownloadUrl);
 
             method = getMethodBuilder().setReferer(getFileUrl).setAction(finalDownloadUrl).toGetMethod();

@@ -3,6 +3,7 @@ package cz.vity.freerapid.plugins.services.uploadocean;
 import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
+import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileNameHandler;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandler;
@@ -89,5 +90,13 @@ class UploadOceanFileRunner extends XFileSharingRunner {
             }
         });
         return fileSizeHandlers;
+    }
+
+    @Override
+    protected void checkFileProblems(final String content) throws ErrorDuringDownloadingException {
+        if (content.contains("<title>Download </title>")) {
+            throw new URLNotAvailableAnymoreException("File not found");
+        }
+        super.checkFileProblems(content);
     }
 }
