@@ -79,7 +79,7 @@ class PornHubFileRunner extends AbstractRunner {
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
-            final String content = getContentAsString();//check for response
+            String content = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(content);//extract file name and size from the page
             if (fileURL.contains("/album/")) {
@@ -103,6 +103,7 @@ class PornHubFileRunner extends AbstractRunner {
                 }
             } else {
                 setConfig();
+                content = deJsVideoQualityUrlsSection(content);
                 final List<PornHubVideo> videos = getVideoList(content);
                 if (!content.contains("player_quality_")) {
                     final String name = PlugUtils.getStringBetween(content, "\"video_title\":\"", "\"").replace('+', ' ');
@@ -149,6 +150,22 @@ class PornHubFileRunner extends AbstractRunner {
         } catch (Exception e) {
             throw new PluginImplementationException("JS evaluation error " + e.getLocalizedMessage());
         }
+    }
+
+    private String deJsVideoQualityUrlsSection(String content) throws Exception {
+        final Matcher match = PlugUtils.matcher("(?s)player_mp4_seek[^;]+?;(.+?)loadScript", content);
+        if (match.find()) {
+            String jsSection = match.group(1).trim().replaceAll("/\\*.+?\\*/", "").replaceAll("flashvars.+?\\]", "aaaa");
+            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+            String qualityStrings = "\n";
+            engine.eval(jsSection);
+            Matcher matcher = PlugUtils.matcher("(quality_\\d+p)\\s*=\\s*", content);
+            while (matcher.find()) {
+                qualityStrings += "player_" + matcher.group(0) + "'" + engine.get(matcher.group(1)).toString() + "'" + "; \n";
+            }
+            content += qualityStrings;
+        }
+        return content;
     }
 
     private String deJsVideoQualityUrl(String content, String quality) throws Exception {

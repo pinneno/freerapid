@@ -49,7 +49,7 @@ class FileHippoFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
-            final Matcher match = PlugUtils.matcher("<a.+?program-header-download-link.+?href=\"(.+?)\">", contentAsString);
+            final Matcher match = PlugUtils.matcher("(?s)<a[^>]+?program-header-download-link.+?href=\"([^\"]+?)\"", contentAsString);
             if (!match.find())
                 throw new PluginImplementationException("Download page not found");
             final HttpMethod httpMethod = getMethodBuilder()

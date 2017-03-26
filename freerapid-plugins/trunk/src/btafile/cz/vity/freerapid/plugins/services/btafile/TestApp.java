@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.filehippo;
+package cz.vity.freerapid.plugins.services.btafile;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -16,13 +16,18 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://www.FileHippo.com/download_klite_mega_codec/12800/"));
-            //httpFile.setNewURL(new URL("http://filehippo.com/download_java_development_kit_32/"));
+            httpFile.setNewURL(new URL("http://btafile.com/8fb1fbjcx3sy"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
-            //then we tries to download
-            final FileHippoServiceImpl service = new FileHippoServiceImpl(); //instance of service - of our plugin
+            final BtaFileServiceImpl service = new BtaFileServiceImpl(); //instance of service - of our plugin
+            /*
+            //we set premium account details
+            final PremiumAccount config = new PremiumAccount();
+            config.setUsername("****");
+            config.setPassword("****");
+            service.setConfig(config);
+            //*/
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console
