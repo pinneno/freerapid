@@ -42,7 +42,7 @@ class TwoDdlFileRunner extends AbstractRunner {
     }
 
     private void correctUrl() {
-        fileURL = fileURL.replaceFirst("(twoddl\\.(tv|eu|com|org)|2ddl\\.link)", "iiddl.com");
+        fileURL = fileURL.replaceFirst("(twoddl\\.(tv|eu|com|org)|2ddl\\.(la|link))", "iiddl.com");
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
@@ -64,6 +64,7 @@ class TwoDdlFileRunner extends AbstractRunner {
             checkProblems();//check problems
 
             if (fileURL.contains("://linx.")) {
+                fileURL = method.getURI().getURI();
                 do {
                 HttpMethod httpMethod = doCaptcha(getMethodBuilder().setReferer(fileURL)
                         .setActionFromFormWhereTagContains("submit", true)
@@ -107,10 +108,14 @@ class TwoDdlFileRunner extends AbstractRunner {
         if (contentAsString.contains("File Not Found") || contentAsString.contains("ID was not found")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
+        if (contentAsString.contains("Moved Permanently")) {
+            throw new URLNotAvailableAnymoreException("Moved Permanently"); //let to know user in FRD
+        }
     }
 
     private MethodBuilder doCaptcha(MethodBuilder builder) throws Exception {
-        final String image = getMethodBuilder().setActionFromImgSrcWhereTagContains("Security").setReferer(fileURL).getEscapedURI();
+        final String baseUrl = new URL(fileURL).getProtocol() + "://" + new URL(fileURL).getAuthority();
+        final String image = getMethodBuilder().setActionFromImgSrcWhereTagContains("Security").setBaseURL(baseUrl).getEscapedURI();
         final CaptchaSupport captchaSupport = getCaptchaSupport();
         final String captcha = captchaSupport.getCaptcha(image);
         if (captcha == null)

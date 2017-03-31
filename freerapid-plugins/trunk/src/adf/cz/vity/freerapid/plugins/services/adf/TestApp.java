@@ -24,6 +24,7 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://adf.acb.im/iO"));
             //httpFile.setNewURL(new URL("http://goo.gl/efMsK"));
             httpFile.setNewURL(new URL("http://adf.ly/redirecting/aHR0cDovL3NoLnN0LzFXaGhC"));
+            httpFile.setNewURL(new URL("http://pintient.com/VG"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication

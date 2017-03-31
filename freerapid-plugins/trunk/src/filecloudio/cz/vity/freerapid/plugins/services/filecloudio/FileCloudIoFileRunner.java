@@ -2,6 +2,7 @@ package cz.vity.freerapid.plugins.services.filecloudio;
 
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.services.recaptcha.ReCaptcha;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.hoster.PremiumAccount;
@@ -34,47 +35,34 @@ class FileCloudIoFileRunner extends AbstractRunner {
         HttpMethod httpMethod = getMethodBuilder().setAction(fileURL).toGetMethod();
         if (makeRedirectedRequest(httpMethod)) {
             checkFileProblems();
-            final String downloadURL = httpMethod.getURI().toString();
+            final String content = getContentAsString();
             final String currentURL = getVar("__currentUrl");
-            final String recaptchaKey = getVar("__recaptcha_public");
             final String requestUrl = getVar("__requestUrl");
-            final String ukey = PlugUtils.getStringBetween(getContentAsString(), "'ukey'", ",").replace(":", "").replace("'", "").trim();
-            final String ab1 = getVar("__ab1");
-            httpMethod = getMethodBuilder()
-                    .setReferer(currentURL)
-                    .setAction(requestUrl)
-                    .setParameter("ukey", ukey)
-                    .setParameter("__ab1", ab1)
-                    .toPostMethod();
-            httpMethod.addRequestHeader("X-Requested-With", "XMLHttpRequest");
-            setFileStreamContentTypes(new String[0], new String[]{"application/json"});
-            if (makeRedirectedRequest(httpMethod)) {
-                checkDownloadProblems();
-                logger.info(getContentAsString());
-                while (getContentAsString().contains("\"captcha\":1")) {
-                    stepCaptcha(recaptchaKey, requestUrl, ukey, ab1);
-                }
-                checkDownloadProblems();
-                httpMethod = getMethodBuilder()
-                        .setReferer(downloadURL)
-                        .setAction(downloadURL)
-                        .toGetMethod();
+            final String recaptchaKey = PlugUtils.getStringBetween(content, "'sitekey'", ",").replace(":", "").replace("'", "").trim();
+            final String fkey = PlugUtils.getStringBetween(content, "'fkey'", ",").replace(":", "").replace("'", "").trim();
+            final String f1 = PlugUtils.getStringBetween(content, "'f1'", ",").replace(":", "").replace("'", "").trim();
+            final String f2 = PlugUtils.getStringBetween(content, "'f2'", ",").replace(":", "").replace("'", "").trim();
+            do {
+                httpMethod = getMethodBuilder().setAjax()
+                        .setReferer(currentURL)
+                        .setAction(requestUrl)
+                        .setParameter("fkey", fkey)
+                        .setParameter("f1", f1)
+                        .setParameter("f2", f2)
+                        .setParameter("r", doCaptcha(recaptchaKey))
+                        .toPostMethod();
+                setFileStreamContentTypes(new String[0], new String[]{"application/json"});
                 if (!makeRedirectedRequest(httpMethod)) {
                     checkDownloadProblems();
                     throw new ServiceConnectionProblemException();
                 }
                 checkDownloadProblems();
-                httpMethod = getMethodBuilder()
-                        .setReferer(downloadURL)
-                        .setActionFromAHrefWhereATagContains("download")
-                        .toGetMethod();
-                if (!tryDownloadAndSaveFile(httpMethod)) {
-                    checkDownloadProblems();
-                    throw new ServiceConnectionProblemException("Error starting download");
-                }
-            } else {
+                logger.info(getContentAsString());
+            } while (getContentAsString().contains("status\":\"error"));
+            String link = PlugUtils.getStringBetween(getContentAsString(), "Url\":\"", "\"").replace("\\", "");
+            if (!tryDownloadAndSaveFile(getGetMethod(link))) {
                 checkDownloadProblems();
-                throw new ServiceConnectionProblemException();
+                throw new ServiceConnectionProblemException("Error starting download");
             }
         } else {
             checkFileProblems();
@@ -83,21 +71,24 @@ class FileCloudIoFileRunner extends AbstractRunner {
     }
 
     private void checkFileProblems() throws ErrorDuringDownloadingException {
-        final String content = getContentAsString();
-        final String vError = getVar("__error");
-        if (vError.equals("1")) {
-            final String vErrorMsg = getVar("__error_msg").replace("l10n.", "");
-            final String errorMsg = PlugUtils.getStringBetween(content, "\"" + vErrorMsg + "\":\"", "\"");
-            if (errorMsg.contains("file removed") || errorMsg.contains("no such file") || errorMsg.contains("file expired")) {
-                throw new URLNotAvailableAnymoreException("File not found");
-            }
-            if (errorMsg.contains("is currently rather busy") || errorMsg.contains("is currently busy")) {
-                throw new YouHaveToWaitException("The server this file is on is currenty busy", 60);
-            }
-            if (errorMsg.contains("currently offline for maintenance") || errorMsg.contains("seems to be malfunctioning at the moment")) {
-                throw new YouHaveToWaitException("The server this file is on is currently offline", 10 * 60);
-            }
+        if (getContentAsString().contains("file at this URL was either removed or did not exist")) {
+            throw new URLNotAvailableAnymoreException("File not found");
         }
+        //final String content = getContentAsString();
+        //final String vError = getVar("__error");
+        //if (vError.equals("1")) {
+        //    final String vErrorMsg = getVar("__error_msg").replace("l10n.", "");
+        //    final String errorMsg = PlugUtils.getStringBetween(content, "\"" + vErrorMsg + "\":\"", "\"");
+        //    if (errorMsg.contains("file removed") || errorMsg.contains("no such file") || errorMsg.contains("file expired")) {
+        //        throw new URLNotAvailableAnymoreException("File not found");
+        //    }
+        //    if (errorMsg.contains("is currently rather busy") || errorMsg.contains("is currently busy")) {
+        //        throw new YouHaveToWaitException("The server this file is on is currenty busy", 60);
+        //    }
+        //    if (errorMsg.contains("currently offline for maintenance") || errorMsg.contains("seems to be malfunctioning at the moment")) {
+        //        throw new YouHaveToWaitException("The server this file is on is currently offline", 10 * 60);
+        //    }
+        //}
     }
 
     private void checkDownloadProblems() throws ErrorDuringDownloadingException {
@@ -141,28 +132,10 @@ class FileCloudIoFileRunner extends AbstractRunner {
         return matcher.group(1);
     }
 
-    private void stepCaptcha(final String recaptchaKey, final String requestUrl, final String ukey, final String ab1) throws Exception {
-        final ReCaptcha r = new ReCaptcha(recaptchaKey, client);
-        final String captcha = getCaptchaSupport().getCaptcha(r.getImageURL());
-        if (captcha == null) {
-            throw new CaptchaEntryInputMismatchException();
-        }
-        r.setRecognized(captcha);
-        final String captchaChallenge = PlugUtils.getStringBetween(r.getResponseParams(), "recaptcha_challenge_field=", "&recaptcha_response_field=");
-        final MethodBuilder methodBuilder = getMethodBuilder()
-                .setReferer(fileURL)
-                .setAction(requestUrl)
-                .setParameter("ukey", ukey)
-                .setParameter("__ab", ab1)
-                .setParameter("ctype", "recaptcha")
-                .setParameter("recaptcha_response", captcha)
-                .setParameter("recaptcha_challenge", captchaChallenge);
-        final HttpMethod httpMethod = methodBuilder.toPostMethod();
-        httpMethod.addRequestHeader("X-Requested-With", "XMLHttpRequest");
-        if (!makeRedirectedRequest(httpMethod)) {
-            throw new ServiceConnectionProblemException();
-        }
-
+    private String doCaptcha(String reCaptchaKey) throws Exception{
+        final String fileUrl = downloadTask.getDownloadFile().getFileUrl().toString();
+        final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileUrl);
+        return r.getResponse();
     }
 
     private void checkFileURL() throws MalformedURLException {
