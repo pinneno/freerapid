@@ -9,7 +9,6 @@ import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
-import java.net.URLDecoder;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
@@ -30,12 +29,28 @@ class PimpAndHostFileRunner extends AbstractRunner {
         if (makeRedirectedRequest(method)) {
             final String contentAsString = getContentAsString();
             checkProblems();
-            final String imgUrl = PlugUtils.getStringBetween(contentAsString, "id=\"image\" src=\"", "\"/");
-            final Matcher matcher = PlugUtils.matcher("/([^/]+\\.\\w+$)", imgUrl);
+
+            Matcher matcher = getMatcherAgainstContent("data-share-codes.*?'([^']+)'");
             if (!matcher.find()) {
-                throw new PluginImplementationException("File name not found");
+                throw new PluginImplementationException("Image URL not found (1)");
             }
-            httpFile.setFileName(URLDecoder.decode(matcher.group(1), "UTF-8"));
+            String dataShareCodes = matcher.group(1);
+
+            int maxRes = -1;
+            String imgUrl = null;
+            matcher = PlugUtils.matcher("\"(\\d+)\"\\s*?:\\s*?\"(http[^\"]+)\"", dataShareCodes);
+            while (matcher.find()) {
+                int res = Integer.parseInt(matcher.group(1));
+                if (res > maxRes) {
+                    maxRes = res;
+                    imgUrl = matcher.group(2).replace("\\/", "/");
+                }
+            }
+            if (imgUrl == null) {
+                throw new PluginImplementationException("Image URL not found (2)");
+            }
+            httpFile.setFileName(PlugUtils.suggestFilename(imgUrl));
+
             final HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setAction(imgUrl).toHttpMethod();
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();

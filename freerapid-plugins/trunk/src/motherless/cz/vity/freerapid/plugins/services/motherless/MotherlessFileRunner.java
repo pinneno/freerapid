@@ -24,6 +24,7 @@ class MotherlessFileRunner extends AbstractRunner {
     @Override
     public void runCheck() throws Exception { //this method validates file
         super.runCheck();
+        setTextContentTypes("<empty>");
         final GetMethod getMethod = getGetMethod(fileURL);//make first request
         if (makeRedirectedRequest(getMethod)) {
             checkProblems();
@@ -46,6 +47,7 @@ class MotherlessFileRunner extends AbstractRunner {
     public void run() throws Exception {
         super.run();
         logger.info("Starting download in TASK " + fileURL);
+        setTextContentTypes("<empty>");
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
             final String content = getContentAsString();//check for response

@@ -316,9 +316,9 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
         try {
             PlugUtils.checkName(httpFile, getContentAsString(), "<meta name=\"title\" content=\"", "\"");
         } catch (final PluginImplementationException e) {
-            PlugUtils.checkName(httpFile, getContentAsString(), "<title>", "- YouTube\n</title>");
+            PlugUtils.checkName(httpFile, getContentAsString(), "<title>", "</title>");
         }
-        String fileName = PlugUtils.unescapeHtml(PlugUtils.unescapeHtml(httpFile.getFileName()));
+        String fileName = PlugUtils.unescapeHtml(PlugUtils.unescapeHtml(httpFile.getFileName())).replaceFirst("- YouTube$", "");
         if (dashAudioItagValue != -1) {
             fileName += AUDIO_FILE_EXT;
         } else if (isVideo()) {
