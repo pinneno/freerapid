@@ -50,4 +50,10 @@ class FilesCdnFileRunner extends XFileSharingRunner {
         return fileSizeHandlers;
     }
 
+    @Override
+    protected List<String> getDownloadPageMarkers() {
+        final List<String> downloadPageMarkers = super.getDownloadPageMarkers();
+        downloadPageMarkers.add("Download Ready");
+        return downloadPageMarkers;
+    }
 }

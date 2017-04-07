@@ -19,7 +19,7 @@ public class TestApp extends PluginDevApplication {
             //InputStream is = new BufferedInputStream(new FileInputStream("E:\\Stuff\\logtest.properties"));
             //LogManager.getLogManager().readConfiguration(is);
             //we set file URL
-            httpFile.setNewURL(new URL("http://www.nbc.com/saturday-night-live/video/may-2-scarlett-johansson/2862376"));
+            httpFile.setNewURL(new URL("http://www.nbc.com/today/video/today-apr-06-2017/3488638"));
             //httpFile.setNewURL(new URL("http://www.nbc.com/saturday-night-live/video/weekend-update-5215-part-2-of-2/2863479"));
             //httpFile.setNewURL(new URL("http://www.nbc.com/the-tonight-show/segments/6471"));
             //the way we connect to the internet
