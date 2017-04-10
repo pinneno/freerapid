@@ -15,11 +15,7 @@ import org.apache.commons.httpclient.methods.GetMethod;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.LinkedList;
@@ -40,30 +36,19 @@ class HungamaFileRunner extends AbstractRunner {
         super.runCheck();
         checkUrl();
         if (!isAlbum(fileURL)) {
-            final GetMethod getMethod = getGetMethod(fileURL);
-            if (makeRedirectedRequest(getMethod)) {
-                checkProblems();
-                checkNameAndSize(getContentAsString());
-            } else {
-                checkProblems();
-                throw new ServiceConnectionProblemException();
-            }
+            final String trackId = getTrackId();
+            final JsonNode audioPlayerData = getAudioPlayerData(trackId, new JsonMapper().getObjectMapper());
+            checkNameAndSize(audioPlayerData);
         }
     }
 
-    private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        String album = null;
-        Matcher matcher = PlugUtils.matcher("data\\.albumName\\s*?=\\s*?\"'?([^\"]+)'?\"", content);
-        if (matcher.find()) {
-            album = matcher.group(1).trim().replaceFirst("^'", "").replaceFirst("'$", "");
-        }
-        String song;
-        matcher = PlugUtils.matcher("data\\.songName\\s*?=\\s*?\"'?([^\"]+)'?\"", content);
-        if (!matcher.find()) {
+    private void checkNameAndSize(JsonNode audioPlayerData) throws ErrorDuringDownloadingException {
+        String album = audioPlayerData.findPath("album_name").getTextValue();
+        String song = audioPlayerData.findPath("song_name").getTextValue();
+        if (song == null) {
             throw new PluginImplementationException("Song name not found");
         }
-        song = matcher.group(1).trim().replaceFirst("^'", "").replaceFirst("'$", "");
-        String filename = (album != null ? album + " - " + song : song) + ".mp3";
+        String filename = (album != null ? album + " - " + song : song) + ".mp4";
         httpFile.setFileName(filename);
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
@@ -73,57 +58,34 @@ class HungamaFileRunner extends AbstractRunner {
         super.run();
         logger.info("Starting download in TASK " + fileURL);
         checkUrl();
-        final GetMethod method = getGetMethod(fileURL);
-        if (makeRedirectedRequest(method)) {
-            if (!isAlbum(fileURL)) {
-                final String contentAsString = getContentAsString();
+        final ObjectMapper objectMapper = new JsonMapper().getObjectMapper();
+        if (!isAlbum(fileURL)) {
+            final String trackId = getTrackId();
+            final JsonNode audioPlayerData = getAudioPlayerData(trackId, objectMapper);
+            checkNameAndSize(audioPlayerData);
+
+            final String songUrl = audioPlayerData.findPath("file").getTextValue();
+            if (songUrl == null) {
+                throw new PluginImplementationException("Song URL not found");
+            }
+
+            HttpMethod httpMethod = getMethodBuilder()
+                    .setReferer(fileURL)
+                    .setAction(songUrl)
+                    .toGetMethod();
+            setClientParameter(DownloadClientConsts.DONT_USE_HEADER_FILENAME, true);
+            if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();
-                checkNameAndSize(contentAsString);
-
-                Matcher matcher = PlugUtils.matcher("data\\.trackId\\s*?=\\s*?\"([^\"]+)\"", getContentAsString());
-                if (!matcher.find()) {
-                    throw new PluginImplementationException("Track id not found");
-                }
-                String trackId = matcher.group(1).trim();
-
-                String param;
-                try {
-                    ScriptEngine engine = initScriptEngine();
-                    engine.put("trackId", trackId);
-                    engine.eval("var data = c2sencrypt(trackId, 'HUNG123#');"); //http://www.hungama.com/themes/hungamaTheme/js/autoplay.js
-                    param = (String) engine.get("data");
-                } catch (Exception e) {
-                    throw new PluginImplementationException("Unable to decrypt song path parameter");
-                }
-
-                HttpMethod httpMethod = getMethodBuilder()
-                        .setReferer(fileURL)
-                        .setAction("http://www.hungama.com/mediaPlayer/getsongpath")
-                        .setParameter("param", param)
-                        .setAjax()
-                        .toGetMethod();
-                if (!makeRedirectedRequest(httpMethod)) {
-                    checkProblems();
-                    throw new ServiceConnectionProblemException();
-                }
-                checkProblems();
-
-                String downloadUrl = getContentAsString();
-                httpMethod = getMethodBuilder()
-                        .setReferer(fileURL)
-                        .setAction(downloadUrl)
-                        .toGetMethod();
-                setClientParameter(DownloadClientConsts.DONT_USE_HEADER_FILENAME, true);
-                if (!tryDownloadAndSaveFile(httpMethod)) {
-                    checkProblems();
-                    throw new ServiceConnectionProblemException("Error starting download");
-                }
-            } else {
-                processAlbum();
+                throw new ServiceConnectionProblemException("Error starting download");
             }
         } else {
+            GetMethod getMethod = getGetMethod(fileURL);
+            if (!makeRedirectedRequest(getMethod)) {
+                checkProblems();
+                throw new ServiceConnectionProblemException();
+            }
             checkProblems();
-            throw new ServiceConnectionProblemException();
+            processAlbum(objectMapper);
         }
     }
 
@@ -138,60 +100,50 @@ class HungamaFileRunner extends AbstractRunner {
         //fileURL = fileURL.replaceFirst("/#/music/", "/music/");
     }
 
-    private boolean isAlbum(String fileUrl) {
-        return fileUrl.contains("/music/album-");
+    private String getTrackId() throws PluginImplementationException {
+        Matcher matcher = PlugUtils.matcher("/(\\d{3,})/?$", fileURL);
+        if (!matcher.find()) {
+            throw new PluginImplementationException("Track ID not found");
+        }
+        return matcher.group(1);
     }
 
-    private ScriptEngine initScriptEngine() throws Exception {
-        final ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
-        if (engine == null) {
-            throw new RuntimeException("JavaScript engine not found");
-        }
-        final Reader reader = new InputStreamReader(HungamaFileRunner.class.getResourceAsStream("/resources/crypto.js"), "UTF-8");
-        try {
-            engine.eval(reader);
-        } finally {
-            reader.close();
-        }
-        return engine;
-    }
-
-    private void processAlbum() throws Exception {
-        setTextContentTypes("application/json");
-        final HttpMethod httpMethod = getMethodBuilder()
-                .setReferer("http://www.hungama.com/")
-                .setAction(fileURL.replaceFirst("/#/music/", "/music/"))
+    private JsonNode getAudioPlayerData(String trackId, ObjectMapper objectMapper) throws ErrorDuringDownloadingException, IOException {
+        HttpMethod method = getMethodBuilder()
+                .setAction("http://www.hungama.com/audio-player-data/track/" + trackId)
                 .setAjax()
                 .toGetMethod();
-        if (!makeRedirectedRequest(httpMethod)) {
+        if (!makeRedirectedRequest(method)) {
             checkProblems();
             throw new ServiceConnectionProblemException();
         }
-
-        ObjectMapper objectMapper = new JsonMapper().getObjectMapper();
-        JsonNode rootNode;
+        checkProblems();
+        JsonNode ret;
         try {
-            rootNode = objectMapper.readTree(getContentAsString());
+            ret = objectMapper.readTree(getContentAsString());
         } catch (IOException e) {
-            throw new PluginImplementationException("Error parsing JSON (1)");
+            throw new PluginImplementationException("Error parsing audio player data");
         }
-        JsonNode contentNode = rootNode.get("#content");
-        if (contentNode == null) {
-            throw new PluginImplementationException("Error parsing JSON (2)");
-        }
+        return ret;
+    }
 
-        String jsonContent = contentNode.getTextValue();
-        Matcher matcher = PlugUtils.matcher("(?s)\"track\":\\s*?(\\[\\{.+?\\}\\])", jsonContent);
+    private boolean isAlbum(String fileUrl) {
+        return fileUrl.contains("/album/");
+    }
+
+    private void processAlbum(ObjectMapper objectMapper) throws Exception {
+        Matcher matcher = getMatcherAgainstContent("(?s)\"track\":\\s*?(\\[\\{.+?\\}\\])");
         if (!matcher.find()) {
             throw new PluginImplementationException("Tracks data not found");
         }
         String tracksData = matcher.group(1).trim();
 
+        JsonNode rootNode;
         List<URI> uriList = new LinkedList<URI>();
         try {
             rootNode = objectMapper.readTree(tracksData);
         } catch (IOException e) {
-            throw new PluginImplementationException("Error parsing tracks data");
+            throw new PluginImplementationException("Error parsing tracks data", e);
         }
         for (JsonNode trackNode : rootNode) {
             String url = trackNode.findPath("url").getTextValue();

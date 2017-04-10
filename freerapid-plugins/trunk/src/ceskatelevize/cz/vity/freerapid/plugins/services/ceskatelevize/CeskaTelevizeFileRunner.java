@@ -170,9 +170,13 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
             checkName();
         }
 
+        //Find a way to get playlist URL.
+        //If the content doesn't give us a straight way to get playlist URL,
+        //then we have to find a way to get video player URL.
         HttpMethod httpMethod;
         String referer = fileURL;
         if (!getContentAsString().contains("getPlaylistUrl(")) {
+            //check if it has specific iframe that contains video player URL
             Matcher iframeMatcher = Pattern.compile("(<i?frame(.*?)>)", Pattern.DOTALL | Pattern.CASE_INSENSITIVE | Pattern.MULTILINE).matcher(getContentAsString());
             Matcher srcMatcher = Pattern.compile("src\\s?=\\s?(?:\"|')(.+?)(?:\"|')", Pattern.DOTALL | Pattern.CASE_INSENSITIVE | Pattern.MULTILINE).matcher(getContentAsString());
             String action = null;
@@ -188,26 +192,64 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
                     }
                 }
             }
-            if (action == null) {
-                String urlContent;
-                try {
-                    urlContent = PlugUtils.getStringBetween(getContentAsString(), "og:url\" content=\"", "\"");
-                } catch (PluginImplementationException e) {
-                    throw new PluginImplementationException("Error getting playlist URL(1)");
-                }
-                if (!makeRedirectedRequest(getGetMethod(urlContent))) {
-                    checkProblems();
-                    throw new ServiceConnectionProblemException();
-                }
-                checkProblems();
 
-                try {
-                    action = URLDecoder.decode(PlugUtils.replaceEntities(PlugUtils.getStringBetween(getContentAsString(), "data-url=\"", "\"")), "UTF-8");
-                } catch (PluginImplementationException e) {
-                    throw new PluginImplementationException("Error getting playlist URL(2)");
+            //if it doesn't have the iframe, then find another way to get video player url.
+            if (action == null) {
+                //check some signature,
+                //whether it uses hidden command burried in some javascript
+                if (getContentAsString().contains("CT_VideoPlayer.config.ajaxUrl")) {
+                    Matcher matcher = getMatcherAgainstContent("CT_VideoPlayer.config.ajaxUrl\\s*?=\\s*?['\"]([^'\"]+)['\"]");
+                    if (!matcher.find()) {
+                        throw new PluginImplementationException("Get video player URL path not found");
+                    }
+                    String getVideoPlayer = matcher.group(1);
+                    matcher = getMatcherAgainstContent("q\\s*?=\\s*?'([^']+)'");
+                    if (!matcher.find()) {
+                        throw new PluginImplementationException("Get video player query param not found");
+                    }
+                    String q = matcher.group(1);
+
+                    HttpMethod method = getMethodBuilder()
+                            .setAction(getVideoPlayer)
+                            .setParameter("cmd", "getVideoPlayerUrl")
+                            .setParameter("q", q)
+                            .setParameter("autoStart", "true")
+                            .toPostMethod();
+                    if (!makeRedirectedRequest(method)) {
+                        checkProblems();
+                        throw new ServiceConnectionProblemException();
+                    }
+                    checkProblems();
+
+                    matcher = getMatcherAgainstContent("\"videoPlayerUrl\"\\s*?:\\s*?\"([^\"]+)\"");
+                    if (!matcher.find()) {
+                        throw new PluginImplementationException("Video player URL not found");
+                    }
+                    action = matcher.group(1).replace("\\/", "/");
+
+                    //it doesn't, check other signature then
+                } else {
+                    String urlContent;
+                    try {
+                        urlContent = PlugUtils.getStringBetween(getContentAsString(), "og:url\" content=\"", "\"");
+                    } catch (PluginImplementationException e) {
+                        throw new PluginImplementationException("Error getting playlist URL(1)");
+                    }
+                    if (!makeRedirectedRequest(getGetMethod(urlContent))) {
+                        checkProblems();
+                        throw new ServiceConnectionProblemException();
+                    }
+                    checkProblems();
+
+                    try {
+                        action = URLDecoder.decode(PlugUtils.replaceEntities(PlugUtils.getStringBetween(getContentAsString(), "data-url=\"", "\"")), "UTF-8");
+                    } catch (PluginImplementationException e) {
+                        throw new PluginImplementationException("Error getting playlist URL(2)");
+                    }
                 }
             }
 
+            //yes!! we have the video player URL (==action)!!
             httpMethod = getMethodBuilder().setReferer(referer).setAction(action).toGetMethod();
             if (!makeRedirectedRequest(httpMethod)) {
                 checkProblems();
@@ -216,6 +258,8 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
             checkProblems();
             referer = httpMethod.getURI().toString();
 
+            //Wait a minute.., oh well... still can't find a way to get playlist URL.
+            //Okay then, let's check some signature
             if (!getContentAsString().contains("getPlaylistUrl(")) {
                 httpMethod = getMethodBuilder().setReferer(referer).setActionFromAHrefWhereATagContains("Přehrát video").toGetMethod();
                 if (!makeRedirectedRequest(httpMethod)) {
@@ -225,8 +269,13 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
                 checkProblems();
                 referer = httpMethod.getURI().toString();
             }
+
+            //Something is missing here...?
         }
 
+        //So here we are...
+        //So we have a way to get playlist URL.
+        //Let's get some required params
         URL requestUrl = new URL(referer);
         String videoId;
         String type;
@@ -240,6 +289,8 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
         } catch (PluginImplementationException e) {
             throw new PluginImplementationException("Request type not found");
         }
+
+        //Request getting playlist with the required params
         httpMethod = getMethodBuilder()
                 .setReferer(referer)
                 .setAjax()
@@ -263,6 +314,7 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
         if (!matcher.find()) {
             throw new PluginImplementationException("Playlist URL not found");
         }
+        //Yahooo!! We finally have playlist URL..
         String playlistUrl = URLDecoder.decode(matcher.group(1).replace("\\/", "/"), "UTF-8").replace("hashedId", "id");
         httpMethod = new GetMethod(playlistUrl);
         if (!makeRedirectedRequest(httpMethod)) {
@@ -271,7 +323,9 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
         }
         checkProblems();
         setConfig();
+
         List<SwitchItem> switchItems = getSwitchItems(getContentAsString());
+        //Check whether the playlist contains one part or multipart videos
         if (switchItems.size() == 1) {
             SwitchItem selectedSwitchItem = switchItems.get(0);
             logger.info("Selected switch item : " + selectedSwitchItem);

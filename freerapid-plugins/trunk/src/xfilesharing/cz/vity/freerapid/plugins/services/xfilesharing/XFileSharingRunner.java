@@ -71,6 +71,7 @@ public abstract class XFileSharingRunner extends AbstractRunner {
     protected List<String> getDownloadLinkRegexes() {
         final List<String> downloadLinkRegexes = new LinkedList<String>();
         downloadLinkRegexes.add("<a href\\s?=\\s?(?:\"|')(http.+?" + Pattern.quote(httpFile.getFileName()) + ")(?:\"|')");
+        downloadLinkRegexes.add("<a href\\s?=\\s?(?:\"|')(http.+?" + Pattern.quote(PlugUtils.unescapeHtml(httpFile.getFileName())) + ")(?:\"|')");
         return downloadLinkRegexes;
     }
 

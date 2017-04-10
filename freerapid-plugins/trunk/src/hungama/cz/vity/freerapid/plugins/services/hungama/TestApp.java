@@ -17,11 +17,11 @@ public class TestApp extends PluginDevApplication {
         try {
             //we set file URL
             //httpFile.setNewURL(new URL("http://www.hungama.com/music/song-dil-tu-hi-bataa/2110231"));
-            //httpFile.setNewURL(new URL("http://www.hungama.com/music/song-raghupati-raghav-remix/2110234"));
-            httpFile.setNewURL(new URL("http://www.hungama.com/#/music/album-krrish-3-songs/2104693"));
+            httpFile.setNewURL(new URL("http://www.hungama.com/music/song-raghupati-raghav-remix/2110234"));
+            //httpFile.setNewURL(new URL("http://www.hungama.com/album/prem-rog/1844215/"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
-            //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
+            //connectionSettings.setProxy("localhost", 8118); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
             final HungamaServiceImpl service = new HungamaServiceImpl(); //instance of service - of our plugin
             //runcheck makes the validation
