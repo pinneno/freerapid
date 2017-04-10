@@ -44,7 +44,7 @@ class IndoSharesFileRunner extends AbstractRunner {
             throw new PluginImplementationException("File name or size not found");
         }
         httpFile.setFileName(matcher.group(1).trim());
-        httpFile.setFileSize(PlugUtils.getFileSizeFromString(matcher.group(1)));
+        httpFile.setFileSize(PlugUtils.getFileSizeFromString(matcher.group(2)));
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 
