@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
 <plugin class="cz.vity.freerapid.plugins.services.nbcnews.NbcNewsServiceImpl"
-        id="nbcnews.com" vendor="birchie" version="1.0.0">
+        id="nbcnews.com" vendor="birchie" version="1.0.1">
     <attributes>
         <attribute id="urlRegex" value="(http://(www\.)?nbcnews\.com/.+?/(video/.+|segments)/?\d+/?|http://(www\.)?nbcnews\.to/.+)"/>
         <attribute id="minver" value="0.855"/>

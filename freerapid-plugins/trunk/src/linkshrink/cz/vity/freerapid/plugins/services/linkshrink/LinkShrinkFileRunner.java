@@ -6,6 +6,7 @@ import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
 import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadState;
+import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
@@ -32,6 +33,8 @@ class LinkShrinkFileRunner extends AbstractRunner {
             checkProblems();//check problems
             final HttpMethod getMethod = getMethodBuilder().setReferer(fileURL)
                     .setAction(decodeNextLink()).toGetMethod();
+            addCookie(new Cookie("linkshrink.net", "s32", "1", "/", 86400, false));
+            addCookie(new Cookie("linkshrink.net", "_gat", "1", "/", 86400, false));
             if (!makeRedirectedRequest(getMethod)) {
                 checkProblems();
                 throw new ServiceConnectionProblemException();

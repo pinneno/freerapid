@@ -118,11 +118,11 @@ class NbcFileRunner extends AbstractRunner {
             }
             if (config.isDownloadSubtitles()) {
                 if (subtitleLink != null) {
-                    httpFile.setFileName(httpFile.getFileName().replace(VideoType, SubtitleType));
-                    setFileStreamContentTypes("text/plain");
-                    if (!tryDownloadAndSaveFile(getGetMethod(subtitleLink))) {
-                        checkProblems();//if downloading failed
-                        throw new ServiceConnectionProblemException("Error starting subtitle download");//some unknown problem
+                    SubtitleDownloader subtitleDownloader = new SubtitleDownloader();
+                    try {
+                        subtitleDownloader.downloadSubtitle(client, httpFile, subtitleLink, httpFile.getFileName().replace(VideoType, ""), SubtitleType);
+                    } catch (Exception e) {
+                        throw new ServiceConnectionProblemException("Error downloading subtitle");
                     }
                 }
             }

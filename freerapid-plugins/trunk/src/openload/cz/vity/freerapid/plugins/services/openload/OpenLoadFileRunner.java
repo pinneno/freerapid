@@ -43,6 +43,7 @@ class OpenLoadFileRunner extends AbstractRunner {
     private void fixUrl() {
         fileURL = fileURL.replaceFirst("/embed/", "/f/");
         fileURL = fileURL.replaceFirst("ol\\.link/", "openload.co/");
+        fileURL = fileURL.replaceFirst("oload\\.tv/", "openload.co/");
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {

@@ -66,7 +66,12 @@ class ExoShareFileRunner extends AbstractRunner {
             final Matcher match = PlugUtils.matcher("<a href=\"(.+?)\" target=\"_blank\">", getContentAsString());
             List<URI> list = new LinkedList<URI>();
             while (match.find()) {
-                if (!match.group(1).contains("exoshare.com"))
+                if (match.group(1).contains("redirect.php")) {
+                    try {
+                        list.add(new URI(processRedirect(match.group(1).trim())));
+                    } catch(Exception x) { /**/ }
+                }
+                else if (!match.group(1).contains("exoshare.com"))
                     list.add(new URI(getMethodBuilder().setAction(match.group(1).trim()).getEscapedURI()));
             }
             if (list.isEmpty()) throw new PluginImplementationException("No link(s) found");
@@ -78,6 +83,14 @@ class ExoShareFileRunner extends AbstractRunner {
             checkProblems();
             throw new ServiceConnectionProblemException();
         }
+    }
+
+    private String processRedirect(String url) throws Exception {
+        HttpMethod method = getMethodBuilder().setAction(url).toGetMethod();
+        if (!makeRedirectedRequest(method)) {
+            throw new PluginImplementationException();
+        }
+        return method.getURI().getURI();
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {
