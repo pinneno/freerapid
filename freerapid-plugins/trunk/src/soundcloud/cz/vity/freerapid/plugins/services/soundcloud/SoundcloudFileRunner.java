@@ -28,8 +28,8 @@ import java.util.regex.Matcher;
  */
 class SoundcloudFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(SoundcloudFileRunner.class.getName());
-    private final static String CLIENT_ID = "02gUJC0hH2ct1EGOcYXQIzRFU91c72Ea";
-    private final static String APP_VERSION = "f3cc0b3";
+    private final static String CLIENT_ID = "2t9loNQH90kzJcsFCODdigxfp325aq4z";
+    private final static String APP_VERSION = "1491855525";
 
     @Override
     public void runCheck() throws Exception {

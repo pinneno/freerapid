@@ -312,13 +312,26 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
         }
     }
 
-    private void checkName() throws ErrorDuringDownloadingException {
+    private void checkName() throws ErrorDuringDownloadingException, IOException {
+        if (getContentAsString().contains("https:\\/\\/www.youtube.com\\/verify_controversy?next_url=")) {
+            Matcher matcher = getMatcherAgainstContent("\"(https?:\\\\/\\\\/www\\.youtube\\.com\\\\/verify_controversy\\?next_url=[^\"]+)\"");
+            if (!matcher.find()) {
+                throw new PluginImplementationException("Verifier URL not found");
+            }
+            String verifierUrl = matcher.group(1).replace("\\/", "/");
+            if (!makeRedirectedRequest(getGetMethod(verifierUrl))) {
+                checkProblems();
+                throw new ServiceConnectionProblemException();
+            }
+            checkProblems();
+        }
+
         try {
             PlugUtils.checkName(httpFile, getContentAsString(), "<meta name=\"title\" content=\"", "\"");
         } catch (final PluginImplementationException e) {
             PlugUtils.checkName(httpFile, getContentAsString(), "<title>", "</title>");
         }
-        String fileName = PlugUtils.unescapeHtml(PlugUtils.unescapeHtml(httpFile.getFileName())).replaceFirst("- YouTube$", "");
+        String fileName = PlugUtils.unescapeHtml(PlugUtils.unescapeHtml(httpFile.getFileName())).replaceFirst("- YouTube$", "").trim();
         if (dashAudioItagValue != -1) {
             fileName += AUDIO_FILE_EXT;
         } else if (isVideo()) {
@@ -948,7 +961,8 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
                 || getContentAsString().contains("watch7-player-age-gate-content")
                 || getContentAsString().contains("Sign in to confirm your age")
                 || getContentAsString().contains("<script>window.location = \"https:\\/\\/www.youtube.com\\/verify_age")
-                || getContentAsString().contains("<script>window.location = \"http:\\/\\/www.youtube.com\\/verify_age")) {
+                || getContentAsString().contains("<script>window.location = \"http:\\/\\/www.youtube.com\\/verify_age")
+                || getContentAsString().contains("/verify_controversy?action_confirm")) {
             logger.info("Trying to bypass age verification");
             //Request embed format to bypass age verification
             String videoId = getIdFromUrl(fileURL);

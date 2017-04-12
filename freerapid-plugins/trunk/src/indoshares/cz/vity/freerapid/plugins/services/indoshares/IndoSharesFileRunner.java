@@ -28,6 +28,7 @@ class IndoSharesFileRunner extends AbstractRunner {
     @Override
     public void runCheck() throws Exception {
         super.runCheck();
+        checkUrl();
         final GetMethod getMethod = getGetMethod(fileURL);
         if (makeRedirectedRequest(getMethod)) {
             checkProblems();
@@ -51,6 +52,7 @@ class IndoSharesFileRunner extends AbstractRunner {
     @Override
     public void run() throws Exception {
         super.run();
+        checkUrl();
         logger.info("Starting download in TASK " + fileURL);
         login();
         final GetMethod method = getGetMethod(fileURL);
@@ -125,6 +127,15 @@ class IndoSharesFileRunner extends AbstractRunner {
         if (contentAsString.contains("File Not Found")) { //they don't provide "File Not Found" page
             throw new URLNotAvailableAnymoreException("File not found");
         }
+    }
+
+    private void checkUrl() {
+        fileURL = fileURL.replaceFirst("^http://", "https://");
+    }
+
+    @Override
+    protected String getBaseURL() {
+        return "https://www.indoshares.com/";
     }
 
     protected boolean login() throws Exception {
