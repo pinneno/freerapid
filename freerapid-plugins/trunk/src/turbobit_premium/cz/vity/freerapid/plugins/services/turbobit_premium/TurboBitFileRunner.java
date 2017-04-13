@@ -2,6 +2,7 @@ package cz.vity.freerapid.plugins.services.turbobit_premium;
 
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.services.recaptcha.ReCaptcha;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
@@ -111,9 +112,11 @@ class TurboBitFileRunner extends AbstractRunner {
                 setLoginCookies();
             } else {
                 logger.info("Logging in");
+                String LoginAction = "https://turbobit.net/user/login";
+                String LoginPage = "https://turbobit.net/login";
                 final MethodBuilder builder = getMethodBuilder()
-                        .setAction("http://turbobit.net/user/login")
-                        .setReferer("http://turbobit.net/login")
+                        .setAction(LoginAction)
+                        .setReferer(LoginPage)
                         .setParameter("user[login]", pa.getUsername())
                         .setParameter("user[pass]", pa.getPassword())
                         .setParameter("user[captcha_type]", "")
@@ -126,27 +129,37 @@ class TurboBitFileRunner extends AbstractRunner {
                 }
                 // possible additional security step
                 while (getContentAsString().contains("enter the captcha")) {
-                    final Matcher m = getMatcherAgainstContent("api.recaptcha.net/noscript\\?k=([^\"]+)\"");
-                    if (!m.find()) throw new PluginImplementationException("ReCaptcha key not found");
-                    final String reCaptchaKey = m.group(1);
-                    final ReCaptcha r = new ReCaptcha(reCaptchaKey, client);
-                    final String captchaURL = r.getImageURL();
-                    logger.info("Captcha URL " + captchaURL);
+                    final Matcher m1 = getMatcherAgainstContent("api.recaptcha.net/noscript\\?k=([^\"]+)\"");
+                    final Matcher m2 = getMatcherAgainstContent("data-sitekey=\"([^\"]+)\"");
+                    if (m1.find()) {
+                        final String reCaptchaKey = m1.group(1);
+                        final ReCaptcha r = new ReCaptcha(reCaptchaKey, client);
+                        final String captchaURL = r.getImageURL();
+                        logger.info("Captcha URL " + captchaURL);
 
-                    final CaptchaSupport captchaSupport = getCaptchaSupport();
-                    final String captcha = captchaSupport.getCaptcha(captchaURL);
-                    if (captcha == null) throw new CaptchaEntryInputMismatchException();
-                    r.setRecognized(captcha);
+                        final CaptchaSupport captchaSupport = getCaptchaSupport();
+                        final String captcha = captchaSupport.getCaptcha(captchaURL);
+                        if (captcha == null) throw new CaptchaEntryInputMismatchException();
+                        r.setRecognized(captcha);
 
-                    builder.setParameter("user[captcha_type]", "recaptcha");
-                    r.modifyResponseMethod(builder);
+                        builder.setParameter("user[captcha_type]", "recaptcha");
+                        r.modifyResponseMethod(builder);
+                    } else if (m2.find()) {
+                        final String reCaptchaKey = m2.group(1);
+                        final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, LoginPage);
+
+                        builder.setParameter("user[captcha_type]", "recaptcha2");
+                        r.modifyResponseMethod(builder);
+                    } else
+                        throw new PluginImplementationException("Captcha not found");
                     if (!makeRedirectedRequest(builder.toPostMethod())) {
                         checkProblems();
                         throw new ServiceConnectionProblemException("Error re-posting login info");
                     }
                     checkProblems();
                 }
-                if (getContentAsString().contains("Incorrect login or password")) {
+                if (getContentAsString().contains("Incorrect login or password") ||
+                        getContentAsString().contains("E-Mail address appears to be invalid")) {
                     throw new BadLoginException("Invalid TurboBit account login information!");
                 }
                 storeLoginCookies(pa);
