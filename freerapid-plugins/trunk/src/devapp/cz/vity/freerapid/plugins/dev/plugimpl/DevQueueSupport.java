@@ -43,6 +43,11 @@ public class DevQueueSupport implements MaintainQueueSupport {
     }
 
     @Override
+    public boolean addLinksToQueueFromContainer(HttpFile parentFile, String childDir, List<FileInfo> infoList) {
+        return addLinksToQueueFromContainer(parentFile, infoList);
+    }
+
+    @Override
     public boolean addLinkToQueueUsingPriority(HttpFile parentFile, List<URL> urlList) throws Exception {
         StringBuilder builder = new StringBuilder().append("One of the following files will be added into the queue:\n");
         for (URL uri : urlList) {
