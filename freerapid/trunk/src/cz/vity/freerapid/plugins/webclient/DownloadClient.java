@@ -293,8 +293,11 @@ public class DownloadClient implements HttpDownloadClient {
         if (isStream && client.getParams().isParameterFalse(DownloadClientConsts.NO_CONTENT_LENGTH_AVAILABLE)) {
             final Header contentLength = method.getResponseHeader("Content-Length");
             if (contentLength == null) {
-                isStream = false;
                 logger.warning("No Content-Length in header");
+                logger.warning("Loading file failed");
+                method.abort();
+                method.releaseConnection();
+                return null;
             } else {
 
                 final Long contentResponseLength = Long.valueOf(contentLength.getValue());
