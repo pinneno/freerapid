@@ -20,7 +20,6 @@ import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.interfaces.HttpFile;
 import cz.vity.freerapid.plugins.webclient.interfaces.MaintainQueueSupport;
 import cz.vity.freerapid.plugins.webclient.interfaces.ShareDownloadService;
-import cz.vity.freerapid.plugins.webclient.utils.HttpUtils;
 import cz.vity.freerapid.swing.Swinger;
 import cz.vity.freerapid.utilities.FileUtils;
 import cz.vity.freerapid.utilities.Utils;
@@ -917,9 +916,9 @@ public class DataManager extends AbstractBean implements PropertyChangeListener,
     }
 
     @Override
+    //method caller is responsible for childDir sanity check.
     public boolean addLinksToQueueFromContainer(HttpFile parentFile, String childDir, List<FileInfo> infoList) {
-        return addLinksToQueueFromContainer(infoList, new File(parentFile.getSaveToDirectory(), HttpUtils.replaceInvalidCharsForFileSystem(childDir, "_")),
-                parentFile.getDescription(), false);
+        return addLinksToQueueFromContainer(infoList, new File(parentFile.getSaveToDirectory(), childDir), parentFile.getDescription(), false);
     }
 
     @Override
