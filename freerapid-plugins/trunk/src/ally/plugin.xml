@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
 <plugin class="cz.vity.freerapid.plugins.services.ally.AllyServiceImpl"
-        id="al.ly" vendor="birchie" version="1.0.0">
+        id="al.ly" vendor="birchie" version="1.0.1">
     <attributes>
-        <attribute id="urlRegex" value="https?://(www\.)?al\.ly/.+"/>
+        <attribute id="urlRegex" value="https?://(www\.)?(al\.ly|ally\.sh)/.+"/>
         <attribute id="minver" value="0.855"/>
         <attribute id="maxver" value="0.899"/>
-        <attribute id="services" value="al.ly"/>
+        <attribute id="services" value="al.ly ally.sh"/>
         <attribute id="maxDownloads" value="10"/>
         <attribute id="faviconImage" value="resources/favicon.png"/>
     </attributes>

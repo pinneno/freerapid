@@ -23,7 +23,6 @@ class AllyFileRunner extends AbstractRunner {
     @Override
     public void run() throws Exception {
         super.run();
-        fileURL = fileURL.replaceFirst("http://", "https://");
         logger.info("Starting download in TASK " + fileURL);
         HttpMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
@@ -32,23 +31,18 @@ class AllyFileRunner extends AbstractRunner {
                     .setReferer(fileURL)
                     .setActionFromFormWhereTagContains("captcha", true)
                     .setAction(fileURL);
-            final Matcher reCaptchaKeyMatcher = PlugUtils.matcher("sitekey['\"]\\s*:\\s*['\"]([^'\"]+)['\"]", getContentAsString());
-            if (!reCaptchaKeyMatcher.find()) {
-                throw new PluginImplementationException("ReCaptcha key not found");
-            }
-            final String reCaptchaKey = reCaptchaKeyMatcher.group(1).trim();
-            boolean loop = true;
             do {
-                method = doCaptcha(methodBuilder, reCaptchaKey).toPostMethod();
-                int status = client.makeRequest(method, false);
-                if (status / 100 == 4)
+                method = doCaptcha(methodBuilder).toPostMethod();
+                if (!makeRedirectedRequest(method)) {
+                    checkProblems();
                     throw new ServiceConnectionProblemException();
-                if (status / 100 == 3) {
-                    if (!fileURL.equals(method.getResponseHeader("Location").getValue()))
-                        loop = false;
                 }
-            } while(loop);
-            httpFile.setNewURL(new URL(method.getResponseHeader("Location").getValue()));
+                checkProblems();
+            } while(getContentAsString().contains("captcha"));
+            final Matcher match = getMatcherAgainstContent("attr\\(\"href\",\"(http[^\"]+?)\"");
+            if (!match.find())
+                throw new PluginImplementationException("Download link not found");
+            httpFile.setNewURL(new URL(match.group(1).trim()));
             httpFile.setPluginID("");
             httpFile.setState(DownloadState.QUEUED);
         } else {
@@ -64,9 +58,12 @@ class AllyFileRunner extends AbstractRunner {
         }
     }
 
-    private MethodBuilder doCaptcha(MethodBuilder builder, String reCaptchaKey) throws Exception{
-        final String fileUrl = downloadTask.getDownloadFile().getFileUrl().toString();
-        final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileUrl);
+    private MethodBuilder doCaptcha(MethodBuilder builder) throws Exception {
+        final Matcher reCaptchaKeyMatcher = PlugUtils.matcher("sitekey['\"]?\\s*[:=]\\s*['\"]([^'\"]+)['\"]", getContentAsString());
+        if (!reCaptchaKeyMatcher.find()) {
+            throw new PluginImplementationException("ReCaptcha key not found");
+        }
+        final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKeyMatcher.group(1).trim(), fileURL);
         return r.modifyResponseMethod(builder);
     }
 }

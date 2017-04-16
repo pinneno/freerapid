@@ -35,8 +35,11 @@ class DataFileHostFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        PlugUtils.checkName(httpFile, content.replace("\n", " "), "File:", "<br>");
-        PlugUtils.checkFileSize(httpFile, content, "Size:", "<br>");
+        final Matcher match = PlugUtils.matcher("File Name:(?:\\s*<[^>]+>\\s*)*(.+?)(?:\\s*<[^>]+>\\s*)+(.+?)\\s*<", content);
+        if (!match.find())
+            throw new PluginImplementationException("File name and size not found");
+        httpFile.setFileName(match.group(1).trim());
+        httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(2).trim()));
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 
@@ -73,6 +76,9 @@ class DataFileHostFileRunner extends AbstractRunner {
         if (match.find()) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
+        if (content.contains("removed due to violation of our terms") || content.contains("removed by the owner of the file")
+                || content.contains("removed automatically due to inactivity"))
+            throw new URLNotAvailableAnymoreException("File not found");
     }
 
 }
