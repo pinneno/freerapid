@@ -128,6 +128,15 @@ class PluginDevDownloadTask implements HttpFileDownloadTask {
         }
     }
 
+    @Override
+    public void saveToHistoryList(File savedAs) {
+        HttpFile downloadFile = getDownloadFile();
+        if (savedAs != null) {
+            downloadFile.setFileName(savedAs.getName());
+        }
+        logger.info("Saving to history " + downloadFile.getFileName());
+    }
+
     /**
      * Sets file download state to WAITING.
      * Stops download thread for given time.
