@@ -262,7 +262,7 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
             final DownloadFile down = new DownloadFile();
             down.setFileUrl(fileH.getUrl());
             down.setStoreFile(fileH.getOutputFile());
-            down.setSaveToDirectory(new File(fileH.getOutputFile().getAbsolutePath()));
+            down.setSaveToDirectory((fileH.getOutputFile() != null) ? new File(fileH.getOutputFile().getAbsolutePath()) : null);
             down.setDescription(fileH.getDescription());
             down.setFileName(fileH.getFileName());
             down.setFileSize(fileH.getFileSize());
@@ -288,7 +288,10 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
         final int[] indexes = getSelectedRows();
         final java.util.List<FileHistoryItem> files = getSelectionToList(indexes);
         for (FileHistoryItem file : files) {
-            OSDesktop.openFile(file.getOutputFile());
+            File outputFile = file.getOutputFile();
+            if ((outputFile != null) && outputFile.exists()) {
+                OSDesktop.openFile(outputFile);
+            }
         }
     }
 
@@ -305,7 +308,10 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
         final int[] indexes = getSelectedRows();
         final java.util.List<FileHistoryItem> files = getSelectionToList(indexes);
         for (FileHistoryItem file : files) {
-            OSDesktop.openDirectoryForFile(file.getOutputFile());
+            File outputFile = file.getOutputFile();
+            if ((outputFile != null) && outputFile.exists()) {
+                OSDesktop.openDirectoryForFile(outputFile);
+            }
         }
     }
 
@@ -568,7 +574,8 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
         boolean valid = true;
         final java.util.List<FileHistoryItem> items = getSelectionToList(indexes);
         for (FileHistoryItem item : items) {
-            if (!item.getOutputFile().exists()) {
+            File outputFile = item.getOutputFile();
+            if (outputFile == null || !outputFile.exists()) {
                 valid = false;
                 break;
             }

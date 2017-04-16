@@ -525,6 +525,18 @@ public class DownloadTask extends CoreTask<Void, Long> implements HttpFileDownlo
 
     }
 
+    @Override
+    public void saveToHistoryList(File savedAs) {
+        if (savedAs != null) {
+            downloadFile.setFileName(savedAs.getName());
+        }
+        logger.info("Saving to history " + downloadFile.getFileName());
+        final boolean saveHistory = AppPrefs.getProperty(UserProp.USE_HISTORY, UserProp.USE_HISTORY_DEFAULT);
+        if (saveHistory) {
+            ((MainApp) getApplication()).getManagerDirector().getFileHistoryManager().addHistoryItem(downloadFile, savedAs);
+        }
+    }
+
     private void runMoveFileTask(boolean overWriteFile) {
         final MoveFileTask moveFileTask = new MoveFileTask(getApplication(), downloadFile.getStoreFile(), downloadFile.getOutputFile(), true, overWriteFile, downloadFile);
         moveFileTask.addTaskListener(new TaskListener.Adapter<Void, Void>() {
