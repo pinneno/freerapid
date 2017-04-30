@@ -8,19 +8,21 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.httpclient.ConnectTimeoutException;
 import org.apache.commons.httpclient.params.HttpConnectionParams;
 import org.apache.commons.httpclient.protocol.SecureProtocolSocketFactory;
+import org.bouncycastle.asn1.*;
 import org.jdesktop.application.ApplicationContext;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.*;
-import javax.security.cert.X509Certificate;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
+import java.security.cert.Certificate;
+import java.security.cert.*;
+import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -263,7 +265,7 @@ public class SSLProtocolSocketFactory implements SecureProtocolSocketFactory {
      */
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private void verifyHostname(SSLSocket socket)
-            throws SSLPeerUnverifiedException, UnknownHostException {
+            throws IOException {
         if (!verifyHostname)
             return;
 
@@ -276,12 +278,23 @@ public class SSLProtocolSocketFactory implements SecureProtocolSocketFactory {
                     + "server hostname: " + hostname);
         }
 
-        X509Certificate[] certs = session.getPeerCertificateChain();
+        Certificate[] certs = session.getPeerCertificates();
         if (certs == null || certs.length == 0)
             throw new SSLPeerUnverifiedException("No server certificates found!");
 
+        CertificateFactory cf;
+        ByteArrayInputStream bais;
+        X509Certificate certificate;
+        try {
+            cf = CertificateFactory.getInstance("X.509");
+            bais = new ByteArrayInputStream(certs[0].getEncoded());
+            certificate = (X509Certificate) cf.generateCertificate(bais);
+        } catch (CertificateException e) {
+            throw new SSLException(e);
+        }
+
         //get the servers DN in its string representation
-        String dn = certs[0].getSubjectDN().getName();
+        String dn = certificate.getSubjectDN().getName();
 
         //might be useful to print out all certificates we receive from the
         //server, in case one has to debug a problem with the installed certs.
@@ -305,8 +318,14 @@ public class SSLProtocolSocketFactory implements SecureProtocolSocketFactory {
                 logger.fine("Target hostname valid: " + cn);
             }
         } else {
-            throw new SSLPeerUnverifiedException(
-                    "HTTPS hostname invalid: expected '" + hostname + "', received '" + cn + "'");
+            try {
+                if (!isValidSAN(certificate.getSubjectAlternativeNames(), session.getPeerHost())) {
+                    throw new SSLPeerUnverifiedException(
+                            "HTTPS hostname invalid: expected '" + hostname + "', received '" + cn + "'");
+                }
+            } catch (CertificateParsingException e) {
+                throw new SSLException(e);
+            }
         }
     }
 
@@ -338,6 +357,58 @@ public class SSLProtocolSocketFactory implements SecureProtocolSocketFactory {
         return dn.substring(0, i);
     }
 
+    /**
+     * Check whether subject alt names contain hostname
+     *
+     * @param sans     subject alt names
+     * @param hostname hostname to be checked
+     * @return true if valid, false if invalid
+     */
+    private boolean isValidSAN(Collection<List<?>> sans, String hostname) throws IOException {
+        String hostnameWithoutSubdomain = hostname;
+        int hostnameDotCount = hostname.length() - hostname.replace(".", "").length();
+        if (hostnameDotCount > 1) {
+            hostnameWithoutSubdomain = hostname.substring(hostname.indexOf(".") + 1);
+        }
+        for (List item : sans) {
+            Integer type = (Integer) item.get(0);
+            if (type == 0 || type == 2) {
+                try {
+                    ASN1InputStream decoder;
+                    String identity = null;
+                    if (item.toArray()[1] instanceof byte[]) {
+                        decoder = new ASN1InputStream((byte[]) item.toArray()[1]);
+                        ASN1Encodable encoded = decoder.readObject();
+                        encoded = ((DERSequence) encoded).getObjectAt(1);
+                        encoded = ((DERTaggedObject) encoded).getObject();
+                        encoded = ((DERTaggedObject) encoded).getObject();
+                        identity = ((DERUTF8String) encoded).getString();
+                    } else if (item.toArray()[1] instanceof String) {
+                        identity = (String) item.toArray()[1];
+                    }
+
+                    String tempHostname;
+                    if (identity != null) {
+                        if (identity.startsWith("*.")) {
+                            identity = identity.substring(2);
+                            tempHostname = hostnameWithoutSubdomain;
+                        } else {
+                            tempHostname = hostname;
+                        }
+                        if (tempHostname.equalsIgnoreCase(identity)) {
+                            return true;
+                        }
+                    }
+                } catch (UnsupportedEncodingException e) {
+                    throw new SSLException(e);
+                }
+            } else {
+                logger.warning("Subject Alt Name of invalid type found: " + item);
+            }
+        }
+        return false;
+    }
+
     public boolean equals(Object obj) {
         return ((obj != null) && obj.getClass().equals(SSLProtocolSocketFactory.class));
     }
@@ -346,7 +417,7 @@ public class SSLProtocolSocketFactory implements SecureProtocolSocketFactory {
         return SSLProtocolSocketFactory.class.hashCode();
     }
 
-    static String inputStreamToString(InputStream inputStream, String charset) {
+    private static String inputStreamToString(InputStream inputStream, String charset) {
         try {
             final char[] chars = new char[8192];
             StringBuilder builder = new StringBuilder(chars.length);
@@ -367,7 +438,7 @@ public class SSLProtocolSocketFactory implements SecureProtocolSocketFactory {
         }
     }
 
-    static String getCharset(URLConnection conn) {
+    private static String getCharset(URLConnection conn) {
         String charset = conn.getContentType();
         if (charset != null) {
             Matcher matcher = charsetPattern.matcher(charset);
