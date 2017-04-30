@@ -42,6 +42,18 @@ public interface MaintainQueueSupport {
     public boolean addLinksToQueueFromContainer(HttpFile parentFile, List<FileInfo> infoList);
 
     /**
+     * Adds links to the queue.
+     *
+     * @param parentFile parent file where description and saveToDirectory is copied from
+     * @param childDir   children directory, so the actual target dir would be "parentFile.saveToDirectory/childDir".
+     *                   Method caller is responsible for childDir sanity check, implementation is not reponsible
+     *                   for the sanity check. This way enables multi level directory creation.
+     * @param infoList   list of links which should be added to the queue
+     * @return true on success, false otherwise
+     */
+    public boolean addLinksToQueueFromContainer(HttpFile parentFile, String childDir, List<FileInfo> infoList);
+
+    /**
      * Adds one of the links to the queue (depending on user settings of plugin priorities).
      *
      * @param parentFile parent file where description is copied from

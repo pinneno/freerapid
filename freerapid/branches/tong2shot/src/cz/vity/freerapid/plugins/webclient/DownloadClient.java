@@ -219,8 +219,12 @@ public class DownloadClient implements HttpDownloadClient {
                 if ((newuri == null) || ("".equals(newuri))) {
                     newuri = "/";
                 }
-                if (!newuri.contains("http://"))
-                    newuri = "http://" + method.getURI().getHost() + newuri;
+                if (!newuri.matches("(?i)https?://.+")) {
+                    if (!newuri.startsWith("/")) {
+                        newuri = "/" + newuri;
+                    }
+                    newuri = method.getURI().getScheme() + "://" + method.getURI().getHost() + newuri;
+                }
 
                 logger.info("Redirect target: " + newuri);
                 if (client.getParams().getBooleanParameter(DownloadClientConsts.USE_REFERER_WHEN_REDIRECT, false)) {
@@ -289,8 +293,9 @@ public class DownloadClient implements HttpDownloadClient {
         if (isStream && client.getParams().isParameterFalse(DownloadClientConsts.NO_CONTENT_LENGTH_AVAILABLE)) {
             final Header contentLength = method.getResponseHeader("Content-Length");
             if (contentLength == null) {
-                isStream = false;
                 logger.warning("No Content-Length in header");
+                file.setResumeSupported(false);
+                return method.getResponseBodyAsStream();
             } else {
 
                 final Long contentResponseLength = Long.valueOf(contentLength.getValue());

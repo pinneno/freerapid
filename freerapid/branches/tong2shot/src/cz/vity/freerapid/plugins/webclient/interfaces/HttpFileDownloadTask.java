@@ -1,5 +1,6 @@
 package cz.vity.freerapid.plugins.webclient.interfaces;
 
+import java.io.File;
 import java.io.InputStream;
 
 /**
@@ -30,6 +31,20 @@ public interface HttpFileDownloadTask {
      * @throws Exception Error during writing or if inputStream is null
      */
     public void saveToFile(InputStream inputStream) throws Exception;
+
+    /**
+     * Explicit save file to history list.
+     * <p>
+     * Download files in general don't need this method, as it will be called implicitly.
+     * See MoveFileTask.saveToHistoryList().
+     * <p>
+     * General use case:
+     * Decrypter explicitly calls this method to save the file to history list.
+     * Because decrypter doesn't really download anything, the implicit method will not be called.
+     *
+     * @param savedAs output file of the download file, can be null.
+     */
+    public void saveToHistoryList(File savedAs);
 
     /**
      * Sets file download state to WAITING.

@@ -914,6 +914,12 @@ public class DataManager extends AbstractBean implements PropertyChangeListener,
     }
 
     @Override
+    //method caller is responsible for childDir sanity check.
+    public boolean addLinksToQueueFromContainer(HttpFile parentFile, String childDir, List<FileInfo> infoList) {
+        return addLinksToQueueFromContainer(infoList, new File(parentFile.getSaveToDirectory(), childDir), parentFile.getDescription(), false);
+    }
+
+    @Override
     public boolean addLinkToQueueFromContainerUsingPriority(final HttpFile parentFile, final List<FileInfo> infoList) throws Exception {
         return addLinkToQueueFromContainerUsingPriority(infoList, parentFile.getSaveToDirectory(), parentFile.getDescription());
     }

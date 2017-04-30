@@ -289,7 +289,10 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
         final int[] indexes = getSelectedRows();
         final java.util.List<FileHistoryItemModel> files = getSelectionToList(indexes);
         for (FileHistoryItemModel file : files) {
-            OSDesktop.openFile(file.getOutputFile());
+            File outputFile = file.getOutputFile();
+            if ((outputFile != null) && outputFile.exists()) {
+                OSDesktop.openFile(file.getOutputFile());
+            }
         }
     }
 
@@ -306,7 +309,10 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
         final int[] indexes = getSelectedRows();
         final java.util.List<FileHistoryItemModel> files = getSelectionToList(indexes);
         for (FileHistoryItemModel file : files) {
-            OSDesktop.openDirectoryForFile(file.getOutputFile());
+            File outputFile = file.getOutputFile();
+            if ((outputFile != null) && outputFile.exists()) {
+                OSDesktop.openDirectoryForFile(file.getOutputFile());
+            }
         }
     }
 
