@@ -16,10 +16,13 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile();
         try {
             //httpFile.setNewURL(new URL("http://www3.nhk.or.jp/nhkworld/en/vod/asiainsight/20160226.html"));
-            httpFile.setNewURL(new URL("http://www3.nhk.or.jp/nhkworld/en/vod/kawaii-i/20160227.html"));
+            httpFile.setNewURL(new URL("https://www3.nhk.or.jp/nhkworld/en/vod/japaneasy2/20170409/"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             final NHK_vodServiceImpl service = new NHK_vodServiceImpl();
+            NHK_vodSettingsConfig config = new NHK_vodSettingsConfig();
+            config.setVideoQuality(VideoQuality._360);
+            service.setConfig(config);
             testRun(service, httpFile, connectionSettings);
         } catch (Exception e) {
             e.printStackTrace();

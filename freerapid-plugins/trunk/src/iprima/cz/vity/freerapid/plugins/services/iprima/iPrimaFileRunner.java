@@ -8,6 +8,7 @@ import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
+import org.apache.commons.httpclient.methods.PostMethod;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,6 +27,7 @@ import java.util.regex.Matcher;
 class iPrimaFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(iPrimaFileRunner.class.getName());
     private final static String DEFAULT_EXT = ".ts";
+    private final static String ADULT_CONTENT_MARKER = "/rodicovska-kontrola/formular";
     private iPrimaSettingsConfig config;
 
     @Override
@@ -62,6 +64,7 @@ class iPrimaFileRunner extends AbstractRunner {
         if (makeRedirectedRequest(method)) {
             checkProblems();
             checkNameAndSize();
+            adultContentCheck(getContentAsString());
             if (getContentAsString().contains("http://flash.stream.cz/")) {
                 final String id = PlugUtils.getStringBetween(getContentAsString(), "&cdnID=", "&");
                 method = getGetMethod("http://cdn-dispatcher.stream.cz/?id=" + id);
@@ -103,6 +106,21 @@ class iPrimaFileRunner extends AbstractRunner {
         } else {
             checkProblems();
             throw new ServiceConnectionProblemException();
+        }
+    }
+
+    private void adultContentCheck(String content) throws Exception {
+        if (content.contains(ADULT_CONTENT_MARKER)) {
+            final PostMethod confirmMethod = (PostMethod) getMethodBuilder()
+                    .setActionFromFormWhereActionContains(ADULT_CONTENT_MARKER, true)
+                    .setReferer(fileURL)
+                    .setParameter("enter", "enter")
+                    .removeParameter("leave")
+                    .toPostMethod();
+            makeRedirectedRequest(confirmMethod);
+            if (getContentAsString().contains(ADULT_CONTENT_MARKER)) {
+                throw new PluginImplementationException("Cannot confirm age");
+            }
         }
     }
 
@@ -184,7 +202,7 @@ class iPrimaFileRunner extends AbstractRunner {
         private final String playlist;
         private final int weight;
 
-        public IPrimaVideo(final VideoQuality videoQuality, final String playlist) {
+        IPrimaVideo(final VideoQuality videoQuality, final String playlist) {
             this.videoQuality = videoQuality;
             this.playlist = playlist;
             this.weight = calcWeight();

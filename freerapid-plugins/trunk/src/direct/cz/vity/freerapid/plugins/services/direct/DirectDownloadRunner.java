@@ -7,6 +7,7 @@ import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadClientConsts;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.interfaces.FileStreamRecognizer;
+import cz.vity.freerapid.plugins.webclient.utils.HttpUtils;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpMethod;
@@ -52,6 +53,7 @@ class DirectDownloadRunner extends AbstractRunner implements FileStreamRecognize
     @Override
     protected boolean tryDownloadAndSaveFile(HttpMethod method) throws Exception {
         Header locationHeader;
+        String fileName;
         String action = method.getURI().toString();
         do {
             final HttpMethod method2 = getMethodBuilder().setReferer(fileURL).setAction(action).toGetMethod();
@@ -59,6 +61,7 @@ class DirectDownloadRunner extends AbstractRunner implements FileStreamRecognize
             if (method2.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
                 throw new URLNotAvailableAnymoreException("File not found");
             }
+            fileName = HttpUtils.getFileName(method2);
             locationHeader = method2.getResponseHeader("Location");
             if (locationHeader != null) {
                 action = locationHeader.getValue();
@@ -68,7 +71,9 @@ class DirectDownloadRunner extends AbstractRunner implements FileStreamRecognize
         } while (locationHeader != null);
         setClientParameter(DownloadClientConsts.FILE_STREAM_RECOGNIZER, this);
         method = getMethodBuilder().setReferer(fileURL).setAction(action).toGetMethod();
-        httpFile.setFileName(PlugUtils.suggestFilename(method.getURI().toString()));
+        if (fileName == null || fileName.isEmpty()) {
+            httpFile.setFileName(PlugUtils.suggestFilename(method.getURI().toString()));
+        }
         return super.tryDownloadAndSaveFile(method);
     }
 

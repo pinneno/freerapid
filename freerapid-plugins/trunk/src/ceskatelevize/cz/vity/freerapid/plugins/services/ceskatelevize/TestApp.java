@@ -42,7 +42,8 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://decko.ceskatelevize.cz/player?width=560&IDEC=316+294+34001%2F0001&fname=Pir%C3%A1tsk%C3%A9+vys%C3%ADl%C3%A1n%C3%AD+-+11.+4.+2016"));
             //httpFile.setNewURL(new URL("http://www.ceskatelevize.cz/porady/10702670652-rozsudek/414235100181005-znasilneni-manzelky/"));
             //httpFile.setNewURL(new URL("http://www.ceskatelevize.cz/rio2016/videoarchiv/zaznamy/337302-zaznam-utkani-petra-kvitova-caroline-wozniacka/"));
-            httpFile.setNewURL(new URL("http://www.ceskatelevize.cz/sport/zimni-sporty/rychlobrusleni/348672-sablikova-je-podevate-mistryni-sveta-na-petce/"));
+            //httpFile.setNewURL(new URL("http://www.ceskatelevize.cz/sport/zimni-sporty/rychlobrusleni/348672-sablikova-je-podevate-mistryni-sveta-na-petce/"));
+            httpFile.setNewURL(new URL("http://www.ceskatelevize.cz:8080/ivysilani/11042149014-spravedlnost/415233100011003"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("127.0.0.1", 9150, Proxy.Type.SOCKS); //eg we can use local proxy to sniff HTTP communication
             final CeskaTelevizeServiceImpl service = new CeskaTelevizeServiceImpl();
