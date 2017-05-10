@@ -23,12 +23,13 @@ import java.util.logging.Logger;
  */
 public class FileHistoryManager extends AbstractBean {
     private final static Logger logger = Logger.getLogger(FileHistoryManager.class.getName());
+    private static final String FILES_LIST_XML = "history.xml";
 
     private final ManagerDirector director;
     private final ApplicationContext context;
-
-    //    private boolean loaded = false;
-    private static final String FILES_LIST_XML = "history.xml";
+    private final Object lock = new Object();
+    private boolean loaded = false;
+    private final ArrayListModel<FileHistoryItem> historyItems = new ArrayListModel<FileHistoryItem>();
 
     //   private int dataChanged = 0;
 
@@ -68,9 +69,16 @@ public class FileHistoryManager extends AbstractBean {
     }
 
     public List<FileHistoryItem> getItems() {
-        return loadFileHistoryList();
+        synchronized (lock) {
+            if (!loaded) {
+                historyItems.addAll(loadFileHistoryList());
+                loaded = true;
+            }
+        }
+        return historyItems;
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     private List<FileHistoryItem> loadFileHistoryList() {
         List<FileHistoryItem> result = null;
         final File srcFile = new File(context.getLocalStorage().getDirectory(), FILES_LIST_XML);
@@ -118,6 +126,10 @@ public class FileHistoryManager extends AbstractBean {
 
     public void addHistoryItem(final DownloadFile file, final File savedAs) {
         final FileHistoryItem item = new FileHistoryItem(file, savedAs);
+        synchronized (lock) {
+            if (loaded)
+                historyItems.add(item);
+        }
         Runnable runnable = new Runnable() {
             public void run() {
                 director.getDatabaseManager().saveOrUpdate(item);
@@ -128,6 +140,10 @@ public class FileHistoryManager extends AbstractBean {
     }
 
     public void clearHistory(Runnable succeeded) {
+        synchronized (lock) {
+            if (loaded)
+                historyItems.clear();
+        }
         Runnable runnable = new Runnable() {
             public void run() {
                 director.getDatabaseManager().removeAll(FileHistoryItem.class);
@@ -138,6 +154,10 @@ public class FileHistoryManager extends AbstractBean {
 
 
     public void removeItems(final Collection<FileHistoryItem> items) {
+        synchronized (lock) {
+            if (loaded)
+                historyItems.removeAll(items);
+        }
         Runnable runnable = new Runnable() {
             public void run() {
                 director.getDatabaseManager().removeCollection(items);
@@ -147,6 +167,10 @@ public class FileHistoryManager extends AbstractBean {
     }
 
     public void removeItems(final Collection<FileHistoryItem> items, Runnable succeeded) {
+        synchronized (lock) {
+            if (loaded)
+                historyItems.removeAll(items);
+        }
         Runnable runnable = new Runnable() {
             public void run() {
                 director.getDatabaseManager().removeCollection(items);
