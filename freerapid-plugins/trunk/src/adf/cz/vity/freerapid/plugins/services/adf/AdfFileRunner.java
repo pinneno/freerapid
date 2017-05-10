@@ -34,7 +34,7 @@ class AdfFileRunner extends AbstractRunner {
                 httpFile.setState(DownloadState.QUEUED);
                 return;
             }
-            String eu = PlugUtils.getStringBetween(getContentAsString(), "var eu = '", "';");
+            String eu = PlugUtils.getStringBetween(getContentAsString(), "var ysmm = '", "';");
             int idx1 = eu.indexOf("!HiTommy");
             if (idx1 != -1) {
                 eu = eu.substring(0, idx1);

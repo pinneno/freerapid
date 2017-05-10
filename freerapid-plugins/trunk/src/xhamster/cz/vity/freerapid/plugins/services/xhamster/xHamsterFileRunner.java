@@ -40,7 +40,7 @@ class xHamsterFileRunner extends AbstractRunner {
             throw new PluginImplementationException("File name not found");
         }
         httpFile.setFileName(matcher.group(1).replace("- xHamster", "").trim() + ".mp4");
-        PlugUtils.checkFileSize(httpFile, content, "video (", ")");
+        PlugUtils.checkFileSize(httpFile, content, "quality (", ")");
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 

@@ -14,6 +14,7 @@ import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.net.URI;
+import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -53,6 +54,7 @@ class MultiUpFileRunner extends AbstractRunner {
     @Override
     public void run() throws Exception {
         super.run();
+        fileURL = fileURL.replaceFirst("\\.eu/", ".org/");
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
@@ -116,6 +118,16 @@ class MultiUpFileRunner extends AbstractRunner {
                 || contentAsString.contains("File might have never existed")
                 || contentAsString.contains("Link might be incorrect")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
+        }
+    }
+
+    @Override
+    protected String getBaseURL() {
+        try {
+            return new URL(fileURL).getProtocol() + "://" + new URL(fileURL).getAuthority();
+        }
+        catch (Exception x) {
+            return super.getBaseURL();
         }
     }
 

@@ -1,9 +1,6 @@
 package cz.vity.freerapid.plugins.services.uploadgig;
 
-import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
-import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
-import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
-import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
+import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
@@ -52,14 +49,14 @@ class UploadGigFileRunner extends AbstractRunner {
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
             do {
-                if (getContentAsString().length() == 1) {
+                if (getContentAsString().length() < 5) {
                     if (!makeRedirectedRequest(method)) {
                         checkProblems();
                         throw new ServiceConnectionProblemException();
                     }
                     checkProblems();
                 }
-                final HttpMethod httpMethod = stepCaptcha(getMethodBuilder()
+                final HttpMethod httpMethod = stepCaptcha(getMethodBuilder().setAjax()
                         .setReferer(fileURL)
                         .setActionFromFormWhereActionContains("free_dl", true)
                         , fileURL).toPostMethod();
@@ -67,10 +64,16 @@ class UploadGigFileRunner extends AbstractRunner {
                     checkProblems();
                     throw new ServiceConnectionProblemException();
                 }
+                if (getContentAsString().trim().equals("fl"))
+                    throw new NotRecoverableDownloadException("This file can be downloaded by Premium Member only");
+                else if (getContentAsString().trim().equals("rfd"))
+                    throw new NotRecoverableDownloadException("This file reached the maximum number of free downloads");
+                else if (getContentAsString().trim().equals("m"))
+                    throw new YouHaveToWaitException("You have reached the max. number of possible free downloads for this hour", 60*60);
             } while (!getContentAsString().contains("url"));
             checkProblems();
 
-            Matcher match = PlugUtils.matcher("url\\w*\":\"(.+?)\"", getContentAsString());
+            Matcher match = PlugUtils.matcher("pathadr\":\"(.+?)\"", getContentAsString());
             if (!match.find())
                 throw new PluginImplementationException("Download link not found");
             String dlUrl = match.group(1);
