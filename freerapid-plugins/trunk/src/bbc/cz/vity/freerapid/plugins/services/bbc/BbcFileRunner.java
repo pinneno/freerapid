@@ -1,6 +1,8 @@
 package cz.vity.freerapid.plugins.services.bbc;
 
 import cz.vity.freerapid.plugins.exceptions.*;
+import cz.vity.freerapid.plugins.services.adobehds.AdjustableBitrateHdsDownloader;
+import cz.vity.freerapid.plugins.services.adobehds.HdsDownloader;
 import cz.vity.freerapid.plugins.services.rtmp.AbstractRtmpRunner;
 import cz.vity.freerapid.plugins.services.rtmp.RtmpSession;
 import cz.vity.freerapid.plugins.services.rtmp.SwfVerificationHelper;
@@ -126,16 +128,26 @@ class BbcFileRunner extends AbstractRtmpRunner {
             }
 
             Stream selectedStream = getSelectedStream(streamList);
-            final RtmpSession rtmpSession = getRtmpSession(selectedStream);
-            boolean isLimelight = selectedStream.supplier.equalsIgnoreCase("limelight");
-            rtmpSession.getConnectParams().put("pageUrl", fileURL);
-            rtmpSession.getConnectParams().put("swfUrl", isLimelight ? LIMELIGHT_SWF_URL : SWF_URL);
-            if (isLimelight) {
-                limelightHelper.setSwfVerification(rtmpSession, client);
+            if (selectedStream.streamType == Stream.StreamType.RTMP) {
+                final RtmpSession rtmpSession = getRtmpSession(selectedStream);
+                boolean isLimelight = selectedStream.supplier.equalsIgnoreCase("limelight");
+                rtmpSession.getConnectParams().put("pageUrl", fileURL);
+                rtmpSession.getConnectParams().put("swfUrl", isLimelight ? LIMELIGHT_SWF_URL : SWF_URL);
+                if (isLimelight) {
+                    limelightHelper.setSwfVerification(rtmpSession, client);
+                } else {
+                    helper.setSwfVerification(rtmpSession, client);
+                }
+                tryDownloadAndSaveFile(rtmpSession);
             } else {
-                helper.setSwfVerification(rtmpSession, client);
+                HdsDownloader downloader;
+                if (video) {
+                    downloader = new AdjustableBitrateHdsDownloader(client, httpFile, downloadTask, config.getVideoQuality().getBitrate());
+                } else {
+                    downloader = new HdsDownloader(client, httpFile, downloadTask);
+                }
+                downloader.tryDownloadAndSaveFile(selectedStream.hds.playlist);
             }
-            tryDownloadAndSaveFile(rtmpSession);
         } else {
             checkProblems();
             throw new ServiceConnectionProblemException();
@@ -143,26 +155,22 @@ class BbcFileRunner extends AbstractRtmpRunner {
     }
 
     private Set<String> getVpids(String mainPageContent, String playlistContent) throws PluginImplementationException {
-        /*
-        http://www.bbc.co.uk/iplayer/episode/b05pl7rt/top-of-the-pops-20031980
-        {"info":{"readme":"For the use of Radio, Music and Programmes only"},"statsObject":{"parentPID":"b05pl7rt","parentPIDType":"episode"},"defaultAvailableVersion":{"pid":"b05pvl0w","types":["Original"],"smpConfig":{"title":"Top of the Pops, 20\/03\/1980","summary":"With Squeeze, Shakin' Stevens, Martha and the Muffins, UB40,  the Lambrettas and the Jam.","masterBrandName":"BBC One","items":[{"vpid":"b05pvl0w","kind":"programme","duration":2100}],"holdingImageURL":"http:\/\/ichef.bbci.co.uk\/images\/ic\/$recipe\/p02mx9ml.jpg","guidance":null,"embedRights":"blocked"},"markers":[]},"allAvailableVersions":[{"pid":"b05pvl0w","types":["Original"],"smpConfig":{"title":"Top of the Pops, 20\/03\/1980","summary":"With Squeeze, Shakin' Stevens, Martha and the Muffins, UB40,  the Lambrettas and the Jam.","masterBrandName":"BBC One","items":[{"vpid":"b05pvl0w","kind":"programme","duration":2100}],"holdingImageURL":"http:\/\/ichef.bbci.co.uk\/images\/ic\/$recipe\/p02mx9ml.jpg","guidance":null,"embedRights":"blocked"},"markers":[]},{"pid":"b05pl7rr","types":["Shortened"],"smpConfig":{"title":"Top of the Pops, 20\/03\/1980","summary":"With Squeeze, Shakin' Stevens, Martha and the Muffins, UB40,  the Lambrettas and the Jam.","masterBrandName":"BBC One","items":[{"vpid":"b05pl7rr","kind":"programme","duration":1800}],"holdingImageURL":"http:\/\/ichef.bbci.co.uk\/images\/ic\/$recipe\/p02mx9ml.jpg","guidance":null,"embedRights":"blocked"},"markers":[]}],"holdingImage":"http:\/\/ichef.bbci.co.uk\/images\/ic\/976x549\/p02mx9ml.jpg"}
-         */
         Set<String> vpids = new LinkedHashSet<String>();
         Matcher matcher = PlugUtils.matcher("\"vpid\":\"([^\"]+)\"", playlistContent);
         while (matcher.find()) {
             vpids.add(matcher.group(1));
         }
-        if (vpids.size() <= 0) {
+        if (vpids.isEmpty()) {
             matcher = PlugUtils.matcher("<item[^<>]*?identifier=\"([^<>]+?)\"", playlistContent);
             while (matcher.find()) {
                 vpids.add(matcher.group(1));
             }
-            if (vpids.size() <= 0) {
+            if (vpids.isEmpty()) {
                 matcher = PlugUtils.matcher("\"vpid\":\"([^\"]+)\"", mainPageContent);
                 while (matcher.find()) {
                     vpids.add(matcher.group(1));
                 }
-                if (vpids.size() <= 0) {
+                if (vpids.isEmpty()) {
                     throw new PluginImplementationException("Identifier not found");
                 }
             }
@@ -233,8 +241,8 @@ class BbcFileRunner extends AbstractRtmpRunner {
         checkPlaylistProblems();
     }
 
-    private RtmpSession getRtmpSession(Stream stream) {
-        return new RtmpSession(stream.server, config.getRtmpPort().getPort(), stream.app, stream.play, stream.encrypted);
+    private RtmpSession getRtmpSession(Stream stream) throws PluginImplementationException {
+        return new RtmpSession(stream.rtmp.server, config.getRtmpPort().getPort(), stream.rtmp.app, stream.rtmp.play, stream.rtmp.encrypted);
     }
 
     private List<Stream> getStreams(String content) throws Exception {
@@ -245,16 +253,17 @@ class BbcFileRunner extends AbstractRtmpRunner {
             for (int i = 0, n = mediaElements.getLength(); i < n; i++) {
                 try {
                     final Element mediaElement = (Element) mediaElements.item(i);
-                    if (config.isDownloadSubtitles() && mediaElement.getAttribute("kind").equals("captions")) {
+                    String mediaKind = mediaElement.getAttribute("kind");
+                    if (config.isDownloadSubtitles() && mediaKind.equals("captions")) {
                         downloadSubtitle(mediaElement);
-                    } else {
+                    } else if (mediaKind.equals("video") || mediaKind.equals("audio")) {
                         NodeList connectionElements = mediaElement.getElementsByTagName("connection");
                         for (int j = 0, connectionElementsLength = connectionElements.getLength(); j < connectionElementsLength; j++) {
                             Element connectionElement = (Element) connectionElements.item(j);
                             final Stream stream = Stream.build(mediaElement, connectionElement);
                             if (stream != null) {
                                 streamList.add(stream);
-                                if (!video && mediaElement.getAttribute("kind").equals("video")) {
+                                if (!video && mediaKind.equals("video")) {
                                     video = true;
                                 }
                             }
@@ -290,6 +299,8 @@ class BbcFileRunner extends AbstractRtmpRunner {
                 throw new PluginImplementationException("Unable to select stream");
             }
             int selectedQuality = selectedStream.quality;
+            //Quality for HDS will be selected later
+
 
             //select the highest bitrate for the selected quality
             int selectedBitrate = Integer.MIN_VALUE;
@@ -303,16 +314,20 @@ class BbcFileRunner extends AbstractRtmpRunner {
             //select CDN
             weight = Integer.MIN_VALUE;
             for (Stream stream : streamList) {
-                if ((stream.quality == selectedQuality) && (stream.bitrate == selectedBitrate)) {
+                if ((stream.streamType == Stream.StreamType.RTMP && stream.quality == selectedQuality && stream.bitrate == selectedBitrate) ||
+                        (stream.streamType == Stream.StreamType.HDS)) {
                     int tempWeight = 0;
-                    if (stream.supplier.equalsIgnoreCase(config.getCdn().toString())) {
-                        tempWeight = 100;
-                    } else if (stream.supplier.equalsIgnoreCase(Cdn.Level3.toString())) { //level3>limelight>akamai
-                        tempWeight = 50;
-                    } else if (stream.supplier.equalsIgnoreCase(Cdn.Limelight.toString())) {
-                        tempWeight = 49;
-                    } else if (stream.supplier.equalsIgnoreCase(Cdn.Akamai.toString())) {
-                        tempWeight = 48;
+                    if (stream.streamType == Stream.StreamType.HDS) { //HDS has higher priority
+                        tempWeight += 150;
+                    }
+                    if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(config.getCdn().toString().toLowerCase(Locale.ENGLISH))) {
+                        tempWeight += 100;
+                    } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Level3.toString().toLowerCase(Locale.ENGLISH))) { //level3>limelight>akamai
+                        tempWeight += 50;
+                    } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Limelight.toString().toLowerCase(Locale.ENGLISH))) {
+                        tempWeight += 49;
+                    } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Akamai.toString().toLowerCase(Locale.ENGLISH))) {
+                        tempWeight += 48;
                     }
                     if (tempWeight > weight) {
                         weight = tempWeight;
@@ -329,20 +344,25 @@ class BbcFileRunner extends AbstractRtmpRunner {
                 }
             });
             int selectedBitrate = selectedStream.bitrate;
+            //Quality for HDS will be selected later
 
             //select CDN
             int weight = Integer.MIN_VALUE;
             for (Stream stream : streamList) {
-                if (stream.bitrate == selectedBitrate) {
+                if ((stream.streamType == Stream.StreamType.RTMP && stream.bitrate == selectedBitrate) ||
+                        (stream.streamType == Stream.StreamType.HDS)) {
                     int tempWeight = 0;
-                    if (stream.supplier.equalsIgnoreCase(config.getCdn().toString())) {
-                        tempWeight = 100;
-                    } else if (stream.supplier.equalsIgnoreCase(Cdn.Level3.toString())) { //level3>limelight>akamai
-                        tempWeight = 50;
-                    } else if (stream.supplier.equalsIgnoreCase(Cdn.Limelight.toString())) {
+                    if (stream.streamType == Stream.StreamType.HDS) {
+                        tempWeight += 150;
+                    }
+                    if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(config.getCdn().toString().toLowerCase(Locale.ENGLISH))) {
+                        tempWeight += 100;
+                    } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Level3.toString().toLowerCase(Locale.ENGLISH))) { //level3>limelight>akamai
+                        tempWeight += 50;
+                    } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Limelight.toString().toLowerCase(Locale.ENGLISH))) {
                         tempWeight = 49;
-                    } else if (stream.supplier.equalsIgnoreCase(Cdn.Akamai.toString())) {
-                        tempWeight = 48;
+                    } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Akamai.toString().toLowerCase(Locale.ENGLISH))) {
+                        tempWeight += 48;
                     }
                     if (tempWeight > weight) {
                         weight = tempWeight;
@@ -352,7 +372,7 @@ class BbcFileRunner extends AbstractRtmpRunner {
             }
         }
 
-        logger.info("Stream kind : " + (video ? "TV" : "Radio"));
+        logger.info("Media kind : " + (video ? "TV" : "Radio"));
         logger.info("Config settings : " + config);
         logger.info("Selected stream : " + selectedStream);
         return selectedStream;
@@ -373,40 +393,78 @@ class BbcFileRunner extends AbstractRtmpRunner {
     }
 
     private static class Stream implements Comparable<Stream> {
-        private final String server;
-        private final String app;
-        private final String play;
-        private final boolean encrypted;
+        private class Rtmp {
+            private final String server;
+            private final String app;
+            private final String play;
+            private final boolean encrypted;
+
+            private Rtmp(String server, String app, String play, boolean encrypted) {
+                this.server = server;
+                this.app = app;
+                this.play = play;
+                this.encrypted = encrypted;
+            }
+        }
+
+        private class Hds {
+            private final String playlist;
+
+            private Hds(String playlist) {
+                this.playlist = playlist;
+            }
+        }
+
+        enum StreamType {RTMP, HDS}
+
+        private final StreamType streamType;
+        private final Rtmp rtmp;
+        private final Hds hds;
         private final int bitrate;
         private final int quality;
         private final String supplier;
 
         public static Stream build(final Element media, final Element connection) {
             String protocol = connection.getAttribute("protocol");
-            if (protocol == null || protocol.isEmpty()) {
-                protocol = connection.getAttribute("href");
-            }
-            if (protocol == null || protocol.isEmpty() || !protocol.startsWith("rtmp")) {
+            if (protocol == null || protocol.isEmpty() || !(protocol.startsWith("rtmp") || protocol.startsWith("http"))) {
                 logger.info("Not supported: " + media.getAttribute("service"));
                 return null;//of what they serve, only RTMP streams are supported at the moment
             }
-            final String server = connection.getAttribute("server");
-            String app = connection.getAttribute("application");
-            app = (app == null || app.isEmpty() ? "ondemand" : app) + "?" + PlugUtils.replaceEntities(connection.getAttribute("authString"));
-            final String play = connection.getAttribute("identifier");
-            final boolean encrypted = protocol.startsWith("rtmpe") || protocol.startsWith("rtmpte");
-            final int bitrate = Integer.parseInt(media.getAttribute("bitrate"));
             final boolean video = media.getAttribute("kind").equals("video");
             final int quality = video ? Integer.parseInt(media.getAttribute("height")) : -1; //height as quality;
+            final int bitrate = Integer.parseInt(media.getAttribute("bitrate"));
             final String supplier = connection.getAttribute("supplier");
-            return new Stream(server, app, play, encrypted, bitrate, quality, supplier);
+
+            if (protocol.startsWith("rtmp")) {
+                final String server = connection.getAttribute("server");
+                String app = connection.getAttribute("application");
+                app = (app == null || app.isEmpty() ? "ondemand" : app) + "?" + PlugUtils.replaceEntities(connection.getAttribute("authString"));
+                final String play = connection.getAttribute("identifier");
+                final boolean encrypted = protocol.startsWith("rtmpe") || protocol.startsWith("rtmpte");
+                return new Stream(server, app, play, encrypted, bitrate, quality, supplier);
+            } else if (protocol.startsWith("http")) {
+                String playlist = connection.getAttribute("href");
+                if (playlist.contains("f4m")) {
+                    return new Stream(playlist, bitrate, quality, supplier);
+                }
+            }
+            return null;
         }
 
         private Stream(String server, String app, String play, boolean encrypted, int bitrate, int quality, String supplier) {
-            this.server = server;
-            this.app = app;
-            this.play = play;
-            this.encrypted = encrypted;
+            streamType = StreamType.RTMP;
+            rtmp = new Rtmp(server, app, play, encrypted);
+            hds = null;
+            this.bitrate = bitrate;
+            this.quality = quality;
+            this.supplier = supplier;
+            logger.info("Found stream : " + this);
+        }
+
+        private Stream(String playlist, int bitrate, int quality, String supplier) {
+            streamType = StreamType.HDS;
+            hds = new Hds(playlist);
+            rtmp = null;
             this.bitrate = bitrate;
             this.quality = quality;
             this.supplier = supplier;
@@ -416,13 +474,16 @@ class BbcFileRunner extends AbstractRtmpRunner {
         @Override
         public String toString() {
             return "Stream{" +
-                    "server='" + server + '\'' +
-                    ", app='" + app + '\'' +
-                    ", play='" + play + '\'' +
-                    ", encrypted=" + encrypted +
-                    ", bitrate=" + bitrate +
+                    "supplier='" + supplier + '\'' +
                     ", quality=" + quality +
-                    ", supplier='" + supplier + '\'' +
+                    ", bitrate=" + bitrate +
+                    ", streamType=" + streamType +
+                    (streamType == StreamType.RTMP ?
+                            ", server='" + rtmp.server + '\'' +
+                                    ", app='" + rtmp.app + '\'' +
+                                    ", play='" + rtmp.play + '\'' +
+                                    ", encrypted=" + rtmp.encrypted :
+                            ", playlist='" + hds.playlist) +
                     '}';
         }
 

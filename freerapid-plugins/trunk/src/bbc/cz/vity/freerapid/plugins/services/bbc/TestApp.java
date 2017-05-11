@@ -5,6 +5,7 @@ import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
 import cz.vity.freerapid.plugins.webclient.interfaces.HttpFile;
 import org.jdesktop.application.Application;
 
+import java.net.Proxy;
 import java.net.URL;
 
 /**
@@ -33,11 +34,14 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://www.bbc.co.uk/programmes/b0540ndg"));
             //httpFile.setNewURL(new URL("http://www.bbc.co.uk/programmes/p00fpv1w")); //non RTMP for non UK ip address
             //httpFile.setNewURL(new URL("http://www.bbc.co.uk/iplayer/episode/b05pl7rt/top-of-the-pops-20031980")); //contains 2 vpids, only 1 works
-            httpFile.setNewURL(new URL("http://www.bbc.co.uk/iplayer/episode/b05rhtyw/masterchef-series-11-episode-18")); //get all streams from all possible vpids
+            //httpFile.setNewURL(new URL("http://www.bbc.co.uk/iplayer/episode/b05rhtyw/masterchef-series-11-episode-18")); //get all streams from all possible vpids
+            //httpFile.setNewURL(new URL("http://www.bbc.co.uk/iplayer/episode/b08pnn6c/pointless-series-17-episode-11"));
+            httpFile.setNewURL(new URL("http://www.bbc.co.uk/iplayer/episode/b08ny6yt/world-championship-snooker-extra-2017-day-11"));
+            //httpFile.setNewURL(new URL("http://www.bbc.co.uk/programmes/b08p51wz")); //radio
 
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
-            //connectionSettings.setProxy("localhost", 9040, Proxy.Type.SOCKS); //eg we can use local proxy to sniff HTTP communication
+            connectionSettings.setProxy("localhost", 9040, Proxy.Type.SOCKS); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
             final BbcServiceImpl service = new BbcServiceImpl(); //instance of service - of our plugin
             SettingsConfig config = new SettingsConfig();
@@ -49,6 +53,7 @@ public class TestApp extends PluginDevApplication {
             service.setConfig(config);
             //setUseTempFiles(true);
             //runcheck makes the validation
+
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console
         } catch (Exception e) {//catch possible exception

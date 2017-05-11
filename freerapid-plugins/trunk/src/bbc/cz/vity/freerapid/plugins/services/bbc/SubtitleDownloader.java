@@ -1,7 +1,6 @@
 package cz.vity.freerapid.plugins.services.bbc;
 
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
-import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
 import cz.vity.freerapid.plugins.webclient.interfaces.HttpDownloadClient;
 import cz.vity.freerapid.plugins.webclient.interfaces.HttpFile;
 import cz.vity.freerapid.plugins.webclient.utils.HttpUtils;
@@ -28,14 +27,15 @@ class SubtitleDownloader {
         }
         logger.info("Downloading subtitle");
         logger.info("Subtitle URL: " + subtitleUrl);
-        ConnectionSettings settings = client.getSettings();
-        client.initClient(new ConnectionSettings()); //force direct connection (non-proxy)
+        //ConnectionSettings settings = client.getSettings();
+        //client.initClient(new ConnectionSettings()); //force direct connection (non-proxy)
         HttpMethod method = client.getGetMethod(subtitleUrl);
         if (200 != client.makeRequest(method, true)) {
+            //client.initClient(settings);
             throw new PluginImplementationException("Failed to request subtitle");
         }
         String timedTextXml = client.getContentAsString();
-        client.initClient(settings); //restore original settings
+        //client.initClient(settings); //restore original settings
 
         String fnameNoExt = PlugUtils.unescapeHtml(URLDecoder.decode(HttpUtils.replaceInvalidCharsForFileSystem(
                 httpFile.getFileName().replaceFirst("\\.[^\\.]{3,4}$", ""), "_"), "UTF-8"));

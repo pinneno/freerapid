@@ -78,6 +78,7 @@
             <sourcepath location="../rtmp"/>
             <sourcepath location="../tor"/>
             <sourcepath location="../geoip"/>
+            <sourcepath location="../adobehds"/>
             <sourcepath location="../devapp"/>
         </javac>
         <!-- zkopirovani resourcu -->
