@@ -5,6 +5,7 @@ import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.hoster.PremiumAccount;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
+import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
@@ -18,6 +19,7 @@ import java.util.regex.Matcher;
  */
 class DatoidFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(DatoidFileRunner.class.getName());
+    private boolean LOGGED_IN = false;
 
     @Override
     public void runCheck() throws Exception { //this method validates file
@@ -57,20 +59,43 @@ class DatoidFileRunner extends AbstractRunner {
 
             final Matcher match = PlugUtils.matcher("<a.+?href=\"(.*?/f/.+?)\".*?>\\s*?.*?[Ss]t.hnout", getContentAsString());
             if (!match.find())
-                throw new PluginImplementationException("Download options not found");
+                throw new PluginImplementationException("Download button not found");
             String linkUrl = match.group(1);
-            if (!linkUrl.contains("request="))
-                linkUrl = linkUrl + "?request=1";
-            final HttpMethod linkMethod = getMethodBuilder().setAction(linkUrl).toHttpMethod();
-            if (!makeRedirectedRequest(linkMethod)) {
-                checkProblems();
-                throw new ServiceConnectionProblemException();
+            String dlUrl = "";
+            if (LOGGED_IN) {    // premium / registered
+                final HttpMethod linkMethod = getMethodBuilder().setAction(linkUrl).toHttpMethod();
+                int status = client.makeRequest(linkMethod, false);
+                if (status/100 == 4) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
+                }
+                else if (status/100 == 3) {
+                    dlUrl = linkMethod.getResponseHeader("Location").getValue();
+                }
+                else {
+                    if (getContentAsString().contains("\"error\"")) // not premium
+                        LOGGED_IN = false;
+                    else {
+                        checkProblems();
+                        dlUrl = getMethodBuilder().setActionFromAHrefWhereATagContains("click here").getEscapedURI();
+                    }
+                }
             }
-            checkProblems();
-            final String content = getContentAsString();
-            final int wait = Integer.parseInt(getValue(content, "wait"));
-            final String dlUrl = getValue(content, "download_link").replace("\\", "");
-            downloadTask.sleep(wait);
+            if (!LOGGED_IN) {   // free / registered
+                if (!linkUrl.contains("request="))
+                    linkUrl = linkUrl + "?request=1";
+                final HttpMethod linkMethod = getMethodBuilder().setAction(linkUrl).toHttpMethod();
+                if (!makeRedirectedRequest(linkMethod)) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
+                }
+                checkProblems();
+                final String content = getContentAsString();
+                final int wait = Integer.parseInt(getValue(content, "wait"));
+                dlUrl = getValue(content, "download_link").replace("\\", "");
+                downloadTask.sleep(wait);
+            }
+
             final HttpMethod httpMethod = getGetMethod(dlUrl);
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed
@@ -115,26 +140,54 @@ class DatoidFileRunner extends AbstractRunner {
     }
 
 
+    private final static long MAX_AGE = 6 * 3600000;//6 hours
+    private static long created = 0;
+    private static Cookie loginCookie;
+    private static Cookie sessionCookie;
+    private static Cookie browserCookie;
+    private static PremiumAccount pa0 = null;
+
+    public void setLoginData(final PremiumAccount pa) {
+        pa0 = pa;
+        loginCookie   = getCookieByName("login");
+        sessionCookie = getCookieByName("PHPSESSID");
+        browserCookie = getCookieByName("nette-browser");
+        created = System.currentTimeMillis();
+    }
+
+    public boolean isLoginStale(final PremiumAccount pa) {
+        return (System.currentTimeMillis() - created > MAX_AGE) || (!pa0.getUsername().matches(pa.getUsername())) || (!pa0.getPassword().matches(pa.getPassword()));
+    }
+
     private void login() throws Exception {
         synchronized (DatoidFileRunner.class) {
             final DatoidServiceImpl service = (DatoidServiceImpl) getPluginService();
             final PremiumAccount pa = service.getConfig();
             if (pa.isSet()) {
-                final HttpMethod method = getMethodBuilder()
-                        .setActionFromFormWhereTagContains("signInForm", true)
-                        .setParameter("username", pa.getUsername())
-                        .setParameter("password", pa.getPassword())
-                        .setReferer(fileURL)
-                        .toPostMethod();
-                if (!makeRedirectedRequest(method)) {
-                    throw new ServiceConnectionProblemException("Error posting login info");
+                if (!isLoginStale(pa)) {
+                    addCookie(loginCookie);
+                    addCookie(sessionCookie);
+                    addCookie(browserCookie);
+                    LOGGED_IN = true;
+                    logger.info("Logged in using COOKIES.");
+                } else {
+                    final HttpMethod method = getMethodBuilder()
+                            .setActionFromFormWhereTagContains("signInForm", true)
+                            .setParameter("username", pa.getUsername())
+                            .setParameter("password", pa.getPassword())
+                            .setReferer(fileURL)
+                            .toPostMethod();
+                    if (!makeRedirectedRequest(method)) {
+                        throw new ServiceConnectionProblemException("Error posting login info");
+                    }
+                    if (getContentAsString().contains("Zadali jste špatné přihlašovací údaje.")) {
+                        throw new BadLoginException("Invalid Datoid.cz account login information!");
+                    }
+                    setLoginData(pa);
+                    LOGGED_IN = true;
+                    logger.info("Logged in.");
                 }
-                if (getContentAsString().contains("Zadali jste špatné přihlašovací údaje.")) {
-                    throw new BadLoginException("Invalid Datoid.cz account login information!");
-                }
-                logger.info("Logged in.");
             }
-
         }
     }
 

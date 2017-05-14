@@ -16,7 +16,8 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("https://datoid.cz/p1eSWP/jan-cimbura-by-senior-avi"));      // < 1gb
+            httpFile.setNewURL(new URL("https://datoid.cz/VQI8Q2/cviceni-pdf"));                      // < 1mb
+            //httpFile.setNewURL(new URL("https://datoid.cz/p1eSWP/jan-cimbura-by-senior-avi"));      // < 1gb
             //httpFile.setNewURL(new URL("http://datoid.cz/QhYg0X/europe-905-4754-part1-rar"));       // > 1gb
             //httpFile.setNewURL(new URL("http://datoid.cz/CxB5WA/krotitele-duchu-2-mkv"));           // > 3gb
             //the way we connect to the internet
@@ -25,7 +26,7 @@ public class TestApp extends PluginDevApplication {
             //then we tries to download
             final DatoidServiceImpl service = new DatoidServiceImpl(); //instance of service - of our plugin
             /*
-            //we set Registered(Premium not supported) account details
+            //we set Registered/Premium account details
             final PremiumAccount config = new PremiumAccount();
             config.setUsername("****");
             config.setPassword("****");
