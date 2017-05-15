@@ -45,7 +45,8 @@ public class TestApp extends PluginDevApplication {
             //then we tries to download
             final BbcServiceImpl service = new BbcServiceImpl(); //instance of service - of our plugin
             SettingsConfig config = new SettingsConfig();
-            config.setVideoQuality(VideoQuality._360);
+            config.setStreamType(StreamType.HDS);
+            config.setVideoQuality(VideoQuality._396_923);
             config.setDownloadSubtitles(true);
             config.setRtmpPort(RtmpPort._1935);
             config.setEnableTor(false);

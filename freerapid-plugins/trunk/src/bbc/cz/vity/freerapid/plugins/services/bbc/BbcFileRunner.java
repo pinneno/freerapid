@@ -128,7 +128,7 @@ class BbcFileRunner extends AbstractRtmpRunner {
             }
 
             Stream selectedStream = getSelectedStream(streamList);
-            if (selectedStream.streamType == Stream.StreamType.RTMP) {
+            if (selectedStream.streamType == StreamType.RTMP) {
                 final RtmpSession rtmpSession = getRtmpSession(selectedStream);
                 boolean isLimelight = selectedStream.supplier.equalsIgnoreCase("limelight");
                 rtmpSession.getConnectParams().put("pageUrl", fileURL);
@@ -143,10 +143,11 @@ class BbcFileRunner extends AbstractRtmpRunner {
                 HdsDownloader downloader;
                 if (video) {
                     downloader = new AdjustableBitrateHdsDownloader(client, httpFile, downloadTask, config.getVideoQuality().getBitrate());
-                } else {
+                } else { // get the highest bitrate stream for radio
                     downloader = new HdsDownloader(client, httpFile, downloadTask);
                 }
-                downloader.tryDownloadAndSaveFile(selectedStream.hds.playlist);
+                assert selectedStream.hds != null;
+                downloader.tryDownloadAndSaveFile(selectedStream.hds.manifestUrl);
             }
         } else {
             checkProblems();
@@ -242,6 +243,7 @@ class BbcFileRunner extends AbstractRtmpRunner {
     }
 
     private RtmpSession getRtmpSession(Stream stream) throws PluginImplementationException {
+        assert stream.rtmp != null;
         return new RtmpSession(stream.rtmp.server, config.getRtmpPort().getPort(), stream.rtmp.app, stream.rtmp.play, stream.rtmp.encrypted);
     }
 
@@ -285,91 +287,118 @@ class BbcFileRunner extends AbstractRtmpRunner {
         }
         Stream selectedStream = null;
         if (video) { //video/tv
+            //select quality
             final int LOWER_QUALITY_PENALTY = 10;
             int weight = Integer.MAX_VALUE;
             for (Stream stream : streamList) {
-                int deltaQ = stream.quality - config.getVideoQuality().getQuality();
-                int tempWeight = (deltaQ < 0 ? Math.abs(deltaQ) + LOWER_QUALITY_PENALTY : deltaQ);
-                if (tempWeight < weight) {
-                    weight = tempWeight;
-                    selectedStream = stream;
+                if (stream.streamType == config.getStreamType()) {
+                    int deltaQ = stream.quality - config.getVideoQuality().getQuality();
+                    int tempWeight = (deltaQ < 0 ? Math.abs(deltaQ) + LOWER_QUALITY_PENALTY : deltaQ);
+                    if (tempWeight < weight) {
+                        weight = tempWeight;
+                        selectedStream = stream;
+                    }
                 }
             }
             if (selectedStream == null) {
                 throw new PluginImplementationException("Unable to select stream");
             }
             int selectedQuality = selectedStream.quality;
-            //Quality for HDS will be selected later
-
-
-            //select the highest bitrate for the selected quality
-            int selectedBitrate = Integer.MIN_VALUE;
-            for (Stream stream : streamList) {
-                if ((stream.quality == selectedQuality) && (stream.bitrate > selectedBitrate)) {
-                    selectedBitrate = stream.bitrate;
-                    selectedStream = stream;
-                }
-            }
+            //Quality for HDS will be selected later, it's in the manifest
 
             //select CDN
             weight = Integer.MIN_VALUE;
+            Cdn selectedCdn = config.getCdn();
             for (Stream stream : streamList) {
-                if ((stream.streamType == Stream.StreamType.RTMP && stream.quality == selectedQuality && stream.bitrate == selectedBitrate) ||
-                        (stream.streamType == Stream.StreamType.HDS)) {
+                if (stream.streamType == config.getStreamType() &&
+                        ((stream.streamType == StreamType.RTMP && stream.quality == selectedQuality) ||
+                                stream.streamType == StreamType.HDS)) {
                     int tempWeight = 0;
-                    if (stream.streamType == Stream.StreamType.HDS) { //HDS has higher priority
-                        tempWeight += 150;
-                    }
+                    Cdn tempCdn = config.getCdn();
                     if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(config.getCdn().toString().toLowerCase(Locale.ENGLISH))) {
                         tempWeight += 100;
                     } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Level3.toString().toLowerCase(Locale.ENGLISH))) { //level3>limelight>akamai
                         tempWeight += 50;
+                        tempCdn = Cdn.Level3;
                     } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Limelight.toString().toLowerCase(Locale.ENGLISH))) {
                         tempWeight += 49;
+                        tempCdn = Cdn.Limelight;
                     } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Akamai.toString().toLowerCase(Locale.ENGLISH))) {
                         tempWeight += 48;
+                        tempCdn = Cdn.Akamai;
                     }
                     if (tempWeight > weight) {
+                        weight = tempWeight;
+                        selectedStream = stream;
+                        selectedCdn = tempCdn;
+                    }
+                }
+            }
+
+            //select bitrate.
+            //bitrate for HDS will be selected later, it's in the manifest
+            weight = Integer.MAX_VALUE;
+            for (Stream stream : streamList) {
+                if (stream.streamType == config.getStreamType() &&
+                        stream.supplier.toLowerCase(Locale.ENGLISH).contains(selectedCdn.toString().toLowerCase(Locale.ENGLISH)) &&
+                        ((stream.streamType == StreamType.RTMP && stream.quality == selectedQuality) ||
+                                stream.streamType == StreamType.HDS)) {
+                    int deltaQ = stream.bitrate - config.getVideoQuality().getBitrate();
+                    int tempWeight = (deltaQ < 0 ? Math.abs(deltaQ) + 1 : deltaQ);
+                    if (tempWeight < weight) {
                         weight = tempWeight;
                         selectedStream = stream;
                     }
                 }
             }
 
-        } else { //audio/radio, ignore config, always pick the highest bitrate
-            selectedStream = Collections.max(streamList, new Comparator<Stream>() {
+        } else { //audio/radio
+            //select CDN
+            Cdn selectedCdn = config.getCdn();
+            int weight = Integer.MIN_VALUE;
+            for (Stream stream : streamList) {
+                if (stream.streamType == config.getStreamType()) {
+                    int tempWeight = 0;
+                    Cdn tempCdn = config.getCdn();
+                    if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(config.getCdn().toString().toLowerCase(Locale.ENGLISH))) {
+                        tempWeight += 100;
+                    } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Level3.toString().toLowerCase(Locale.ENGLISH))) { //level3>limelight>akamai
+                        tempWeight += 50;
+                        tempCdn = Cdn.Level3;
+                    } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Limelight.toString().toLowerCase(Locale.ENGLISH))) {
+                        tempWeight = 49;
+                        tempCdn = Cdn.Limelight;
+                    } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Akamai.toString().toLowerCase(Locale.ENGLISH))) {
+                        tempWeight += 48;
+                        tempCdn = Cdn.Akamai;
+                    }
+                    if (tempWeight > weight) {
+                        weight = tempWeight;
+                        selectedStream = stream;
+                        selectedCdn = tempCdn;
+                    }
+                }
+            }
+            if (selectedStream == null) {
+                throw new PluginImplementationException("Unable to select stream");
+            }
+
+            List<Stream> selectedStreams = new ArrayList<Stream>();
+            for (Stream stream : streamList) {
+                if (stream.streamType == config.getStreamType() &&
+                        stream.supplier.toLowerCase(Locale.ENGLISH).contains(selectedCdn.toString().toLowerCase(Locale.ENGLISH))) {
+                    selectedStreams.add(stream);
+                }
+            }
+
+            //ignore quality setting, always pick the highest bitrate
+            selectedStream = Collections.max(selectedStreams, new Comparator<Stream>() {
                 @Override
                 public int compare(Stream o1, Stream o2) {
                     return Integer.valueOf(o1.bitrate).compareTo(o2.bitrate);
                 }
             });
-            int selectedBitrate = selectedStream.bitrate;
-            //Quality for HDS will be selected later
-
-            //select CDN
-            int weight = Integer.MIN_VALUE;
-            for (Stream stream : streamList) {
-                if ((stream.streamType == Stream.StreamType.RTMP && stream.bitrate == selectedBitrate) ||
-                        (stream.streamType == Stream.StreamType.HDS)) {
-                    int tempWeight = 0;
-                    if (stream.streamType == Stream.StreamType.HDS) {
-                        tempWeight += 150;
-                    }
-                    if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(config.getCdn().toString().toLowerCase(Locale.ENGLISH))) {
-                        tempWeight += 100;
-                    } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Level3.toString().toLowerCase(Locale.ENGLISH))) { //level3>limelight>akamai
-                        tempWeight += 50;
-                    } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Limelight.toString().toLowerCase(Locale.ENGLISH))) {
-                        tempWeight = 49;
-                    } else if (stream.supplier.toLowerCase(Locale.ENGLISH).contains(Cdn.Akamai.toString().toLowerCase(Locale.ENGLISH))) {
-                        tempWeight += 48;
-                    }
-                    if (tempWeight > weight) {
-                        weight = tempWeight;
-                        selectedStream = stream;
-                    }
-                }
-            }
+            //Quality, bitrate for HDS will be selected later, it's in the manifest
         }
 
         logger.info("Media kind : " + (video ? "TV" : "Radio"));
@@ -408,14 +437,12 @@ class BbcFileRunner extends AbstractRtmpRunner {
         }
 
         private class Hds {
-            private final String playlist;
+            private final String manifestUrl;
 
-            private Hds(String playlist) {
-                this.playlist = playlist;
+            private Hds(String manifestUrl) {
+                this.manifestUrl = manifestUrl;
             }
         }
-
-        enum StreamType {RTMP, HDS}
 
         private final StreamType streamType;
         private final Rtmp rtmp;
@@ -428,11 +455,11 @@ class BbcFileRunner extends AbstractRtmpRunner {
             String protocol = connection.getAttribute("protocol");
             if (protocol == null || protocol.isEmpty() || !(protocol.startsWith("rtmp") || protocol.startsWith("http"))) {
                 logger.info("Not supported: " + media.getAttribute("service"));
-                return null;//of what they serve, only RTMP streams are supported at the moment
+                return null;//of what they serve, only RTMP and HDS streams are supported at the moment
             }
             final boolean video = media.getAttribute("kind").equals("video");
             final int quality = video ? Integer.parseInt(media.getAttribute("height")) : -1; //height as quality;
-            final int bitrate = Integer.parseInt(media.getAttribute("bitrate"));
+            final int bitrate = Integer.parseInt(media.getAttribute("bitrate")); //the real bitrate for HDS is in the manifest
             final String supplier = connection.getAttribute("supplier");
 
             if (protocol.startsWith("rtmp")) {
@@ -483,7 +510,7 @@ class BbcFileRunner extends AbstractRtmpRunner {
                                     ", app='" + rtmp.app + '\'' +
                                     ", play='" + rtmp.play + '\'' +
                                     ", encrypted=" + rtmp.encrypted :
-                            ", playlist='" + hds.playlist) +
+                            ", manifestUrl='" + hds.manifestUrl) + '\'' +
                     '}';
         }
 

@@ -5,11 +5,20 @@ package cz.vity.freerapid.plugins.services.bbc;
  */
 public class SettingsConfig {
 
+    private StreamType streamType = StreamType.HDS;
     private VideoQuality videoQuality = VideoQuality.Highest;
     private boolean downloadSubtitles = false;
     private RtmpPort rtmpPort = RtmpPort._1935;
     private Cdn cdn = Cdn.Akamai;
     private boolean enableTor = true;
+
+    public StreamType getStreamType() {
+        return streamType;
+    }
+
+    public void setStreamType(StreamType streamType) {
+        this.streamType = streamType;
+    }
 
     public VideoQuality getVideoQuality() {
         return videoQuality;
@@ -54,7 +63,8 @@ public class SettingsConfig {
     @Override
     public String toString() {
         return "SettingsConfig{" +
-                "videoQuality=" + videoQuality +
+                "streamType=" + streamType +
+                ",videoQuality=" + videoQuality +
                 ", rtmpPort=" + rtmpPort +
                 ", cdn=" + cdn +
                 '}';

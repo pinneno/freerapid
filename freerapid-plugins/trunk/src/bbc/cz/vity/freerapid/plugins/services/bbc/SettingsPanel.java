@@ -19,18 +19,22 @@ class SettingsPanel extends JPanel {
     }
 
     private void initPanel() {
-        final JLabel lblQuality = new JLabel("Preferred quality level:");
-        final JComboBox<VideoQuality> cbbVideoQuality = new JComboBox<VideoQuality>(VideoQuality.getItems());
-        final JLabel lblRtmpPort = new JLabel("Preferred RTMP port:");
+        final JLabel lblStreamType = new JLabel("Stream Type");
+        final JComboBox<StreamType> cbbStreamType = new JComboBox<StreamType>(StreamType.values());
+        final JLabel lblQuality = new JLabel("Quality Level:");
+        final JComboBox<VideoQuality> cbbVideoQuality = new JComboBox<VideoQuality>(VideoQuality.getItemsFor(config.getStreamType()));
+        final JLabel lblRtmpPort = new JLabel("RTMP Port:");
         final JComboBox<RtmpPort> cbbRtmpPort = new JComboBox<RtmpPort>(RtmpPort.values());
-        final JLabel lblCdn = new JLabel("<html>Preferred CDN: <small><sup>*)</sup></small></html>");
+        final JLabel lblCdn = new JLabel("<html>CDN: <small><sup>*)</sup></small></html>");
         final JComboBox<Cdn> cbbCdn = new JComboBox<Cdn>(Cdn.values());
         final JCheckBox checkTor = new JCheckBox("<html>Enable Tor <small><sup>**)</sup></small></html>", config.isEnableTor());
-        final JCheckBox checkSubtitles = new JCheckBox("Download subtitles", config.isDownloadSubtitles());
+        final JCheckBox checkSubtitles = new JCheckBox("Download Subtitles", config.isDownloadSubtitles());
         final JLabel lblCdnNote = new JLabel("<html><small>*) Akamai is only downloadble in the UK.</small></html>");
         final JLabel lblTorNote = new JLabel("<html><small>**) Doesn't affect UK and proxy users," +
                 "<br>UK and proxy users won't use Tor.</small></html>");
 
+        lblStreamType.setAlignmentX(Component.LEFT_ALIGNMENT);
+        cbbStreamType.setAlignmentX(Component.LEFT_ALIGNMENT);
         lblQuality.setAlignmentX(Component.LEFT_ALIGNMENT);
         cbbVideoQuality.setAlignmentX(Component.LEFT_ALIGNMENT);
         lblRtmpPort.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -42,6 +46,22 @@ class SettingsPanel extends JPanel {
         lblCdnNote.setAlignmentX(Component.LEFT_ALIGNMENT);
         lblTorNote.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        cbbRtmpPort.setEnabled(config.getStreamType() == StreamType.RTMP);
+
+        cbbStreamType.setSelectedItem(config.getStreamType());
+        cbbStreamType.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                StreamType selectedItem = (StreamType) cbbStreamType.getSelectedItem();
+                config.setStreamType(selectedItem);
+                cbbVideoQuality.removeAllItems();
+                VideoQuality[] items = VideoQuality.getItemsFor(selectedItem);
+                for (VideoQuality item : items) {
+                    cbbVideoQuality.addItem(item);
+                }
+                cbbRtmpPort.setEnabled(selectedItem == StreamType.RTMP);
+            }
+        });
         cbbVideoQuality.setSelectedItem(config.getVideoQuality());
         cbbVideoQuality.addActionListener(new ActionListener() {
             @Override
@@ -77,6 +97,9 @@ class SettingsPanel extends JPanel {
         });
 
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+        add(lblStreamType);
+        add(cbbStreamType);
+        add(Box.createRigidArea(new Dimension(0, 5)));
         add(lblQuality);
         add(cbbVideoQuality);
         add(Box.createRigidArea(new Dimension(0, 5)));
