@@ -39,7 +39,7 @@ class TusFilesFileRunner extends XFileSharingRunner {
                     httpFile.setFileName("Folder > ");
                     return;
                 }
-                final Matcher match = PlugUtils.matcher("[\\]>]([\\w].+?) - (\\d[\\d\\.,]+?\\s*?\\w+?)[\\[<]/", content);
+                final Matcher match = PlugUtils.matcher("[\\]>]([\\w][^<>\\]]+?) - (\\d[\\d\\.,]+?\\s*?\\w+?)[\\[<]/", content);
                 if (match.find())
                     httpFile.setFileName(match.group(1));
                 else {
