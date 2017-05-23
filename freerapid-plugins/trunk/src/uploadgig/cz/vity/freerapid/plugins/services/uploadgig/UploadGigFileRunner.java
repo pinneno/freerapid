@@ -70,10 +70,10 @@ class UploadGigFileRunner extends AbstractRunner {
                     throw new NotRecoverableDownloadException("This file reached the maximum number of free downloads");
                 else if (getContentAsString().trim().equals("m"))
                     throw new YouHaveToWaitException("You have reached the max. number of possible free downloads for this hour", 60*60);
-            } while (!getContentAsString().contains("url"));
+            } while (!getContentAsString().contains("\"ur"));
             checkProblems();
 
-            Matcher match = PlugUtils.matcher("pathadr\":\"(.+?)\"", getContentAsString());
+            Matcher match = PlugUtils.matcher("\"ur.+?\":\"(.+?)\"", getContentAsString());
             if (!match.find())
                 throw new PluginImplementationException("Download link not found");
             String dlUrl = match.group(1);

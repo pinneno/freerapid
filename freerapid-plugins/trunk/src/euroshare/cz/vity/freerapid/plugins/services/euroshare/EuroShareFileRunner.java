@@ -78,7 +78,7 @@ class EuroShareFileRunner extends AbstractRunner {
             }
             else {
                 HttpMethod getMethod = getMethodBuilder().setReferer(fileURL)
-                        .setAction(fileURL + "?download=true").toGetMethod();
+                        .setAction(fileURL.replaceAll("\\?.+", "") + "?download=true").toGetMethod();
                 if (!makeRedirectedRequest(getMethod)) {
                     checkProblems();
                     throw new ServiceConnectionProblemException();
@@ -89,8 +89,11 @@ class EuroShareFileRunner extends AbstractRunner {
                     httpMethod = getMethodBuilder().setReferer(fileURL)
                             .setActionFromAHrefWhereATagContains("DOWNLOAD WITHOUT REGISTRATION").toHttpMethod();
                 } catch (Exception x) {
+                    Matcher match = getMatcherAgainstContent("<a[^<>]+?href=\"([^\"]+?token[^\"]+?)\"");
+                    if (!match.find())
+                        throw new PluginImplementationException("Download link not found");
                     httpMethod = getMethodBuilder().setReferer(fileURL)
-                            .setActionFromAHrefWhereATagContains("STIAHNUŤ BEZ REGISTRACIE").toHttpMethod();
+                            .setAction(match.group(1).trim()).toHttpMethod();
                 }
                 if (!tryDownloadAndSaveFile(httpMethod)) {
                     checkProblems();//if downloading failed

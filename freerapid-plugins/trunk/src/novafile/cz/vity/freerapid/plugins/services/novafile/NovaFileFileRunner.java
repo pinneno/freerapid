@@ -65,6 +65,12 @@ class NovaFileFileRunner extends XFileSharingRunner {
     }
 
     @Override
+    protected boolean stepCaptcha(final MethodBuilder methodBuilder) throws Exception {
+        super.stepCaptcha(methodBuilder);
+        return false;
+    }
+
+    @Override
     protected void checkDownloadProblems() throws ErrorDuringDownloadingException {
         if (getContentAsString().contains("can only be downloaded by Premium")) {
             throw new PluginImplementationException("This file is only available to premium users");

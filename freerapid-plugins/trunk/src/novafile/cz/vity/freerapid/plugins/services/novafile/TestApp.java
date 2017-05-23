@@ -15,7 +15,7 @@ public class TestApp extends PluginDevApplication {
     protected void startup() {
         final HttpFile httpFile = getHttpFile();
         try {
-            httpFile.setNewURL(new URL("http://novafile.com/xpjz3sg8wcuh"));
+            httpFile.setNewURL(new URL("http://novafile.com/63drrlvplpep"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("118.97.206.148", 8080); //eg we can use local proxy to sniff HTTP communication
             final NovaFileServiceImpl service = new NovaFileServiceImpl();

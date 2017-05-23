@@ -36,10 +36,10 @@ class Keep2ShareFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        final Matcher match = PlugUtils.matcher("<img width.+?>\\s*?(.+?)\\s*?</span>", content);
+        final Matcher match = PlugUtils.matcher("<span class=\"title-file\">\\s*(.+?)\\s*<em>(.+?)</em>", content);
         if (match.find()) {
             httpFile.setFileName(match.group(1).trim());
-            PlugUtils.checkFileSize(httpFile, content, "File size", "</div>");
+            httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(2).trim()));
         } else {
             PlugUtils.checkName(httpFile, content, "File: <span>", "<");
             PlugUtils.checkFileSize(httpFile, content, "Size:", "<");
@@ -90,7 +90,7 @@ class Keep2ShareFileRunner extends AbstractRunner {
                         checkProblems();
                     } while (getContentAsString().contains("The verification code is incorrect"));
 
-                    final Matcher match = PlugUtils.matcher("<div id=\"download-wait-timer\"[^<>]*?>\\s*?(.+?)\\s*?</div>", getContentAsString());
+                    final Matcher match = PlugUtils.matcher("download-wait-timer\"[^<>]*>\\s*(.+?)\\s*</", contentAsString);
                     if (!match.find())
                         throw new PluginImplementationException("Wait time not found");
                     downloadTask.sleep(1 + Integer.parseInt(match.group(1).trim()));
