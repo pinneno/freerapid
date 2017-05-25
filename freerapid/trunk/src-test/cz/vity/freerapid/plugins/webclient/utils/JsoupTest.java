@@ -9,6 +9,8 @@ import org.junit.Test;
 
 /**
  * @author tong2shot
+ *
+ * Reference: https://jsoup.org/cookbook/extracting-data/
  */
 public class JsoupTest {
 
@@ -26,7 +28,7 @@ public class JsoupTest {
                 "            <a href=\"/playstation_3/\">Playstation 3</a>\n" +
                 "        </td>\n" +
                 "        <td style=\"vertical-align: top;\">\n" +
-                "            <a href=\"/genre//\">Fighting</a>\n" +
+                "            <a href=\"/genre/fighting/\">Fighting</a>\n" +
                 "        </td>\n" +
                 "        <td style=\"vertical-align: top;\">Developer coming soon!</td>\n" +
                 "    </tr>\n" +
@@ -100,19 +102,32 @@ public class JsoupTest {
                 "</table>\n";
 
         Document document = Jsoup.parse(content);
-        Element element = document.select("tr.altrow0:contains(Game) a[href]").first();
+        document.setBaseUri("http://example.com/");
+        Element element = document.select(".altrow0:contains(Game) a").first();
         String gameName = PlugUtils.unescapeHtml(element.text());
-        element = document.select("tr.altrow1:contains(Section) div[title]").first();
+        element = document.select(".altrow1:contains(Section) div").first();
         String sectionName = PlugUtils.unescapeHtml(element.text());
 
-        Element genreElement = document.select("table.display:contains(Genre) .altrow0 td:eq(1) a[href]").first();
+        Element genreElement = document.select(".display:contains(Genre) .altrow0 td:eq(1) a[href]").first(); //:eq(n) = sibling index from parent is equal to n
         String genre = PlugUtils.unescapeHtml(genreElement.text().trim());
-        Element filesizeElement = document.select("td:matches(Filesize) + td").first();
+        genreElement = document.select("a[href*=/genre/]").first(); //attr contains
+        String genre2 = PlugUtils.unescapeHtml(genreElement.text().trim());
+        String genreUrl = genreElement.attr("href"); //relative URL in this case
+        String genreAbsUrl = genreElement.absUrl("href"); //absolute URL
+
+        Element gameElement = document.select("a[href]:contains(Return)").first();
+        String gameAbsUrl = gameElement.absUrl("href");
+
+        Element filesizeElement = document.select("td:matches(Filesize) + td").first(); //next sibling
         long filesize = PlugUtils.getFileSizeFromString(filesizeElement.text());
 
         Assert.assertEquals(gameName, "Dengeki Bunko: Fighting Climax Ignition");
         Assert.assertEquals(sectionName, "Battle Sprites (Playable Characters)");
         Assert.assertEquals(genre, "Fighting");
+        Assert.assertEquals(genre, genre2);
+        Assert.assertEquals(genreUrl, "/genre/fighting/");
+        Assert.assertEquals(genreAbsUrl, "http://example.com/genre/fighting/");
+        Assert.assertEquals(gameAbsUrl, "http://example.com/playstation_3/dengekibunkofightingclimaxignition/");
         Assert.assertEquals(filesize, PlugUtils.getFileSizeFromString("8.43 MB"));
     }
 
