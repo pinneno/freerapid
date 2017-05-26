@@ -402,6 +402,9 @@ final public class UserProp {
     public static final String USE_PROXY_FOR_PLUGIN = "useProxyForPlugin";
     public static final boolean USE_PROXY_FOR_PLUGIN_DEFAULT = false;
 
+    public static final String FILE_URL_EDITABLE = "fileUrlEditable";
+    public static final boolean FILE_URL_EDITABLE_DEFAULT = false;
+
 }
 
 
