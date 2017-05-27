@@ -61,6 +61,9 @@ abstract class FindOnDemandAction extends AbstractAction implements DocumentList
         searchField.registerKeyboardAction(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 popup.setVisible(false);
+                if (comp != null) {
+                    Swinger.inputFocus(comp);
+                }
             }
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
     }
