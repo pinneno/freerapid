@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
 <plugin class="cz.vity.freerapid.plugins.services.twoddl.TwoDdlServiceImpl"
-        id="twoddl.tv" vendor="birchie" version="1.0.1">
+        id="twoddl.tv" vendor="birchie" version="1.0.2">
     <attributes>
-        <attribute id="urlRegex" value="https?://(\w+\.)?(twoddl\.(tv|eu|com|org)|2ddl\.(la|link)|iiddl\.com)/.+"/>
+        <attribute id="urlRegex" value="https?://(\w+\.)?(twoddl\.(tv|eu|com|org)|best2ddl\.net|2ddl\.(cr|la|link|download)|iiddl\.com)/.+"/>
         <attribute id="minver" value="0.855"/>
         <attribute id="maxver" value="0.899"/>
         <attribute id="services" value="twoddl.tv iiddl.com 2ddl.la"/>

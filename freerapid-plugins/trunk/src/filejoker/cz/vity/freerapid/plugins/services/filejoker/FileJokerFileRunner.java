@@ -59,7 +59,7 @@ class FileJokerFileRunner extends XFileSharingRunner {
         if (content.contains("No free download slots are available at this time")) {
             throw new YouHaveToWaitException("No free download slots are available at this time", 300);
         }
-        if (content.contains("until the next download")) {
+        if (content.contains("until the next download") || content.contains("to download for free")) {
             final Matcher matcher = getMatcherAgainstContent("(?:(\\d+) hours? )?(?:(\\d+) minutes? )?(?:(\\d+) seconds?)");
             int waitHours = 0, waitMinutes = 0, waitSeconds = 0;
             if (matcher.find()) {

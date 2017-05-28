@@ -75,14 +75,17 @@ class TwoDdlFileRunner extends AbstractRunner {
                 }
                 }while (getContentAsString().contains("Security Code"));
                 checkProblems();
-                final Matcher matcher = getMatcherAgainstContent("<a href=\"(http[^\"]+)\"");
-                if (!matcher.find())
+                final Matcher matcher = getMatcherAgainstContent("\"?(http[^\"]+?)s*</a");
+                List<URI> list = new LinkedList<URI>();
+                while (matcher.find()) {
+                    list.add(new URI(matcher.group(1).trim()));
+                }
+                if (list.isEmpty())
                     throw new PluginImplementationException("No link found");
-                final String link = matcher.group(1).trim();
-
-                httpFile.setNewURL(new URL(link));
-                httpFile.setPluginID("");
-                httpFile.setState(DownloadState.QUEUED);
+                getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, list);
+                httpFile.setFileName("Link(s) Extracted !");
+                httpFile.setState(DownloadState.COMPLETED);
+                httpFile.getProperties().put("removeCompleted", true);
             }
             else {
                 checkNameAndSize(contentAsString);

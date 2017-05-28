@@ -77,7 +77,7 @@ class RockFileFileRunner extends XFileSharingRunner {
 
     @Override
     protected int getWaitTime() throws Exception {
-        final Matcher matcher = getMatcherAgainstContent("id=\"countdown_str\".*?<span[^<>]*id=\".*?\">.*?(\\d+).*?</span");
+        final Matcher matcher = getMatcherAgainstContent("(?s)id=\"countdown_str\".*?<span[^<>]*id=\".*?\">.*?(\\d+).*?</span");
         if (matcher.find()) {
             return Integer.parseInt(matcher.group(1)) + 1;
         }
