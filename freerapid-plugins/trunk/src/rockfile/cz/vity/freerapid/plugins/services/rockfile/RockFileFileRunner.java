@@ -2,6 +2,7 @@ package cz.vity.freerapid.plugins.services.rockfile;
 
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
+import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileNameHandler;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandler;
 import cz.vity.freerapid.plugins.webclient.interfaces.HttpFile;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
@@ -22,7 +23,10 @@ class RockFileFileRunner extends XFileSharingRunner {
 
     @Override
     protected void correctURL() throws Exception {
+        skipDDoSProtection();
+    }
 
+    protected void skipDDoSProtection() throws Exception {
         HttpMethod method = getGetMethod(fileURL);
         makeRedirectedRequest(method);
         if (getContentAsString().contains("<title>Just a moment...</title>")) {
@@ -69,10 +73,30 @@ class RockFileFileRunner extends XFileSharingRunner {
     }
 
     @Override
+    protected List<FileNameHandler> getFileNameHandlers() {
+        final List<FileNameHandler> fileNameHandlers = super.getFileNameHandlers();
+        fileNameHandlers.add(new FileNameHandler() {
+            @Override
+            public void checkFileName(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
+                httpFile.setFileName(PlugUtils.suggestFilename(fileURL));
+            }
+        });
+        return fileNameHandlers;
+    }
+
+    @Override
     protected List<String> getDownloadLinkRegexes() {
         final List<String> downloadLinkRegexes = super.getDownloadLinkRegexes();
         downloadLinkRegexes.add("<a[^<>]+?href\\s*?=\\s*?[\"'](http.+?" + Pattern.quote(httpFile.getFileName()) + ")[\"']");
+        downloadLinkRegexes.add(0, "<a[^<>]+?downloadStarted[^<>]+?href\\s*=\\s*[\"'](http[^\"']+?)[\"']");
         return downloadLinkRegexes;
+    }
+
+    @Override
+    protected String getDownloadLinkFromRegexes() throws ErrorDuringDownloadingException {
+        String link = super.getDownloadLinkFromRegexes();
+        httpFile.setFileName(1 + link.substring(link.lastIndexOf("/")));
+        return link;
     }
 
     @Override

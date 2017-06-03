@@ -1,12 +1,10 @@
 package cz.vity.freerapid.plugins.services.googledocs;
 
-import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
-import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
-import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
-import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
+import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadClientConsts;
 import cz.vity.freerapid.plugins.webclient.FileState;
+import cz.vity.freerapid.plugins.webclient.hoster.PremiumAccount;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -28,9 +26,11 @@ class GoogleDocsFileRunner extends AbstractRunner {
     @Override
     public void runCheck() throws Exception {
         super.runCheck();
+        correctURL();
         final GetMethod getMethod = getGetMethod(fileURL);
         if (makeRedirectedRequest(getMethod)) {
             checkProblems();
+            doLogin();
             checkNameAndSize(getContentAsString());
         } else {
             if (getMethod.getStatusCode() / 100 == 4) {
@@ -43,12 +43,20 @@ class GoogleDocsFileRunner extends AbstractRunner {
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
         PlugUtils.checkName(httpFile, content, "\"og:title\" content=\"", "\"");
+        Matcher matcher = getMatcherAgainstContent("\\[\\w+,\\w+,\"(\\d+)\"\\]");
+        if (matcher.find())
+            httpFile.setFileSize(PlugUtils.getFileSizeFromString(matcher.group(1).trim()));
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
+    }
+
+    private void correctURL() {
+          fileURL = fileURL.replaceFirst("/uc\\?id=", "/file/d/").split("&")[0];
     }
 
     @Override
     public void run() throws Exception {
         super.run();
+        correctURL();
         if (!fileURL.contains("confirm=no_antivirus")) {
             if (!fileURL.contains("?")) {
                 fileURL += "?confirm=no_antivirus";
@@ -60,6 +68,7 @@ class GoogleDocsFileRunner extends AbstractRunner {
         final GetMethod method = getGetMethod(fileURL);
         if (makeRedirectedRequest(method)) {
             checkProblems();
+            doLogin();
             checkNameAndSize(getContentAsString());
             Matcher matcher = getMatcherAgainstContent("\"(https?://[^\"]+?download)\"");
             if (!matcher.find()) {
@@ -108,6 +117,54 @@ class GoogleDocsFileRunner extends AbstractRunner {
         final String contentAsString = getContentAsString();
         if (contentAsString.contains("file you have requested does not exist")) {
             throw new URLNotAvailableAnymoreException("File not found");
+        }
+    }
+
+    private void doLogin() throws Exception {
+        if (getContentAsString().contains("Sign in to continue to Google")) {
+            synchronized (GoogleDocsFileRunner.class) {
+                GoogleDocsServiceImpl service = (GoogleDocsServiceImpl) getPluginService();
+                PremiumAccount pa = service.getConfig();
+                if (!pa.isSet()) {
+                    pa = service.showConfigDialog();
+                    if (pa == null || !pa.isSet()) {
+                        throw new BadLoginException("Login Required - No Google account information!");
+                    }
+                }
+
+                HttpMethod method = getMethodBuilder()
+                        .setActionFromFormWhereActionContains("signin", true)
+                        .setParameter("Email", pa.getUsername())
+                        .toPostMethod();
+                if (!makeRedirectedRequest(method)) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
+                }
+                if (getContentAsString().contains("class=\"has-error\""))
+                    throw new BadLoginException("Google doesn't recognize your email");
+
+                method = getMethodBuilder()
+                        .setActionFromFormWhereActionContains("signin", true)
+                        .setParameter("Passwd", pa.getPassword())
+                        .toPostMethod();
+                if (!makeRedirectedRequest(method)) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
+                }
+                if (getContentAsString().contains("class=\"form-error\""))
+                    throw new BadLoginException("Google doesn't recognize your password");
+
+                String url = fileURL;
+                Matcher match = getMatcherAgainstContent("URL=([^\"']+)");
+                if (match.find())
+                    url = match.group(1).trim();
+                if (!makeRedirectedRequest(getGetMethod(url))) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
+                }
+                checkProblems();
+                logger.info("Logged in !!!");
+            }
         }
     }
 

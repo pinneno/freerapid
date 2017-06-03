@@ -36,6 +36,8 @@ class MediafireRunner extends AbstractRunner {
         int httpStatus = client.makeRequest(method, false);
         if (httpStatus == 301) { // permanent redirection to html page
             httpStatus = client.makeRequest(method, true);
+        } else if ((httpStatus / 100 == 3) && method.getResponseHeader("Location").getValue().contains("error.php")) {
+            httpStatus = client.makeRequest(method, true);
         } else if (httpStatus / 100 == 3) { // redirection to file
             httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
             return;
@@ -93,6 +95,7 @@ class MediafireRunner extends AbstractRunner {
         if (content.contains("The key you provided for file download")
                 || content.contains("How can MediaFire help you?")
                 || content.contains("File Removed for Violation")
+                || content.contains("Invalid or Deleted File")
                 || content.contains("File Belongs to Suspended Account")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }

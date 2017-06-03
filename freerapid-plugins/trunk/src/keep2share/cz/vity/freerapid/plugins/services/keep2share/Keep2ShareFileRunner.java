@@ -36,13 +36,18 @@ class Keep2ShareFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        final Matcher match = PlugUtils.matcher("<span class=\"title-file\">\\s*(.+?)\\s*<em>(.+?)</em>", content);
+        Matcher match = PlugUtils.matcher("<span class=\"title-file\">\\s*(.+?)\\s*<em>(.+?)</em>", content);
         if (match.find()) {
             httpFile.setFileName(match.group(1).trim());
             httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(2).trim()));
         } else {
-            PlugUtils.checkName(httpFile, content, "File: <span>", "<");
-            PlugUtils.checkFileSize(httpFile, content, "Size:", "<");
+            match = PlugUtils.matcher("file\\s*:\\s*<span[^<>]*>\\s*([^<>]+?)\\s*</", content);
+            if (match.find()) {
+                httpFile.setFileName(match.group(1).trim());
+            } else {
+                PlugUtils.checkName(httpFile, content, "File: <span>", "<");
+                PlugUtils.checkFileSize(httpFile, content, "Size:", "<");
+            }
         }
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
@@ -63,10 +68,7 @@ class Keep2ShareFileRunner extends AbstractRunner {
                 final MethodBuilder aMethod = getMethodBuilder()
                         .setBaseURL(baseUrl).setReferer(fileURL)
                         .setActionFromFormWhereTagContains("slow_id", true);
-                if (!makeRedirectedRequest(aMethod.toPostMethod())) {
-                    checkProblems();
-                    throw new ServiceConnectionProblemException();
-                }
+                makeRedirectedRequest(aMethod.toPostMethod());  // is good, but returned code 500-server error
                 checkProblems();
                 if (getContentAsString().contains("window.location.href")) {
                     HttpMethod hMethod = getMethodBuilder()
@@ -78,7 +80,7 @@ class Keep2ShareFileRunner extends AbstractRunner {
                     }
                     return;
                 }
-                if (!getContentAsString().contains(">Download now<")) {
+                if (!getContentAsString().replaceAll("\\s", "").contains(">Downloadnow<")) {
                     do {
                         final MethodBuilder captchaMethod = getMethodBuilder()
                                 .setBaseURL(baseUrl)
@@ -90,7 +92,7 @@ class Keep2ShareFileRunner extends AbstractRunner {
                         checkProblems();
                     } while (getContentAsString().contains("The verification code is incorrect"));
 
-                    final Matcher match = PlugUtils.matcher("download-wait-timer\"[^<>]*>\\s*(.+?)\\s*</", contentAsString);
+                    final Matcher match = PlugUtils.matcher("download-wait-timer\"[^<>]*>\\s*(.+?)\\s*</", contentAsString+getContentAsString());
                     if (!match.find())
                         throw new PluginImplementationException("Wait time not found");
                     downloadTask.sleep(1 + Integer.parseInt(match.group(1).trim()));
@@ -110,7 +112,7 @@ class Keep2ShareFileRunner extends AbstractRunner {
                     checkProblems();
                 }
             }
-            final Matcher match = PlugUtils.matcher("<a[^<>]+?href=\"(.+?)\"[^<>]*>(?:this\\s+?link|Download now<)", getContentAsString());
+            final Matcher match = PlugUtils.matcher("<a[^<>]+?href=\"(.+?)\"[^<>]*>\\s*(?:this\\s+?link|Download now\\s*<)", getContentAsString());
             if (!match.find())
                 throw new PluginImplementationException("download link url not found");
             final HttpMethod httpMethod = getGetMethod(baseUrl + match.group(1));
