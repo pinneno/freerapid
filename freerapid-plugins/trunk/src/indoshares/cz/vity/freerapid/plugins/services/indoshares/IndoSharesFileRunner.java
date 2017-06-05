@@ -7,6 +7,7 @@ import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.hoster.PremiumAccount;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
+import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -32,9 +33,11 @@ class IndoSharesFileRunner extends AbstractRunner {
         final GetMethod getMethod = getGetMethod(fileURL);
         if (makeRedirectedRequest(getMethod)) {
             checkProblems();
+            checkFileIsRemoved(getMethod.getURI().toString());
             checkNameAndSize(getContentAsString());
         } else {
             checkProblems();
+            checkFileIsRemoved(getMethod.getURI().toString());
             throw new ServiceConnectionProblemException();
         }
     }
@@ -59,6 +62,7 @@ class IndoSharesFileRunner extends AbstractRunner {
         if (makeRedirectedRequest(method)) {
             final String contentAsString = getContentAsString();
             checkProblems();
+            checkFileIsRemoved(method.getURI().toString());
             checkNameAndSize(contentAsString);
 
             int waitTime = 20;
@@ -76,48 +80,51 @@ class IndoSharesFileRunner extends AbstractRunner {
             final String downloadPage = matcher.group(1);
             HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setAction(downloadPage).toGetMethod();
             int httpStatus = client.makeRequest(httpMethod, false);
-            if (httpStatus / 100 != 3) { //no login => no direct download
-                if (!makeRedirectedRequest(httpMethod)) {
-                    checkProblems();
-                    throw new ServiceConnectionProblemException();
-                }
-                checkProblems();
-
-                final String referer = httpMethod.getURI().toString();
-                final boolean hasCaptcha = getContentAsString().contains("data-sitekey=\"");
-                MethodBuilder mb = getMethodBuilder().setReferer(referer).setActionFromFormWhereTagContains("form-join", true);
-                if (hasCaptcha) {
-                    matcher = getMatcherAgainstContent("data-sitekey\\s*?=\\s*?\"([^\"]+)\"");
-                    if (!matcher.find()) {
-                        throw new PluginImplementationException("ReCaptcha key not found");
-                    }
-                    String captchaKey = matcher.group(1);
-                    ReCaptchaNoCaptcha reCaptchaNoCaptcha = new ReCaptchaNoCaptcha(captchaKey, referer);
-                    reCaptchaNoCaptcha.modifyResponseMethod(mb);
-                }
-
-                //workaround for bug in DownloadClient.makeRequestFile() for https redirection
-                httpMethod = mb.toPostMethod();
-                httpStatus = client.makeRequest(httpMethod, false);
+            if (httpStatus == 200 && getContentAsString().contains("Click to start Download")) {
+                httpMethod = getMethodBuilder().setReferer(downloadPage).setActionFromAHrefWhereATagContains("Click to start Download").toGetMethod();
+            } else {
                 if (httpStatus / 100 != 3) {
-                    throw new PluginImplementationException("Download link not found");
+                    if (!makeRedirectedRequest(httpMethod)) {
+                        checkProblems();
+                        throw new ServiceConnectionProblemException();
+                    }
+                    checkProblems();
+
+                    final String referer = httpMethod.getURI().toString();
+                    final boolean hasCaptcha = getContentAsString().contains("data-sitekey=\"");
+                    MethodBuilder mb = getMethodBuilder().setReferer(referer).setActionFromFormWhereTagContains("form-join", true);
+                    if (hasCaptcha) {
+                        matcher = getMatcherAgainstContent("data-sitekey\\s*?=\\s*?\"([^\"]+)\"");
+                        if (!matcher.find()) {
+                            throw new PluginImplementationException("ReCaptcha key not found");
+                        }
+                        String captchaKey = matcher.group(1);
+                        ReCaptchaNoCaptcha reCaptchaNoCaptcha = new ReCaptchaNoCaptcha(captchaKey, referer);
+                        reCaptchaNoCaptcha.modifyResponseMethod(mb);
+                    }
+
+                    //workaround for bug in DownloadClient.makeRequestFile() for https redirection
+                    httpMethod = mb.toPostMethod();
+                    httpStatus = client.makeRequest(httpMethod, false);
+                    if (httpStatus / 100 != 3) {
+                        throw new PluginImplementationException("Download link not found");
+                    }
                 }
+
+                final Header locationHeader = httpMethod.getResponseHeader("Location");
+                if (locationHeader == null) {
+                    throw new PluginImplementationException("Invalid redirect");
+                }
+                httpMethod = getMethodBuilder().setReferer(fileURL).setAction(locationHeader.getValue()).toGetMethod();
             }
 
-            final Header locationHeader = httpMethod.getResponseHeader("Location");
-            if (locationHeader == null) {
-                throw new PluginImplementationException("Invalid redirect");
-            }
-            httpMethod = getMethodBuilder()
-                    .setReferer(fileURL)
-                    .setAction(locationHeader.getValue())
-                    .toGetMethod();
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();
                 throw new ServiceConnectionProblemException("Error starting download");
             }
         } else {
             checkProblems();
+            checkFileIsRemoved(method.getURI().toString());
             throw new ServiceConnectionProblemException();
         }
     }
@@ -125,6 +132,12 @@ class IndoSharesFileRunner extends AbstractRunner {
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
         if (contentAsString.contains("File Not Found")) { //they don't provide "File Not Found" page
+            throw new URLNotAvailableAnymoreException("File not found");
+        }
+    }
+
+    private void checkFileIsRemoved(String url) throws ErrorDuringDownloadingException {
+        if (url.matches("https?://www.indoshares.com/error.html.*?")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
     }
@@ -139,7 +152,7 @@ class IndoSharesFileRunner extends AbstractRunner {
     }
 
     protected boolean login() throws Exception {
-        synchronized (getClass()) {
+        synchronized (IndoSharesFileRunner.class) {
             final PremiumAccount pa = ((IndoSharesServiceImpl) getPluginService()).getConfig();
             if (pa == null || !pa.isSet()) {
                 LOGIN_CACHE.remove(getClass());
@@ -150,9 +163,14 @@ class IndoSharesFileRunner extends AbstractRunner {
             if (loginData == null || !pa.equals(loginData.getPa()) || loginData.isStale()) {
                 logger.info("Logging in");
                 doLogin(pa);
-                LOGIN_CACHE.put(getClass(), new LoginData(pa));
+                final Cookie[] cookies = getCookies();
+                if ((cookies == null) || (cookies.length == 0)) {
+                    throw new PluginImplementationException("Login cookies not found");
+                }
+                LOGIN_CACHE.put(getClass(), new LoginData(pa, cookies));
             } else {
                 logger.info("Login data cache hit");
+                client.getHTTPClient().getState().addCookies(loginData.getCookies());
             }
             return true;
         }
@@ -181,14 +199,16 @@ class IndoSharesFileRunner extends AbstractRunner {
         }
     }
 
-    private static class LoginData {
+    private class LoginData {
         private final static long MAX_AGE = 86400000;//1 day
         private final long created;
         private final PremiumAccount pa;
+        private final Cookie[] cookies;
 
-        LoginData(final PremiumAccount pa) {
+        LoginData(final PremiumAccount pa, final Cookie[] cookies) {
             this.created = System.currentTimeMillis();
             this.pa = pa;
+            this.cookies = cookies;
         }
 
         boolean isStale() {
@@ -197,6 +217,10 @@ class IndoSharesFileRunner extends AbstractRunner {
 
         public PremiumAccount getPa() {
             return pa;
+        }
+
+        public Cookie[] getCookies() {
+            return cookies;
         }
     }
 
