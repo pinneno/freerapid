@@ -22,14 +22,17 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://fresh.iprima.cz/jak-na-to/video-kysane-zeli-jako-elixir-zdravi-nalozte-si-vlastni"));
             //httpFile.setNewURL(new URL("http://autosalon.iprima.cz/videa/mercedes-amg-45-4matic-vs-mercedes-amg-gle-63-4matic-s-coupe"));
             //httpFile.setNewURL(new URL("http://play.iprima.cz/particka/particka-117"));
-            httpFile.setNewURL(new URL("http://play.iprima.cz/helix/helix-ii-13"));
+            //httpFile.setNewURL(new URL("http://play.iprima.cz/helix/helix-ii-13"));
+            httpFile.setNewURL(new URL("http://play.iprima.cz/dokumenty/zahada-preziti")); //account is required
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
-            //connectionSettings.setProxy("localhost", 9040, Proxy.Type.SOCKS); //eg we can use local proxy to sniff HTTP communication
+            //connectionSettings.setProxy("localhost", 9150, Proxy.Type.SOCKS); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
             final iPrimaServiceImpl service = new iPrimaServiceImpl(); //instance of service - of our plugin
             iPrimaSettingsConfig config = new iPrimaSettingsConfig();
             config.setVideoQuality(VideoQuality._400_1600);
+            //config.setUsername("*****");
+            //config.setPassword("*****");
             service.setConfig(config);
             //runcheck makes the validation
             //setUseTempFiles(true);

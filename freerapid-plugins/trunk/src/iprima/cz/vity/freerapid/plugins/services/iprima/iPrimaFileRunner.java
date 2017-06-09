@@ -7,13 +7,11 @@ import cz.vity.freerapid.plugins.services.tor.TorProxyClient;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
+import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
@@ -26,6 +24,7 @@ import java.util.regex.Matcher;
  */
 class iPrimaFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(iPrimaFileRunner.class.getName());
+    private final static Map<Class<?>, LoginData> LOGIN_CACHE = new WeakHashMap<Class<?>, LoginData>(2);
     private final static String DEFAULT_EXT = ".ts";
     private final static String ADULT_CONTENT_MARKER = "/rodicovska-kontrola/formular";
     private iPrimaSettingsConfig config;
@@ -60,6 +59,7 @@ class iPrimaFileRunner extends AbstractRunner {
         super.run();
         logger.info("Starting download in TASK " + fileURL);
         setConfig();
+        login();
         HttpMethod method = getGetMethod(fileURL);
         if (makeRedirectedRequest(method)) {
             checkProblems();
@@ -86,15 +86,19 @@ class iPrimaFileRunner extends AbstractRunner {
                 try {
                     if (!makeRedirectedRequest(method)) {
                         checkLocationProblems();
+                        checkProblems();
                     }
                     checkLocationProblems();
+                    checkProblems();
                 } catch (ErrorDuringDownloadingException e) {
                     TorProxyClient torClient = TorProxyClient.forCountry("cz", client, getPluginService().getPluginContext().getConfigurationStorageSupport());
                     if (!torClient.makeRequest(method)) {
                         checkLocationProblems();
+                        checkProblems();
                         throw new ServiceConnectionProblemException();
                     }
                     checkLocationProblems();
+                    checkProblems();
                 }
 
                 IPrimaVideo selectedVideo = getSelectedVideo(getContentAsString());
@@ -187,12 +191,64 @@ class iPrimaFileRunner extends AbstractRunner {
                 || content.contains("Požadovaná stránka nebyla nalezena")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
+        if (content.contains("code: 'USER_REQUIRED'")) {
+            throw new PluginImplementationException("iPrima account is required");
+        }
     }
 
     private void checkLocationProblems() throws ErrorDuringDownloadingException {
         String content = getContentAsString();
         if (content.contains("tento pořad nelze z licenčních důvodů přehrávat mimo Českou republiku")) {
             throw new PluginImplementationException("This show can not be played outside the Czech Republic due to licensing reasons");
+        }
+    }
+
+    private boolean login() throws Exception {
+        synchronized (iPrimaFileRunner.class) {
+            String username = config.getUsername();
+            String password = config.getPassword();
+            if (config == null || username == null || username.isEmpty()) {
+                LOGIN_CACHE.remove(getClass());
+                logger.info("No account data set, skipping login");
+                return false;
+            }
+            final LoginData loginData = LOGIN_CACHE.get(getClass());
+            if (loginData == null || !username.equals(loginData.getUsername()) || loginData.isStale()) {
+                logger.info("Logging in");
+                doLogin(username, password);
+                final Cookie[] cookies = getCookies();
+                if ((cookies == null) || (cookies.length == 0)) {
+                    throw new PluginImplementationException("Login cookies not found");
+                }
+                LOGIN_CACHE.put(getClass(), new LoginData(username, password, cookies));
+            } else {
+                logger.info("Login data cache hit");
+                client.getHTTPClient().getState().addCookies(loginData.getCookies());
+            }
+            return true;
+        }
+    }
+
+    private void doLogin(final String username, final String password) throws Exception {
+        HttpMethod method = getMethodBuilder()
+                .setReferer(getBaseURL())
+                .setAction("https://play.iprima.cz/tdi/login/dialog?_infuse=1&_ts=" + System.currentTimeMillis())
+                .toGetMethod();
+        if (!makeRedirectedRequest(method)) {
+            throw new ServiceConnectionProblemException();
+        }
+        method = getMethodBuilder()
+                .setReferer(getBaseURL())
+                .setActionFromFormWhereTagContains("/login/formular", true)
+                .setParameter("email", username)
+                .setParameter("password", password)
+                .setParameter("remember", "true")
+                .toPostMethod();
+        if (!makeRedirectedRequest(method)) {
+            throw new ServiceConnectionProblemException();
+        }
+        if (getContentAsString().contains("user.login.bad.credentials")) {
+            throw new BadLoginException("Invalid account login information");
         }
     }
 
@@ -227,6 +283,38 @@ class iPrimaFileRunner extends AbstractRunner {
                     ", playlist='" + playlist + '\'' +
                     ", weight=" + weight +
                     '}';
+        }
+    }
+
+
+    private class LoginData {
+        private final static long MAX_AGE = 86400000; //1 day
+        private final long created;
+        private final String username;
+        private final String password;
+        private final Cookie[] cookies;
+
+        LoginData(final String username, final String password, final Cookie[] cookies) {
+            this.created = System.currentTimeMillis();
+            this.username = username;
+            this.password = password;
+            this.cookies = cookies;
+        }
+
+        boolean isStale() {
+            return System.currentTimeMillis() - created > MAX_AGE;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public Cookie[] getCookies() {
+            return cookies;
         }
     }
 
