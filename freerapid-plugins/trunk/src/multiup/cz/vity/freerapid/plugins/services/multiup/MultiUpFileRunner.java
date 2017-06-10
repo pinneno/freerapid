@@ -1,9 +1,7 @@
 package cz.vity.freerapid.plugins.services.multiup;
 
-import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
-import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
-import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
-import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
+import cz.vity.freerapid.plugins.exceptions.*;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.services.solvemediacaptcha.SolveMediaCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadState;
@@ -31,6 +29,7 @@ class MultiUpFileRunner extends AbstractRunner {
     @Override
     public void runCheck() throws Exception { //this method validates file
         super.runCheck();
+        fileURL = fileURL.replaceFirst("https://", "http://");
         final GetMethod getMethod = getGetMethod(fileURL);//make first request
         if (makeRedirectedRequest(getMethod)) {
             checkProblems();
@@ -54,14 +53,14 @@ class MultiUpFileRunner extends AbstractRunner {
     @Override
     public void run() throws Exception {
         super.run();
-        fileURL = fileURL.replaceFirst("\\.eu/", ".org/");
+        fileURL = fileURL.replaceFirst("https://", "http://");
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
-
+            fileURL = method.getURI().getURI();
             if (getContentAsString().contains("File is protected by a password")) {
                 while (getContentAsString().contains("File is protected by a password")) {
                     final String password = getDialogSupport().askForPassword("MultiUp.org");
@@ -119,6 +118,8 @@ class MultiUpFileRunner extends AbstractRunner {
                 || contentAsString.contains("Link might be incorrect")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
+        if (contentAsString.contains("<strong>Error : </strong>Bad captcha"))
+            throw new CaptchaEntryInputMismatchException("Bad captcha");
     }
 
     @Override
@@ -139,6 +140,13 @@ class MultiUpFileRunner extends AbstractRunner {
             final SolveMediaCaptcha solveMediaCaptcha = new SolveMediaCaptcha(captchaKey, client, getCaptchaSupport(), downloadTask);
             solveMediaCaptcha.askForCaptcha();
             solveMediaCaptcha.modifyResponseMethod(builder);
+        }
+        else if (getContentAsString().contains("data-sitekey")) {
+            final Matcher m = getMatcherAgainstContent("['\"]?site_?key['\"]?\\]?\\s*[:=]\\s*['\"]([^'\"]+?)['\"]");
+            if (!m.find()) throw new PluginImplementationException("ReCaptcha key not found");
+            final String reCaptchaKey = m.group(1);
+            final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
+            r.modifyResponseMethod(builder);
         }
         return builder;
     }

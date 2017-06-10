@@ -6,6 +6,7 @@ import cz.vity.freerapid.plugins.webclient.DownloadState;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.hoster.PremiumAccount;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
+import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
@@ -60,10 +61,9 @@ class OneFichierFileRunner extends AbstractRunner {
 
     private void setEnglishURL() {
         fileURL = fileURL.replaceFirst("https?://", "https://");
-        if (!fileURL.contains("/en")) {
-            String[] temp = fileURL.split(".com");
-            fileURL = temp[0] + ".com/en";
-            if (temp.length > 1) fileURL += temp[1];
+        addCookie(new Cookie(".1fichier.com", "LG", "en", "/", 86400, false));
+        if (fileURL.contains("&")) {
+            fileURL = fileURL.split("&")[0];
         }
     }
 

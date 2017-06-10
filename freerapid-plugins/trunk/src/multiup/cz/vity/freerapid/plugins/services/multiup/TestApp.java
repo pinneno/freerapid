@@ -17,6 +17,7 @@ public class TestApp extends PluginDevApplication {
         try {
             //we set file URL
             httpFile.setNewURL(new URL("http://www.multiup.org/download/74b503fbd602a5b1e096c05332326f50/TS.102.x264.tuserie.com.zip"));
+            httpFile.setNewURL(new URL("https://www.multiup.org/download/cb0a1a9b0084b0f09b46df6d442d3eb5"));             // no-text recaptcha
             //httpFile.setNewURL(new URL("http://www.multiup.org/download/acf44b0e4b2588b05cbc07380d8b29d2/SAw.720p.YourSerie.CoM.mp4"));  //pass=069bc
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
