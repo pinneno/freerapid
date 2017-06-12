@@ -50,6 +50,7 @@ class Data_PremiumFileRunner extends AbstractRunner {
         if (makeRedirectedRequest(getMethod)) {
             checkProblems();
             checkNameAndSize(getContentAsString());
+            fileURL = getMethod.getURI().getURI();
             Login();
 
             makeRedirectedRequest(getMethod);
@@ -100,11 +101,9 @@ class Data_PremiumFileRunner extends AbstractRunner {
                     .setParameter("login_passfield", passTag)
                     .setParameter("target", fileURL)
                     .setParameter("url_for_login", fileURL)
-                    .setReferer(fileURL).setAjax()
-                    .toPostMethod();
+                    .setAjax().toPostMethod();
             if (makeRedirectedRequest(postMethod)) {
-                if (getContentAsString().contains("error\":1") ||
-                        postMethod.getURI().getURI().contains("data.hu/login") || postMethod.getURI().getURI().contains("data.hu/bejelentkezes")) {
+                if (getContentAsString().contains("error\":1")) {
                     badConfig = true;
                     logger.info("bad info");
                     throw new PluginImplementationException("Bad data.hu login information!");
