@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.superbshare;
+package cz.vity.freerapid.plugins.services.fivehundredpx;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -16,19 +16,12 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("https://www.superbshare.com/file/qA4A"));
+            httpFile.setNewURL(new URL("https://500px.com/photo/209920711/skogafoss-from-above-by-daniel-f"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
-            final SuperBShareServiceImpl service = new SuperBShareServiceImpl(); //instance of service - of our plugin
-            /*
-            //we set premium account details
-            final PremiumAccount config = new PremiumAccount();
-            config.setUsername("****");
-            config.setPassword("****");
-            service.setConfig(config);
-            //*/
+            final FiveHundredPxServiceImpl service = new FiveHundredPxServiceImpl(); //instance of service - of our plugin
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console

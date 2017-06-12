@@ -74,6 +74,9 @@ class SuperBShareFileRunner extends AbstractRunner {
         if (contentAsString.contains("Požadovaný soubor není dostupný")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
+        if (contentAsString.contains("Soubor byl označen jako zdroj se závadným obsahem")) {
+            throw new URLNotAvailableAnymoreException("Soubor byl označen jako zdroj se závadným obsahem - File has been flagged as a source with malicious content"); //let to know user in FRD
+        }
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {
@@ -88,31 +91,29 @@ class SuperBShareFileRunner extends AbstractRunner {
         synchronized (SuperBShareFileRunner.class) {
             final SuperBShareServiceImpl service = (SuperBShareServiceImpl) getPluginService();
             PremiumAccount pa = service.getConfig();
-            if (!pa.isSet()) {
-                pa = service.showConfigDialog();
-                if (pa == null || !pa.isSet()) {
-                    throw new BadLoginException("No SuperBShare account login information!");
+            if (pa.isSet()) {
+                if (!makeRedirectedRequest(getGetMethod("http://www.superbshare.com/sign/in"))) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
                 }
-            }
-            if (!makeRedirectedRequest(getGetMethod("http://www.superbshare.com/sign/in"))) {
                 checkProblems();
-                throw new ServiceConnectionProblemException();
+                final String eq = PlugUtils.getStringBetween(getContentAsString(), "var js_val =", ";");
+                final String result = "" + evaluate(eq);
+                logger.info("Human check equation : " + eq + " = " + result);
+                final HttpMethod httpMethod = getMethodBuilder()
+                        .setActionFromFormWhereActionContains("signIn", true)
+                        .setParameter("username", pa.getUsername())
+                        .setParameter("password", pa.getPassword())
+                        .setParameter("js_check", result)
+                        .setParameter("Submit", "Sign In")
+                        .toPostMethod();
+                if (!makeRedirectedRequest(httpMethod))
+                    throw new ServiceConnectionProblemException("Error posting login info");
+                if (getContentAsString().contains("Heslo nebo jméno není správné") || getContentAsString().contains("Přihlásit se")||
+                        getContentAsString().contains("Sign In Failed"))
+                    throw new BadLoginException("Invalid SuperBShare account login information!");
+                logger.info("Logged in.");
             }
-            checkProblems();
-            final String eq = PlugUtils.getStringBetween(getContentAsString(), "var js_val =", ";");
-            logger.info("Human check equation = " + eq);
-            final HttpMethod httpMethod = getMethodBuilder()
-                    .setActionFromFormWhereActionContains("signIn", true)
-                    .setParameter("username", pa.getUsername())
-                    .setParameter("password", pa.getPassword())
-                    .setParameter("js_check", "" + evaluate(eq))
-                    .setParameter("Submit", "Sign In")
-                    .toPostMethod();
-            if (!makeRedirectedRequest(httpMethod))
-                throw new ServiceConnectionProblemException("Error posting login info");
-            if (getContentAsString().contains("Heslo nebo jméno není správné") ||
-                    getContentAsString().contains("Sign In Failed"))
-                throw new BadLoginException("Invalid SuperBShare account login information!");
         }
     }
 

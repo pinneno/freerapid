@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.superbshare;
+package cz.vity.freerapid.plugins.services.rapidfileshare;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -16,12 +16,12 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("https://www.superbshare.com/file/qA4A"));
+            httpFile.setNewURL(new URL("http://www.rapidfileshare.net/jjb9hea5b0oj/Surface11-StringsofFateCE.rar.html"));
+            httpFile.setNewURL(new URL("http://www.rapidfileshare.net/5h3fpg2rgxlz/071.jpg.html"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
-            //then we tries to download
-            final SuperBShareServiceImpl service = new SuperBShareServiceImpl(); //instance of service - of our plugin
+            final RapidFileShareServiceImpl service = new RapidFileShareServiceImpl(); //instance of service - of our plugin
             /*
             //we set premium account details
             final PremiumAccount config = new PremiumAccount();

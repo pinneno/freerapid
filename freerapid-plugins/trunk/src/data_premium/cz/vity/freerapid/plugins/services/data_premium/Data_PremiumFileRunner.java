@@ -9,6 +9,7 @@ import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
+import java.net.URL;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
@@ -87,6 +88,10 @@ class Data_PremiumFileRunner extends AbstractRunner {
                 }
                 badConfig = false;
             }
+            if (!makeRedirectedRequest(getGetMethod("https://data.hu/bejelentkezes"))) {  // login page
+                checkProblems();
+                throw new ServiceConnectionProblemException();
+            }
             final String passTag = PlugUtils.getStringBetween(getContentAsString(), "<input type=\"password\" name=\"", "\"");
             HttpMethod postMethod = getMethodBuilder()
                     .setActionFromFormWhereActionContains("login", true)
@@ -98,7 +103,8 @@ class Data_PremiumFileRunner extends AbstractRunner {
                     .setReferer(fileURL).setAjax()
                     .toPostMethod();
             if (makeRedirectedRequest(postMethod)) {
-                if (getContentAsString().contains("error\":1")) {
+                if (getContentAsString().contains("error\":1") ||
+                        postMethod.getURI().getURI().contains("data.hu/login") || postMethod.getURI().getURI().contains("data.hu/bejelentkezes")) {
                     badConfig = true;
                     logger.info("bad info");
                     throw new PluginImplementationException("Bad data.hu login information!");
@@ -117,4 +123,13 @@ class Data_PremiumFileRunner extends AbstractRunner {
         }
     }
 
+    @Override
+    protected String getBaseURL() {
+        try {
+            return new URL(fileURL).getProtocol() + "://" + new URL(fileURL).getAuthority();
+        }
+        catch (Exception x) {
+            return super.getBaseURL();
+        }
+    }
 }

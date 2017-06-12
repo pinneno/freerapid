@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.superbshare;
+package cz.vity.freerapid.plugins.services.share108;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -16,12 +16,13 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("https://www.superbshare.com/file/qA4A"));
+            httpFile.setNewURL(new URL("https://share108.com/2wpdi0s5v973/Surface11-StringsofFateCE.rar"));
+            httpFile.setNewURL(new URL("https://share108.com/tvfeb8e2wg7n/071.jpg"));
+            //httpFile.setNewURL(new URL("http://108.to/d/la"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
-            //then we tries to download
-            final SuperBShareServiceImpl service = new SuperBShareServiceImpl(); //instance of service - of our plugin
+            final Share108ServiceImpl service = new Share108ServiceImpl(); //instance of service - of our plugin
             /*
             //we set premium account details
             final PremiumAccount config = new PremiumAccount();

@@ -9,6 +9,7 @@ import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
+import java.net.URL;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
@@ -48,6 +49,7 @@ class DataFileRunner extends AbstractRunner {
         final HttpMethod method = getGetMethod(fileURL);
         if (makeRedirectedRequest(method)) {
             final String contentAsString = getContentAsString();
+            fileURL = method.getURI().getURI();
             checkProblems();
             checkNameAndSize(contentAsString);
             HttpMethod httpMethod = stepCaptcha(getMethodBuilder().setReferer(fileURL)
@@ -58,6 +60,7 @@ class DataFileRunner extends AbstractRunner {
                     checkProblems();
                     throw new ServiceConnectionProblemException();
                 }
+                checkProblems();
             } while (!getContentAsString().contains("redirect"));
 
             final Matcher matcher = getMatcherAgainstContent("redirect\":\"(.+?)\"");
@@ -88,9 +91,21 @@ class DataFileRunner extends AbstractRunner {
         if (contentAsString.contains("200 MB-nál nagyobb")) {
             throw new NotRecoverableDownloadException("Premium account needed for files >200MB");
         }
-
+        if (contentAsString.contains("Hiba t\\u00f6rt\\u00e9nt. K\\u00e9rlek t\\u00f6ltsd ki a captch\\u00e1t")
+                || contentAsString.contains("Hib\\u00e1san t\\u00f6lt\\u00f6tted ki a captch\\u00e1t")) {
+            throw new ErrorDuringDownloadingException("Captcha Error");
+        }
     }
 
+    @Override
+    protected String getBaseURL() {
+        try {
+            return new URL(fileURL).getProtocol() + "://" + new URL(fileURL).getAuthority();
+        }
+        catch (Exception x) {
+            return super.getBaseURL();
+        }
+    }
 
     private MethodBuilder stepCaptcha(MethodBuilder builder, final String referrer) throws Exception {
         final Matcher m = getMatcherAgainstContent("['\"]?sitekey['\"]?\\s*[:=]\\s*['\"]([^'\"]+)['\"]");
