@@ -51,6 +51,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -167,10 +168,12 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
         Swinger.updateColumn(table, "Date", COLUMN_DATE, -1, 40, new DateCellRenderer(getResourceMap()));
         Swinger.updateColumn(table, "Name", COLUMN_NAME, -1, 150, new FileNameCellRenderer(director.getFileTypeIconProvider()));
         Swinger.updateColumn(table, "Description", COLUMN_DESCRIPTION, -1, 170, new DescriptionCellRenderer());
-        Swinger.updateColumn(table, "Size", COLUMN_SIZE, -1, 40, new SizeCellRenderer());
+        final TableColumnExt size = (TableColumnExt) Swinger.updateColumn(table, "Size", COLUMN_SIZE, -1, 40, new SizeCellRenderer());
         Swinger.updateColumn(table, "URL", COLUMN_URL, -1, -1, SwingXUtils.getHyperLinkTableCellRenderer());
         final TableColumnExt connection = (TableColumnExt) Swinger.updateColumn(table, "Connection", COLUMN_CONNECTION, -1, -1, new ConnectionCellRenderer());
         final TableColumnExt avgSpeed = (TableColumnExt) Swinger.updateColumn(table, "AvgSpeed", COLUMN_AVG_SPEED, -1, -1, new AvgSpeedCellRenderer());
+        size.setComparator(new SizeColumnComparator());
+        avgSpeed.setComparator(new AvgSpeedColumnComparator());
         avgSpeed.setVisible(false);
         connection.setVisible(false);
 
@@ -263,7 +266,7 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
             final DownloadFile down = new DownloadFile(new DownloadFileModel());
             down.setFileUrl(fileH.getUrl());
             down.setStoreFile(fileH.getOutputFile());
-            down.setSaveToDirectory(new File(fileH.getOutputFile().getAbsolutePath()));
+            down.setSaveToDirectory((fileH.getOutputFile() != null) ? new File(fileH.getOutputFile().getAbsolutePath()) : null);
             down.setDescription(fileH.getDescription());
             down.setFileName(fileH.getFileName());
             down.setFileSize(fileH.getFileSize());
@@ -291,7 +294,7 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
         for (FileHistoryItemModel file : files) {
             File outputFile = file.getOutputFile();
             if ((outputFile != null) && outputFile.exists()) {
-                OSDesktop.openFile(file.getOutputFile());
+                OSDesktop.openFile(outputFile);
             }
         }
     }
@@ -311,7 +314,7 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
         for (FileHistoryItemModel file : files) {
             File outputFile = file.getOutputFile();
             if ((outputFile != null) && outputFile.exists()) {
-                OSDesktop.openDirectoryForFile(file.getOutputFile());
+                OSDesktop.openDirectoryForFile(outputFile);
             }
         }
     }
@@ -575,7 +578,8 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
         boolean valid = true;
         final java.util.List<FileHistoryItemModel> items = getSelectionToList(indexes);
         for (FileHistoryItemModel item : items) {
-            if (!item.getOutputFile().exists()) {
+            File outputFile = item.getOutputFile();
+            if (outputFile == null || !outputFile.exists()) {
                 valid = false;
                 break;
             }
@@ -1177,6 +1181,20 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
                 this.setToolTipText(value.toString());
             }
             return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+        }
+    }
+
+    private static class AvgSpeedColumnComparator implements Comparator<FileHistoryItemModel> {
+        @Override
+        public int compare(FileHistoryItemModel o1, FileHistoryItemModel o2) {
+            return Float.compare(o1.getAverageSpeed(), o2.getAverageSpeed());
+        }
+    }
+
+    private static class SizeColumnComparator implements Comparator<Long> {
+        @Override
+        public int compare(Long o1, Long o2) {
+            return o1.compareTo(o2);
         }
     }
 

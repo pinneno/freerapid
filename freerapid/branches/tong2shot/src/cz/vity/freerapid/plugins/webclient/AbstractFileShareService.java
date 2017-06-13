@@ -209,7 +209,7 @@ public abstract class AbstractFileShareService extends Plugin implements ShareDo
     protected abstract PluginRunner getPluginRunnerInstance();
 
     /**
-     * Method to load configuration data from string into Object.
+     * Load configuration data from string into Object.
      * Internal implementation uses XMLEncoder.
      *
      * @param content config content
@@ -217,7 +217,6 @@ public abstract class AbstractFileShareService extends Plugin implements ShareDo
      * @return returns new instance, null if
      * @throws Exception throwed when reading went wrong
      */
-    @Override
     @SuppressWarnings("unchecked")
     public <E> E loadConfigFromString(String content, Class<E> type) throws Exception {
         XMLDecoder xmlDecoder = null;
@@ -242,13 +241,12 @@ public abstract class AbstractFileShareService extends Plugin implements ShareDo
     }
 
     /**
-     * Method to store plugin's configuration data from Object into string.
+     * Store plugin's configuration data from Object into string.
      * Internal implementation uses XMLEncoder.
      *
      * @return config data as string
      * @throws Exception throwed when reading went wrong
      */
-    @Override
     public String storeConfigToString(Object object) throws Exception {
         XMLEncoder xmlEncoder = null;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -282,11 +280,34 @@ public abstract class AbstractFileShareService extends Plugin implements ShareDo
      * @param config config to be cloned
      * @param type   class of the stored object
      * @return config clone
-     * @throws Exception
+     * @throws Exception if there's something wrong
      */
-    @Override
     public <E> E cloneConfig(E config, Class<E> type) throws Exception {
         String configAsString = storeConfigToString(config);
         return loadConfigFromString(configAsString, type);
+    }
+
+    /**
+     * Get local config from file item, if it's none then clone the global config
+     *
+     * @param httpFile               file item
+     * @param globalConfigToBeCloned global config to be cloned
+     * @param type                   global config class type
+     * @return local config
+     * @throws Exception if there's something wrong
+     */
+    public <E> E getLocalConfig(HttpFile httpFile, E globalConfigToBeCloned, Class<E> type) throws Exception {
+        E result;
+        String configAsString = httpFile.getLocalPluginConfig();
+        if (configAsString == null) {
+            result = cloneConfig(globalConfigToBeCloned, type);
+        } else {
+            try {
+                result = loadConfigFromString(configAsString, type);
+            } catch (Exception e) {
+                result = cloneConfig(globalConfigToBeCloned, type);
+            }
+        }
+        return result;
     }
 }

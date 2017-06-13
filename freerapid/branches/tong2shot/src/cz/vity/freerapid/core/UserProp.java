@@ -409,6 +409,9 @@ final public class UserProp {
     public static final String SSL_VERIFY_HOSTNAME = "sslVerifyHostName";
     public static final boolean SSL_VERIFY_HOSTNAME_DEFAULT = false;
 
+    public static final String FILE_URL_EDITABLE = "fileUrlEditable";
+    public static final boolean FILE_URL_EDITABLE_DEFAULT = false;
+
 }
 
 

@@ -215,24 +215,23 @@ public class DownloadClient implements HttpDownloadClient {
         if (allowRedirect && isRedirect && deep < 2) {
             Header header = method.getResponseHeader("location");
             if (header != null) {
-                String newuri = header.getValue();
-                if ((newuri == null) || ("".equals(newuri))) {
-                    newuri = "/";
+                String location = header.getValue();
+                if (location == null || "".equals(location)) {
+                    location = "/";
                 }
-                if (!newuri.matches("(?i)https?://.+")) {
-                    if (!newuri.startsWith("/")) {
-                        newuri = "/" + newuri;
-                    }
-                    newuri = method.getURI().getScheme() + "://" + method.getURI().getHost() + newuri;
+                URI currentUri = method.getURI(); //complete URI (scheme, host, port, path)
+                URI redirectUri = new URI(location, true, method.getParams().getUriCharset());
+                if (redirectUri.isRelativeURI()) {
+                    redirectUri = new URI(currentUri, redirectUri);
                 }
-
-                logger.info("Redirect target: " + newuri);
+                String redirectUriStr = redirectUri.toString();
+                logger.info("Redirect target: " + redirectUriStr);
                 if (client.getParams().getBooleanParameter(DownloadClientConsts.USE_REFERER_WHEN_REDIRECT, false)) {
-                    setReferer(newuri);
+                    setReferer(redirectUriStr);
                 }
 
                 method.releaseConnection();
-                GetMethod redirect = getGetMethod(newuri);
+                GetMethod redirect = getGetMethod(redirectUriStr);
                 final InputStream inputStream = makeRequestFile(redirect, file, deep + 1, allowRedirect);
                 logger.info("Redirect: " + redirect.getStatusLine().toString());
                 return inputStream;
@@ -406,22 +405,23 @@ public class DownloadClient implements HttpDownloadClient {
             redirect = 1;
             Header header = method.getResponseHeader("location");
             if (header != null) {
-                String newuri = header.getValue();
-                if ((newuri == null) || ("".equals(newuri))) {
-                    newuri = "/";
+                String location = header.getValue();
+                if (location == null || "".equals(location)) {
+                    location = "/";
                 }
-                if (!newuri.matches("(?i)https?://.+")) {
-                    if (!newuri.startsWith("/")) {
-                        newuri = "/" + newuri;
-                    }
-                    newuri = method.getURI().getScheme() + "://" + method.getURI().getHost() + newuri;
+                URI currentUri = method.getURI(); //complete URI (scheme, host, port, path)
+                URI redirectUri = new URI(location, true, method.getParams().getUriCharset());
+                if (redirectUri.isRelativeURI()) {
+                    redirectUri = new URI(currentUri, redirectUri);
+                }
+                String redirectUriStr = redirectUri.toString();
+                logger.info("Redirect target: " + redirectUriStr);
+                if (client.getParams().getBooleanParameter(DownloadClientConsts.USE_REFERER_WHEN_REDIRECT, false)) {
+                    setReferer(redirectUriStr);
                 }
 
-                logger.info("Redirect target: " + newuri);
-                if (client.getParams().getBooleanParameter(DownloadClientConsts.USE_REFERER_WHEN_REDIRECT, false)) {
-                    setReferer(newuri);
-                }
-                GetMethod redirect = getGetMethod(newuri);
+                method.releaseConnection();
+                GetMethod redirect = getGetMethod(redirectUriStr);
                 final int i = makeRequest(redirect, allowRedirect);
                 logger.info("Redirect: " + redirect.getStatusLine().toString());
                 return i;

@@ -45,7 +45,10 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.ClipboardOwner;
 import java.awt.datatransfer.Transferable;
 import java.awt.dnd.DragSource;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
@@ -133,17 +136,6 @@ public class ContentPanel extends JPanel implements ListSelectionListener, ListD
         Swinger.initActions(this, context);
         initComponents();
         setActions();
-
-        final MainApp app = (MainApp) (context.getApplication());
-        app.getMainFrame().addWindowFocusListener(new WindowFocusListener() {
-            public void windowGainedFocus(WindowEvent e) {
-                Swinger.inputFocus(table);
-            }
-
-            public void windowLostFocus(WindowEvent e) {
-
-            }
-        });
 
         manager.getDownloadFiles().addListDataListener(this);
         manager.addPropertyChangeListener(this);
@@ -1003,6 +995,7 @@ public class ContentPanel extends JPanel implements ListSelectionListener, ListD
             }
         }.install(table);
 
+        Swinger.inputFocus(table);
     }
 
 

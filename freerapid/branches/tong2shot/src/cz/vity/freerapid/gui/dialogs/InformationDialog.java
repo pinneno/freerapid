@@ -28,6 +28,7 @@ import org.jdesktop.swinghelper.buttonpanel.JXButtonPanel;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.MouseListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
@@ -44,12 +45,14 @@ public class InformationDialog extends AppFrame implements PropertyChangeListene
 
     private final ManagerDirector director;
     private final DownloadFile file;
+    private final boolean fileUrlEditable;
     private PresentationModel<DownloadFile> model;
 
     public InformationDialog(Frame owner, ManagerDirector director, DownloadFile file) throws Exception {
         super(owner);
         this.director = director;
         this.file = file;
+        this.fileUrlEditable = AppPrefs.getProperty(UserProp.FILE_URL_EDITABLE, UserProp.FILE_URL_EDITABLE_DEFAULT);
         this.setName("InformationDialog");
         try {
             initComponents();
@@ -116,7 +119,7 @@ public class InformationDialog extends AppFrame implements PropertyChangeListene
         fieldSize.setBackground(this.getBackground());
 
         fieldSize.setEditable(false);
-        fieldFrom.setEditable(true);
+        fieldFrom.setEditable(fileUrlEditable);
 
         descriptionArea.setFont(descriptionArea.getFont().deriveFont(11.0F));
 
@@ -130,14 +133,16 @@ public class InformationDialog extends AppFrame implements PropertyChangeListene
         AppPrefs.storeProperty(UserProp.LAST_COMBO_PATH, comboPath.getSelectedItem().toString());
         final File outputDir = new File(comboPath.getEditor().getItem().toString());
         file.setSaveToDirectory(outputDir);
-        try {
-            final URL newURL = new URL(fieldFrom.getText());
-            file.setPluginID(director.getPluginsManager().getServiceIDForURL(newURL));
-            file.setFileUrl(newURL);
-        } catch (Exception e) {
-            Swinger.showErrorMessage(this.getResourceMap(), "Invalid URL");
-            Swinger.inputFocus(fieldFrom);
-            return;
+        if (fileUrlEditable) {
+            try {
+                final URL newURL = new URL(fieldFrom.getText());
+                file.setPluginID(director.getPluginsManager().getServiceIDForURL(newURL));
+                file.setFileUrl(newURL);
+            } catch (Exception e) {
+                Swinger.showErrorMessage(this.getResourceMap(), "Invalid URL");
+                Swinger.inputFocus(fieldFrom);
+                return;
+            }
         }
         setResult(RESULT_OK);
         if (model != null)
@@ -213,6 +218,12 @@ public class InformationDialog extends AppFrame implements PropertyChangeListene
         pathLabel = new JLabel();
         JLabel labelFrom = new JLabel();
         fieldFrom = ComponentFactory.getURLsEditorPane();
+        if (!fileUrlEditable) {
+            MouseListener[] mouseListeners = fieldFrom.getMouseListeners();
+            for (MouseListener mouseListener : mouseListeners) {
+                fieldFrom.removeMouseListener(mouseListener);
+            }
+        }
         JLabel labelSize = new JLabel();
         fieldSize = new JTextField();
         JLabel labelDescription = new JLabel();
@@ -481,7 +492,7 @@ public class InformationDialog extends AppFrame implements PropertyChangeListene
         comboPath.setEditable(enabled);
         comboPath.setEnabled(enabled);
         fieldFrom.setEnabled(enabled);
-        fieldFrom.setEditable(enabled);
+        fieldFrom.setEditable(enabled && fileUrlEditable);
     }
 
     private void updateDownloaded() {
@@ -581,8 +592,7 @@ public class InformationDialog extends AppFrame implements PropertyChangeListene
     }
 
     private void updateFrom() {
-        final URL newURL = file.getFileUrl();
-        fieldFrom.setText(newURL.toExternalForm());
+        fieldFrom.setText(file.getFileUrl().toExternalForm());
     }
 
     private void updateConnection() {

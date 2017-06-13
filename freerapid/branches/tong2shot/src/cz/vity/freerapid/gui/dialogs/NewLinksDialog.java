@@ -380,7 +380,7 @@ public class NewLinksDialog extends AppDialog implements ClipboardOwner {
      * @return List containing the elements which exist in both lists passed as arguments.
      */
     private static List<URL> getCommonElements(final List<URL> list1, final List<URL> list2) {
-        final Map<String, URL> map = new LinkedHashMap<String, URL>(list1.size());
+        final Map<String, URL> map = new HashMap<String, URL>(list1.size());
         final List<URL> commonElements = new ArrayList<URL>();
         for (final URL u : list1) {
             map.put(u.toString(), u);
