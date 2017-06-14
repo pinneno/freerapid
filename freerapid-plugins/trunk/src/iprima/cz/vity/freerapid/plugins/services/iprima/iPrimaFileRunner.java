@@ -139,7 +139,7 @@ class iPrimaFileRunner extends AbstractRunner {
 
                 : getMethodBuilder()
                 .setReferer(fileURL)
-                .setAction("http://api.play-backend.iprima.cz/prehravac/init")
+                .setAction("http://api.play-backend.iprima.cz/prehravac/init-embed")
                 .setParameter("_infuse", "1")
                 .setParameter("_ts", String.valueOf(System.currentTimeMillis()))
                 .setParameter("embed", "true")
