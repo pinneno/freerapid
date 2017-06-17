@@ -21,6 +21,7 @@ class ShFileRunner extends AbstractRunner {
     public void run() throws Exception {
         super.run();
         fileURL = fileURL.replaceFirst("clkme\\.in", "cllkme.com");
+        fileURL = fileURL.replaceFirst("://www\\.", "://");
         logger.info("Starting download in TASK " + fileURL);
         final HttpMethod httpMethod = getMethodBuilder()
                 .setReferer(fileURL)

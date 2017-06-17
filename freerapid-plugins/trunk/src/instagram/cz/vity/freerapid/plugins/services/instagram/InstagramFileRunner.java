@@ -54,7 +54,7 @@ class InstagramFileRunner extends AbstractRunner {
             if (!match.find())
                 throw new PluginImplementationException("User's name not found");
             httpFile.setFileName("User: " + match.group(1));
-            match = PlugUtils.matcher("\"media\"\\s*:\\s*\\{\\s*\"count\"\\s*:\\s*(\\d+)", content);
+            match = PlugUtils.matcher("\"count\"\\s*:\\s*(\\d+),\\s*\"page_info\"\\s*:\\s*\\{", content);
             if (!match.find())
                 throw new PluginImplementationException("Media count not found");
             httpFile.setFileSize(Long.parseLong(match.group(1)));
@@ -79,36 +79,48 @@ class InstagramFileRunner extends AbstractRunner {
             } else {  // user
                 fileURL = method.getURI().getURI();
                 List<URI> list = new LinkedList<URI>();
-                Matcher matcher = PlugUtils.matcher("owner\"\\s*:\\s*\\{\\s*\"id\"\\s*:\\s*\"([^\"]+?)\"", getContentAsString());
+                String content = getContentAsString();
+                Matcher matcher = PlugUtils.matcher("owner\"\\s*:\\s*\\{\\s*\"id\"\\s*:\\s*\"([^\"]+?)\"", content);
                 if (!matcher.find())  throw new PluginImplementationException("Owner ID not found");
                 final String userID = matcher.group(1);
-                matcher = PlugUtils.matcher("\"csrf_token\"\\s*:\\s*\"([^\"]+?)\"", getContentAsString());
+                matcher = PlugUtils.matcher("\"csrf_token\"\\s*:\\s*\"([^\"]+?)\"", content);
                 if (!matcher.find())  throw new PluginImplementationException("Csrf token not found");
                 final String csrfToken = matcher.group(1);
+                matcher = PlugUtils.matcher("type=\"text/javascript\"[^>]*src=\"([^\"]+?Commons[^\"]+?)\"", content);
+                if (!matcher.find())  throw new PluginImplementationException("Query id not found 1");
+                if (!makeRedirectedRequest(getGetMethod(getMethodBuilder().setReferer(fileURL).setAction(matcher.group(1).trim()).getEscapedURI()))) {
+                    throw new ServiceConnectionProblemException();
+                }
+                matcher = PlugUtils.matcher("profilePosts.byUserId.get[^}]*},queryId\\s*:\\s*\"([^\"]+?)\"", getContentAsString());
+                if (!matcher.find())  throw new PluginImplementationException("Query id not found 2");
+                final String queryId = matcher.group(1);
                 boolean nextPage;
                 do {
                     nextPage = false;
-                    String content = getContentAsString();
-                    final Matcher match = PlugUtils.matcher("\"code\"\\s*:\\s*\"(.+?)\"", content);
+                    final Matcher match = PlugUtils.matcher("\"(?:short)?code\"\\s*:\\s*\"(.+?)\"", content);
                     while (match.find()) {
                         list.add(new URI("https://instagram.com/p/" + match.group(1)));
                     }
+logger.info("##### "+list.size());
                     if (content.contains("\"has_next_page\":true") || content.contains("\"has_next_page\": true")) {
                         nextPage = true;
                         final Matcher lastMatch = PlugUtils.matcher("end_cursor\"\\s*:\\s*\"(.+?)\"", content);
                         if (!lastMatch.find()) throw new PluginImplementationException("Error getting next page details");
                         final String lastPost = lastMatch.group(1);
                         final HttpMethod nextPageMethod = getMethodBuilder(content).setReferer(fileURL)
-                                .setAction("https://www.instagram.com/query/")
-                                .setParameter("q", "ig_user(" + userID + ") { media.after(" + lastPost + ", 24) {\n  count,\n  nodes {\n    caption,\n    code,\n    comments {\n      count\n    },\n    date,\n    dimensions {\n      height,\n      width\n    },\n    display_src,\n    id,\n    is_video,\n    likes {\n      count\n    },\n    owner {\n      id\n    },\n    thumbnail_src\n  },\n  page_info\n}\n }")
-                                .setParameter("ref", "users::show")
-                                .setAjax().toPostMethod();
+                                .setAction("https://www.instagram.com/graphql/query/")
+                                .setParameter("query_id", queryId)
+                                .setParameter("id", userID)
+                                .setParameter("first", "24")
+                                .setParameter("after", lastPost)
+                                .setAjax().toGetMethod();
                         nextPageMethod.setRequestHeader("X-CSRFToken", csrfToken);
                         nextPageMethod.setRequestHeader("X-Instagram-AJAX", "1");
                         if (!makeRedirectedRequest(nextPageMethod)) {
                             checkProblems();
                             throw new ServiceConnectionProblemException();
                         }
+                        content = getContentAsString();
                     }
                     httpFile.setDownloaded(list.size());  //links found
                 } while (nextPage);
@@ -132,7 +144,7 @@ class InstagramFileRunner extends AbstractRunner {
     }
 
     private String getDownloadLink(String content) throws PluginImplementationException {
-        final Matcher match = PlugUtils.matcher("\"(?:display_src|video_url)\"\\s*:\\s*\"([^\"]+?)\"", content);
+        final Matcher match = PlugUtils.matcher("\"(?:display_(?:src|url)|video_url)\"\\s*:\\s*\"([^\"]+?)\"", content);
         if (!match.find())
             throw new PluginImplementationException("Download link not found");
         return match.group(1);

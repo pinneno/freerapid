@@ -98,13 +98,15 @@ class YandexDiskFileRunner extends AbstractRunner {
                 throw new ServiceConnectionProblemException();
             }
 
-            final String downloadURL;
+            String downloadURL;
             String contentType = null;
             try {
                 downloadURL = PlugUtils.replaceEntities(PlugUtils.getStringBetween(getContentAsString(), "\"file\":\"", "\""));
             } catch (PluginImplementationException e) {
                 throw new PluginImplementationException("Error getting download URL");
             }
+            if (downloadURL.startsWith("//"))
+                downloadURL = "https:" + downloadURL;
             logger.info("Download URL: " + downloadURL);
             try {
                 contentType = URLDecoder.decode(URLUtil.getQueryParams(downloadURL, "UTF-8").get("content_type"), "UTF-8");
