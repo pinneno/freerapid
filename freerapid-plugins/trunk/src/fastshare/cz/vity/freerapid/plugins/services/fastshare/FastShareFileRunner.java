@@ -3,6 +3,7 @@ package cz.vity.freerapid.plugins.services.fastshare;
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
+import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.hoster.CaptchaSupport;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.Cookie;
@@ -62,11 +63,10 @@ class FastShareFileRunner extends AbstractRunner {
         final Matcher match = PlugUtils.matcher("<form.+?action=(/free[^>]+?)>", getContentAsString());
         if (!match.find())
             throw new PluginImplementationException("Download form not found");
-        HttpMethod httpMethod = getMethodBuilder()
+        HttpMethod httpMethod = stepCaptcha(getMethodBuilder()
                 .setReferer(fileURL)
                 .setAction(match.group(1))
-                .setParameter("code", stepCaptcha())
-                .toPostMethod();
+                ).toPostMethod();
 
         if (!tryDownloadAndSaveFile(httpMethod)) {
             if (getContentAsString().contains("Opište kód") ||
@@ -79,19 +79,22 @@ class FastShareFileRunner extends AbstractRunner {
         }
     }
 
-    private String stepCaptcha() throws Exception {
-        CaptchaSupport captchaSupport = getCaptchaSupport();
-        final Matcher match = PlugUtils.matcher("<img src=\"(/securimage.+?)\">", getContentAsString());
-        if (!match.find())
-            throw new PluginImplementationException("Captcha image not found");
-        final String baseUrl = httpFile.getFileUrl().getProtocol() + "://" + httpFile.getFileUrl().getAuthority();
-        final String captchaURL = baseUrl + match.group(1);
-        logger.info("Captcha URL " + captchaURL);
-        final String captcha = captchaSupport.getCaptcha(captchaURL);
-        if (captcha == null) {
-            throw new CaptchaEntryInputMismatchException();
+    private MethodBuilder stepCaptcha(MethodBuilder builder) throws Exception {
+        if (getContentAsString().contains("<img src=\"/securimage")) {
+            CaptchaSupport captchaSupport = getCaptchaSupport();
+            final Matcher match = PlugUtils.matcher("<img src=\"(/securimage.+?)\">", getContentAsString());
+            if (!match.find())
+                throw new PluginImplementationException("Captcha image not found");
+            final String baseUrl = httpFile.getFileUrl().getProtocol() + "://" + httpFile.getFileUrl().getAuthority();
+            final String captchaURL = baseUrl + match.group(1);
+            logger.info("Captcha URL " + captchaURL);
+            final String captcha = captchaSupport.getCaptcha(captchaURL);
+            if (captcha == null) {
+                throw new CaptchaEntryInputMismatchException();
+            }
+            builder.setParameter("code", captcha);
         }
-        return captcha;
+        return builder;
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {
@@ -99,7 +102,8 @@ class FastShareFileRunner extends AbstractRunner {
         if (contentAsString.contains("<title>FastShare.cz</title>") && !contentAsString.contains("Stáhnout FREE")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
-        if (contentAsString.contains("Tento soubor byl smazán")) {
+        if (contentAsString.contains("Tento soubor byl smazán") || contentAsString.contains("404 Not Found") ||
+                contentAsString.contains("not found on this server")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
     }

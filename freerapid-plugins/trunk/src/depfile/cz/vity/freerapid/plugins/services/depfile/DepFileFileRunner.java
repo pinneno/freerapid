@@ -10,6 +10,7 @@ import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import cz.vity.freerapid.utilities.LogUtils;
 import cz.vity.freerapid.utilities.Utils;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpMethod;
 
@@ -92,7 +93,7 @@ class DepFileFileRunner extends AbstractRunner {
         }
         String url;
         try {
-            url = URLDecoder.decode(PlugUtils.getStringBetween(getContentAsString(), "document.getElementById(\"wait_input\").value= unescape('", "');"), "UTF-8");
+            url = URLDecoder.decode(new String(Base64.decodeBase64(PlugUtils.getStringBetween(getContentAsString(), "var ds=DFcc.dc('", "');"))), "UTF-8");
             final int waitTime = PlugUtils.getWaitTimeBetween(getContentAsString(), "var sec=", ";", TimeUnit.SECONDS);
             downloadTask.sleep(waitTime);
         } catch (Exception e) {
