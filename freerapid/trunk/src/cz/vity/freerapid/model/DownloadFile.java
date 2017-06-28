@@ -372,7 +372,9 @@ public class DownloadFile extends AbstractBean implements Identifiable, Property
      * @param fileUrl Value to set for property 'fileUrl'.
      */
     public void setFileUrl(URL fileUrl) {
+        URL oldValue = this.fileUrl;
         this.fileUrl = fileUrl;
+        firePropertyChange("fileUrl", oldValue, this.fileUrl);
     }
 
     /**
@@ -381,7 +383,9 @@ public class DownloadFile extends AbstractBean implements Identifiable, Property
      * @param saveToDirectory Value to set for property 'saveToDirectory'.
      */
     public void setSaveToDirectory(File saveToDirectory) {
+        File oldValue = this.saveToDirectory;
         this.saveToDirectory = saveToDirectory;
+        firePropertyChange("saveToDirectory", oldValue, this.saveToDirectory);
     }
 
     /**
