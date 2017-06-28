@@ -10,9 +10,11 @@ import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandl
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.interfaces.HttpFile;
 import org.apache.commons.httpclient.HttpMethod;
+import org.apache.commons.httpclient.URI;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Class which contains main code
@@ -86,5 +88,12 @@ class UploadRocketFileRunner extends XFileSharingRunner {
         if (content.contains("No such file")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
+    }
+
+    @Override
+    protected boolean tryDownloadAndSaveFile(HttpMethod method) throws Exception {
+        URI downloadUri = method.getURI();
+        downloadUri.setEscapedAuthority(downloadUri.getAuthority().toLowerCase(Locale.ENGLISH));
+        return super.tryDownloadAndSaveFile(getMethodBuilder().setReferer(fileURL).setAction(downloadUri.getEscapedURI()).toGetMethod());
     }
 }

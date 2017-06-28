@@ -16,10 +16,11 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://uploadrocket.net/wed3umjriu8u/NYBFT01292017Fic.rar.html"));
+            httpFile.setNewURL(new URL("http://uploadrocket.net/kmrwqquveymq/3985AshEn.zip.html"));
+            //httpFile.setNewURL(new URL("http://uploadrocket.net/kmrwqquveymq.htm"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
-            //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
+            //connectionSettings.setProxy("localhost", 8119); //eg we can use local proxy to sniff HTTP communication
             final UploadRocketServiceImpl service = new UploadRocketServiceImpl(); //instance of service - of our plugin
             /*
             //we set premium account details
@@ -29,6 +30,9 @@ public class TestApp extends PluginDevApplication {
             service.setConfig(config);
             //*/
             //runcheck makes the validation
+            //DownloadLinkData downloadLinkData = new DownloadLinkData("http://fs018.uploadrocket.net:182/d/emvtwwvrcvvhmeh4d2sci4vxlrcofqvkhyateqocaw5p6557cbjhmbfq/3985AshEn.zip",
+            //        System.currentTimeMillis(), 4*60*60*1000, new Cookie[0]);
+            //httpFile.getProperties().put("downloadLinkData", service.storeConfigToString(downloadLinkData));
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console
         } catch (Exception e) {//catch possible exception

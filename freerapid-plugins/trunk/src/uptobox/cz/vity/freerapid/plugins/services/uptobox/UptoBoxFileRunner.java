@@ -13,6 +13,8 @@ import java.util.regex.Pattern;
 
 /**
  * Class which contains main code
+ * <p>
+ * Only https fileURL is supported for downloading from cache, otherwise it will not be resumed.
  *
  * @author tong2shot
  * @author birchie
@@ -82,12 +84,12 @@ class UptoBoxFileRunner extends XFileSharingRunner {
     }
 
     @Override
-    protected String getDownloadLinkFromRegexes() throws ErrorDuringDownloadingException {
-        String ret = super.getDownloadLinkFromRegexes();
+    protected boolean tryDownloadAndSaveFile(HttpMethod method) throws Exception {
+        String downloadUrl = method.getURI().getEscapedURI();
         if (fileURL.startsWith("https")) {
-            ret = ret.replaceFirst("http://", "https://");
+            downloadUrl = downloadUrl.replaceFirst("http://", "https://");
         }
-        return ret;
+        return super.tryDownloadAndSaveFile(getMethodBuilder().setReferer(fileURL).setAction(downloadUrl).toGetMethod());
     }
 
     @Override
@@ -113,5 +115,10 @@ class UptoBoxFileRunner extends XFileSharingRunner {
         if (getContentAsString().contains("Incorrect Login or Password")) {
             throw new BadLoginException("Invalid account login information");
         }
+    }
+
+    @Override
+    protected long getLongTimeAvailableLinkFromRegexes() {
+        return 10 * 60 * 60 * 1000; //assume it's 10 hours, they don't provide dl expiration info.
     }
 }
