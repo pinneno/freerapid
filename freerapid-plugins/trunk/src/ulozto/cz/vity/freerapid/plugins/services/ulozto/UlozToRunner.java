@@ -20,8 +20,10 @@ import javax.script.ScriptException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URI;
+import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -129,7 +131,11 @@ class UlozToRunner extends AbstractRunner {
         checkURL();
         setClientParameter(DownloadClientConsts.USER_AGENT, USER_AGENT);
         final GetMethod getMethod = getGetMethod(fileURL);
+        boolean replaceBaseUrl = (fileURL.toLowerCase(Locale.ENGLISH).contains("file-tracking")); //URL with file-tracking is timeouted
         final int status = client.makeRequest(getMethod, true);
+        if (replaceBaseUrl && status == 200) {
+            downloadTask.getDownloadFile().setNewURL(new URL(getMethod.getURI().toString()));//better for resuming
+        }
         if (status == 200 || status == 401) {
             robotSecurityCheck();
             checkProblems();

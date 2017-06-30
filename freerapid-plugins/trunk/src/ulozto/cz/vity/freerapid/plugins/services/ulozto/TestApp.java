@@ -35,7 +35,7 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://pornfile.cz/x24LRbZv/stunners-veronika-fasterova-mov"));
             //httpFile.setNewURL(new URL("http://www.ulozto.cz/xaTKDFQS/dum-z-karet-s01e12-2013-monty-698-avi"));
             //httpFile.setNewURL(new URL("https://uloz.to/xRkMWEZa/jewel-pet-4-velky-lok-lasky-mpg"));
-            //httpFile.setNewURL(new URL("https://uloz.to/x4f8jsr9/jewel-pet-16-otrava-neprijemny-novy-spoluzak-mpg"));
+            //httpFile.setNewURL(new URL("https://www.uloz.to/file-tracking/9cdb3fb3815836bcd796e5ce36fe7fc47823d46e543ec9d7feb6ee2527c9ae3a823826b5e08729926d682e90b7e90197"));
             final ConnectionSettings settings = new ConnectionSettings();
             //settings.setProxy("localhost", 8081);
             testRun(new UlozToServiceImpl(), httpFile, settings);
