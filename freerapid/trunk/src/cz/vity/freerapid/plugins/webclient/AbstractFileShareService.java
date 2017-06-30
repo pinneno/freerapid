@@ -241,13 +241,13 @@ public abstract class AbstractFileShareService extends Plugin implements ShareDo
     }
 
     /**
-     * Store plugin's configuration data from Object into string.
+     * Convert plugin's configuration data from Object into string.
      * Internal implementation uses XMLEncoder.
      *
      * @return config data as string
      * @throws Exception throwed when reading went wrong
      */
-    public String storeConfigToString(Object object) throws Exception {
+    public String convertConfigToString(Object object) throws Exception {
         XMLEncoder xmlEncoder = null;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
@@ -283,7 +283,7 @@ public abstract class AbstractFileShareService extends Plugin implements ShareDo
      * @throws Exception if there's something wrong
      */
     public <E> E cloneConfig(E config, Class<E> type) throws Exception {
-        String configAsString = storeConfigToString(config);
+        String configAsString = convertConfigToString(config);
         return loadConfigFromString(configAsString, type);
     }
 
