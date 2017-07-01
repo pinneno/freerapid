@@ -38,10 +38,24 @@ class YouTubeSigDecipher {
     private static final int nameSpaceKinds[] = new int[]{KIND_NAMESPACE, KIND_PRIVATE, KIND_PACKAGE, KIND_PACKAGE_INTERNAL, KIND_PROTECTED, KIND_EXPLICIT, KIND_STATIC_PROTECTED};
     private static final int ATTR_METADATA = 4;
     private static final int CLASS_PROTECTED_NS = 8;
-    private static final String SWAP_PATTERN = "(?s)(..).{5}\\Q\u00d0\u0030\u00d1\u0024\u0000\u0066\\E..\\Q\u0085\u00d7\\E";
-    private static final String REVERSE_PATTERN = "(?s)(..).{5}\\Q\u00d0\u0030\u00d1\u004f\\E..\\Q\u0000\u00d1\u0048\\E";
-    private static final String CLONE_PATTERN = "(?s)(..).{5}\\Q\u00d0\u0030\u00d1\u00d2\u0046\\E..\\Q\u0001\u0048\\E";
-    private static final String DECIPHER_PATTERN = "(?s)(..).{5}\\Q\u00d0\u0030\u00d0\u00d1\u0024\\E(.+?)\\Q\u00d5\u00d1\u0048\\E";
+
+    private static final String SWAP_PATTERN = "(?s)(..).{5}(?:\\Q\u00f1\\E..\\Q\u00f0\\E.)?\\Q\u00d0\u0030\\E" +
+            "(?:\\Q\u00ef\u0001\\E....\\Q\u00ef\u0001\\E....\\Q\u00ef\u0001\\E....\\Q\u00ef\u0001\\E....\\Q\u00f0\\E.)?" +
+            "\\Q\u00d1\u0024\u0000\u0066\\E..\\Q\u0085\u00d7\\E";
+    private static final String REVERSE_PATTERN = "(?s)(..).{5}(?:\\Q\u00f1\\E..\\Q\u00f0\\E.)\\Q\u00d0\u0030\\E" +
+            "(?:\\Q\u00ef\u0001\\E....\\Q\u00ef\u0001\\E....\\Q\u00f0\\E.)?" +
+            "\\Q\u00d1\u004f\\E..\\Q\u0000\\E(?:..)?\\Q\u00d1\u0048\\E";
+    private static final String CLONE_PATTERN = "(?s)(..).{5}(?:\\Q\u00f1\\E..\\Q\u00f0\\E.)?\\Q\u00d0\u0030\\E" +
+            "(?:\\Q\u00ef\u0001\\E....\\Q\u00ef\u0001\\E....\\Q\u00f0\\E.)?" +
+            "\\Q\u00d1\u00d2\u0046\\E..\\Q\u0001\u0048\\E";
+    private static final String DECIPHER_PATTERN = "(?s)(..).{5}(?:\\Q\u00f1\\E..\\Q\u00f0\\E.)?\\Q\u00d0\u0030\\E" +
+            "(?:\\Q\u00ef\u0001\\E....\\Q\u00f0\\E.)?" +
+            "\\Q\u00d0\u00d1\u0024\\E(.+?)\\Q\u00d5\\E(?:\\Q\u00f0\\E.)?\\Q\u00d1\u0048\\E";
+
+    //private static final String SWAP_PATTERN = "(?s)(..).{5}\\Q\u00d0\u0030\u00d1\u0024\u0000\u0066\\E..\\Q\u0085\u00d7\\E";
+    //private static final String REVERSE_PATTERN = "(?s)(..).{5}\\Q\u00d0\u0030\u00d1\u004f\\E..\\Q\u0000\u00d1\u0048\\E";
+    //private static final String CLONE_PATTERN = "(?s)(..).{5}\\Q\u00d0\u0030\u00d1\u00d2\u0046\\E..\\Q\u0001\u0048\\E";
+    //private static final String DECIPHER_PATTERN = "(?s)(..).{5}\\Q\u00d0\u0030\u00d0\u00d1\u0024\\E(.+?)\\Q\u00d5\u00d1\u0048\\E";
     private static final String REVERSE_CLONE_SWAP_CALL_PATTERN = "(?s)(.)\\Q\u0046\\E(..)\\Q\u0002\u0080\\E.";
     private static final String CHARSET_NAME = "ISO-8859-1";
     private static final Map<Class<?>, YouTubeSigDecipherHolder> SIG_DECIPHER_CACHE = new WeakHashMap<Class<?>, YouTubeSigDecipherHolder>(2);
@@ -100,7 +114,7 @@ class YouTubeSigDecipher {
     public String decipher(final String sig) throws Exception {
         init();
         List<String> lstSig = new ArrayList<String>(Arrays.asList(sig.split("")));
-        if (lstSig.get(0).isEmpty()) { //JRE < 8 regex bug (https://bugs.openjdk.java.net/browse/JDK-8027645)
+        if (lstSig.get(0).isEmpty()) { //JRE < 8 regex bug (https://bugs.openjdk.java.net/browse/JDK-8027645) workaround
             lstSig.remove(0); //remove empty char at head
         }
         Matcher matcher = PlugUtils.matcher(REVERSE_CLONE_SWAP_CALL_PATTERN, bytecode);
