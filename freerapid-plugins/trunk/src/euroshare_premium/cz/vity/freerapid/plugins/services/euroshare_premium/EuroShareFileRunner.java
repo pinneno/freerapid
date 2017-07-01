@@ -80,6 +80,8 @@ class EuroShareFileRunner extends AbstractRunner {
         }
     }
 
+    final static String LOGIN_PAGE = "http://euroshare.eu/login.html";
+
     private void login() throws Exception {
         synchronized (EuroShareFileRunner.class) {
             EuroShareServiceImpl service = (EuroShareServiceImpl) getPluginService();
@@ -90,19 +92,27 @@ class EuroShareFileRunner extends AbstractRunner {
                     throw new BadLoginException("No EuroShare account login information");
                 }
             }
+            if (!makeRedirectedRequest(getGetMethod(LOGIN_PAGE))) {
+                checkProblems();
+                throw new ServiceConnectionProblemException();
+            }
+            final Matcher rootMatch = getMatcherAgainstContent("var\\s*WEB_ROOT\\s*=\\s*['\"]([^'\"]+?)['\"]");
+            if (!rootMatch.find()) throw new PluginImplementationException("Login page details not found 1");
+            final Matcher urlMatch = getMatcherAgainstContent("url:\\s*WEB_ROOT\\s*\\+\\s*['\"]([^'\"]+?)['\"]");
+            if (!urlMatch.find()) throw new PluginImplementationException("Login page details not found 2");
             final HttpMethod method = getMethodBuilder()
-                    .setAction("http://euroshare.eu/user/login?do=prihlaseni-submit")
+                    .setReferer(LOGIN_PAGE)
+                    .setAction(rootMatch.group(1) + urlMatch.group(1))
                     .setParameter("username", pa.getUsername())
                     .setParameter("password", pa.getPassword())
-                    .setParameter("remember", "on")
-                    .setParameter("send", "PRIHLÁSENIE")
-                    .toPostMethod();
+                    .setParameter("remember", "false")
+                    .setParameter("backlink", "")
+                    .setAjax().toPostMethod();
             if (!makeRedirectedRequest(method)) {
                 throw new ServiceConnectionProblemException("Error posting login info");
             }
-            if (getContentAsString().contains(" sa nenašiel")
-                    || getContentAsString().contains("Zadali ste nesprávne heslo")) {
-                throw new BadLoginException("Invalid EuroShare account login information");
+            if (getContentAsString().contains("\"error\"")) {
+                throw new BadLoginException("ERROR: "+ PlugUtils.getStringBetween(getContentAsString(), "\"error\":\"", "\""));
             }
         }
     }
