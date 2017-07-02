@@ -38,11 +38,11 @@ public abstract class XFileSharingRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(XFileSharingRunner.class.getName());
 
     private final static Map<Class<?>, LoginData> LOGIN_CACHE = new WeakHashMap<Class<?>, LoginData>(2);
-    private final String DOWNLOAD_LINK_DATA = "downloadLinkData";
+    private final static String DOWNLOAD_LINK_DATA = "downloadLinkData";
 
     private final List<CaptchaType> captchaTypes = getCaptchaTypes();
-    private boolean directDownload = false;
-    private boolean downloadFromCache = false;
+    protected boolean directDownload = false;
+    protected boolean downloadFromCache = false;
 
     protected List<CaptchaType> getCaptchaTypes() {
         final List<CaptchaType> captchaTypes = new LinkedList<CaptchaType>();
@@ -192,24 +192,12 @@ public abstract class XFileSharingRunner extends AbstractRunner {
             }
             checkDownloadProblems();
         }
-        doDownload(method);
+        saveDlLinkToCacheAndDownload(method);
     }
 
     protected void doDownload(final HttpMethod method) throws Exception {
         logger.info("DirectDownload: " + directDownload);
         logger.info("DownloadFromCache: " + downloadFromCache);
-        if (!directDownload && !downloadFromCache) { //download link cache for direct download is not supported yet
-            long linkAvailTime = getLongTimeAvailableLinkFromRegexes();
-            if (linkAvailTime > 0) {
-                long created = System.currentTimeMillis();
-                String downloadLink = method.getURI().toString();
-                DownloadLinkData downloadLinkData = new DownloadLinkData(downloadLink, created, linkAvailTime, getCookies());
-                String downloadLinkDataStr = convertDlDataToString(downloadLinkData);
-                logger.info("Saving download link cache: " + downloadLink);
-                httpFile.getProperties().put(DOWNLOAD_LINK_DATA, downloadLinkDataStr);
-            }
-        }
-
         setFileStreamContentTypes("text/plain");
         //some servers prefer to GZIP certain downloads, which we don't want
         method.removeRequestHeader("Accept-Encoding");
@@ -238,7 +226,7 @@ public abstract class XFileSharingRunner extends AbstractRunner {
         }
         method = redirectToLocation(method);
         directDownload = true;
-        doDownload(method);
+        saveDlLinkToCacheAndDownload(method);
         return true;
     }
 
@@ -489,33 +477,59 @@ public abstract class XFileSharingRunner extends AbstractRunner {
         return longTimeAvailableLinkRegexes;
     }
 
-    //in millisec
+    /**
+     * Get time available for download link cache.
+     * <p>
+     * Direct download should never read the stream's content, as it is not text type.
+     * So direct download should return an arbitrary value.
+     * <p>
+     * General case of overriding for direct download would look like:
+     * <pre><code>
+     *
+     *     protected long getLongTimeAvailableLinkFromRegexes() {
+     *       if (directDownload)
+     *         return 10 * 60 * 60 * 1000; //10 hours;
+     *       return super.getLongTimeAvailableFromRegexes();
+     *     }
+     * </code></pre>
+     *
+     * @return Time available for download link cache in milliseconds
+     */
     protected long getLongTimeAvailableLinkFromRegexes() {
-        try {
-            for (final String longTimeAvailableLinkRegexes : getLongTimeAvailableLinkRegexes()) {
-                final Matcher match = getMatcherAgainstContent(longTimeAvailableLinkRegexes);
-                if (match.find()) {
-                    final Matcher matcher = PlugUtils.matcher("(?:(\\d+) hours?)?[,\\s]*(?:(\\d+) minutes?)?[,\\s]*(?:(\\d+) seconds?)?", match.group(1));
-                    if (matcher.find()) {
-                        int waitHours = 0, waitMinutes = 0, waitSeconds = 0;
-                        if (matcher.group(1) != null)
-                            waitHours = Integer.parseInt(matcher.group(1));
-                        if (matcher.group(2) != null)
-                            waitMinutes = Integer.parseInt(matcher.group(2));
-                        if (matcher.group(3) != null)
-                            waitSeconds = Integer.parseInt(matcher.group(3));
+        if (!directDownload) {
+            try {
+                for (final String longTimeAvailableLinkRegexes : getLongTimeAvailableLinkRegexes()) {
+                    final Matcher match = getMatcherAgainstContent(longTimeAvailableLinkRegexes);
+                    if (match.find()) {
+                        final Matcher matcher = PlugUtils.matcher("(?:(\\d+) hours?)?[,\\s]*(?:(\\d+) minutes?)?[,\\s]*(?:(\\d+) seconds?)?", match.group(1));
+                        if (matcher.find()) {
+                            int waitHours = 0, waitMinutes = 0, waitSeconds = 0;
+                            if (matcher.group(1) != null)
+                                waitHours = Integer.parseInt(matcher.group(1));
+                            if (matcher.group(2) != null)
+                                waitMinutes = Integer.parseInt(matcher.group(2));
+                            if (matcher.group(3) != null)
+                                waitSeconds = Integer.parseInt(matcher.group(3));
 
-                        return ((waitHours * 60 * 60) + (waitMinutes * 60) + waitSeconds) * 1000; //in millisec
+                            return ((waitHours * 60 * 60) + (waitMinutes * 60) + waitSeconds) * 1000; //in millisec
+                        }
                     }
                 }
+            } catch (Exception e) {
+                LogUtils.processException(logger, e);
             }
-        } catch (Exception e) {
-            //
+            return -1;
+        } else {
+            return 8 * 60 * 60 * 1000; //8 hours for direct download.
         }
-        return -1;
     }
 
-    protected boolean handleDownloadFromCache() {
+    /**
+     * Handling download from cache
+     *
+     * @return true if the file will be downloaded from cache, otherwise false.
+     */
+    protected boolean handleDownloadFromCache() throws Exception {
         Cookie[] cookies = getCookies();
         String downloadLink = null;
         DownloadLinkData downloadLinkData = null;
@@ -545,31 +559,60 @@ public abstract class XFileSharingRunner extends AbstractRunner {
                 downloadFromCache = true;
                 doDownload(httpMethod);
                 return true;
-            } catch (Exception x) {
+            } catch (Exception e) {
                 logger.warning("Downloading using download link cache failed");
-                if (x.getMessage().equals("Error starting download")) {
-                    if (isErrorWithLongTimeAvailableLink()) {
-                        logger.warning("Download link cache - wrong IP address");
-                        logger.info("Removing download link cache");
-                        httpFile.getProperties().remove(DOWNLOAD_LINK_DATA);
-                    } else {
-                        LogUtils.processException(logger, x);
-                    }
-                } else {
-                    LogUtils.processException(logger, x);
-                }
+                handleDownloadFromCacheFailure(e);
             }
         }
         client.getHTTPClient().getState().clearCookies();
         client.getHTTPClient().getState().addCookies(cookies);
-        client.setReferer(fileURL);
         downloadFromCache = false;
         return false;
     }
 
-    //Available in AbstractFileShareService in the future FRD release.
-    //In the future, can be simplified with: service.loadConfigFromString(); service.storeConfigToString();
-    //The advantage of using xmlencode/xmldecoder over static field is persistency between sessions.
+    protected void handleDownloadFromCacheFailure(Exception e) throws Exception {
+        if (e.getMessage().equals("Error starting download")) {
+            if (isErrorWithLongTimeAvailableLink()) {
+                logger.warning("Download link cache - wrong IP address");
+                logger.info("Removing download link cache");
+                httpFile.getProperties().remove(DOWNLOAD_LINK_DATA);
+            } else {
+                LogUtils.processException(logger, e);
+            }
+        } else {
+            LogUtils.processException(logger, e);
+        }
+    }
+
+    /**
+     * Save download link to cache and then download the file
+     *
+     * @param method method to be passed on to {@link #doDownload}
+     * @throws Exception when download link data conversion failed or
+     *                   when download process is failed.
+     */
+    protected void saveDlLinkToCacheAndDownload(HttpMethod method) throws Exception {
+        long linkAvailTime = getLongTimeAvailableLinkFromRegexes();
+        if (linkAvailTime > 0) {
+            long created = System.currentTimeMillis();
+            String downloadLink = method.getURI().toString();
+            DownloadLinkData downloadLinkData = new DownloadLinkData(downloadLink, created, linkAvailTime, getCookies());
+            String downloadLinkDataStr = convertDlDataToString(downloadLinkData);
+            logger.info("Saving download link cache: " + downloadLink);
+            httpFile.getProperties().put(DOWNLOAD_LINK_DATA, downloadLinkDataStr);
+        }
+        doDownload(method);
+    }
+
+    /**
+     * Load download link data from XML string
+     * <p>     
+     * In the future, can be simplified with: {@link cz.vity.freerapid.plugins.webclient.AbstractFileShareService#loadConfigFromString(String, Class)} call
+     *
+     * @param content XML string representation of download link data
+     * @return download link data object
+     * @throws Exception when download link data binaries/formats are incompatible between versions.
+     */
     @SuppressWarnings("unchecked")
     protected DownloadLinkData loadDlDataFromString(String content) throws Exception {
         XMLDecoder xmlDecoder = null;
@@ -590,6 +633,15 @@ public abstract class XFileSharingRunner extends AbstractRunner {
         }
     }
 
+    /**
+     * Convert download link data to XML string
+     * <p>     
+     * In the future, can be simplified with: {@link cz.vity.freerapid.plugins.webclient.AbstractFileShareService#convertConfigToString(Object)} call
+     *
+     * @param object Downlink link data object
+     * @return XML string representation of download link data
+     * @throws Exception Conversion went wrong
+     */
     protected String convertDlDataToString(Object object) throws Exception {
         XMLEncoder xmlEncoder = null;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

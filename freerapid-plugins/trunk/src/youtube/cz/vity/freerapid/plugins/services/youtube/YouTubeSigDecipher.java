@@ -42,7 +42,7 @@ class YouTubeSigDecipher {
     private static final String SWAP_PATTERN = "(?s)(..).{5}(?:\\Q\u00f1\\E..\\Q\u00f0\\E.)?\\Q\u00d0\u0030\\E" +
             "(?:\\Q\u00ef\u0001\\E....\\Q\u00ef\u0001\\E....\\Q\u00ef\u0001\\E....\\Q\u00ef\u0001\\E....\\Q\u00f0\\E.)?" +
             "\\Q\u00d1\u0024\u0000\u0066\\E..\\Q\u0085\u00d7\\E";
-    private static final String REVERSE_PATTERN = "(?s)(..).{5}(?:\\Q\u00f1\\E..\\Q\u00f0\\E.)\\Q\u00d0\u0030\\E" +
+    private static final String REVERSE_PATTERN = "(?s)(..).{5}(?:\\Q\u00f1\\E..\\Q\u00f0\\E.)?\\Q\u00d0\u0030\\E" +
             "(?:\\Q\u00ef\u0001\\E....\\Q\u00ef\u0001\\E....\\Q\u00f0\\E.)?" +
             "\\Q\u00d1\u004f\\E..\\Q\u0000\\E(?:..)?\\Q\u00d1\u0048\\E";
     private static final String CLONE_PATTERN = "(?s)(..).{5}(?:\\Q\u00f1\\E..\\Q\u00f0\\E.)?\\Q\u00d0\u0030\\E" +
@@ -697,5 +697,21 @@ class YouTubeSigDecipher {
             return System.currentTimeMillis() - created > MAX_AGE;
         }
     }
+
+    /*
+    public static void main(String[] args) throws Exception {
+        final String cipher = "33849C426A116AD56EE17EA6EB116246CF387CBB.791798FF55D0204F7F4222401C9C48C64CFD0D7800";
+        String swfPath = "/media/DATA/kerja/javaProj/frd/frd/youtube2/watch_as3.swf"; //with debug symbols
+        FileInputStream is = new FileInputStream(swfPath);
+        YouTubeSigDecipher youTubeSigDecipher = new YouTubeSigDecipher(is);
+        String deciphered = youTubeSigDecipher.decipher(cipher);
+
+        swfPath = "/media/DATA/kerja/javaProj/frd/frd/youtube/watch_as3.swf"; //without debug symbols
+        is = new FileInputStream(swfPath);
+        youTubeSigDecipher = new YouTubeSigDecipher(is);
+        logger.info(deciphered);
+        logger.info(youTubeSigDecipher.decipher(cipher));
+    }
+    */
 
 }
