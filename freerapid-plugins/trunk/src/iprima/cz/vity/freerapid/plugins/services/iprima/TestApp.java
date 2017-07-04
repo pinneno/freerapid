@@ -23,8 +23,9 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://autosalon.iprima.cz/videa/mercedes-amg-45-4matic-vs-mercedes-amg-gle-63-4matic-s-coupe"));
             //httpFile.setNewURL(new URL("http://play.iprima.cz/particka/particka-117"));
             //httpFile.setNewURL(new URL("http://play.iprima.cz/helix/helix-ii-13"));
-            //httpFile.setNewURL(new URL("http://play.iprima.cz/extant/extant-ii-1-zmena-scenare")); //account is required
-            httpFile.setNewURL(new URL("http://prima.iprima.cz/prostreno/prostreno-xv-96"));
+            //httpFile.setNewURL(new URL("http://play.iprima.cz/podraz")); //account is required
+            //httpFile.setNewURL(new URL("http://prima.iprima.cz/prostreno/prostreno-xv-96"));
+            httpFile.setNewURL(new URL("http://play.iprima.cz/take-andele-jedi-fazole"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 9150, Proxy.Type.SOCKS); //eg we can use local proxy to sniff HTTP communication

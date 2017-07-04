@@ -59,7 +59,6 @@ class iPrimaFileRunner extends AbstractRunner {
         super.run();
         logger.info("Starting download in TASK " + fileURL);
         setConfig();
-        login();
         HttpMethod method = getGetMethod(fileURL);
         if (makeRedirectedRequest(method)) {
             checkProblems();
@@ -82,24 +81,38 @@ class iPrimaFileRunner extends AbstractRunner {
                     throw new PluginImplementationException("Video ID not found");
                 }
 
-                method = getMediaSelectorMethod(productId, iPrimaPlay);
-                try {
-                    if (!makeRedirectedRequest(method)) {
-                        checkLocationProblems();
-                        checkProblems();
+                int i = 0;
+                boolean succeed = false;
+                do {
+                    method = getMediaSelectorMethod(productId, iPrimaPlay);
+                    try {
+                        try {
+                            if (!makeRedirectedRequest(method)) {
+                                checkLocationProblems();
+                                checkProblems();
+                            }
+                            checkLocationProblems();
+                            checkProblems();
+                        } catch (ErrorDuringDownloadingException e) {
+                            TorProxyClient torClient = TorProxyClient.forCountry("cz", client, getPluginService().getPluginContext().getConfigurationStorageSupport());
+                            if (!torClient.makeRequest(method)) {
+                                checkLocationProblems();
+                                checkProblems();
+                                throw new ServiceConnectionProblemException();
+                            }
+                            checkLocationProblems();
+                            checkProblems();
+                        }
+                        succeed = true;
+                    } catch (ErrorDuringDownloadingException e) {
+                        if (i == 0 && e.getMessage().equals("iPrima account is required")) {
+                            login(); //only login if it's needed to
+                        }
                     }
-                    checkLocationProblems();
-                    checkProblems();
-                } catch (ErrorDuringDownloadingException e) {
-                    TorProxyClient torClient = TorProxyClient.forCountry("cz", client, getPluginService().getPluginContext().getConfigurationStorageSupport());
-                    if (!torClient.makeRequest(method)) {
-                        checkLocationProblems();
-                        checkProblems();
-                        throw new ServiceConnectionProblemException();
-                    }
-                    checkLocationProblems();
-                    checkProblems();
-                }
+                    i++;
+                } while (!(succeed || i >= 2));
+                checkLocationProblems();
+                checkProblems();
 
                 IPrimaVideo selectedVideo = getSelectedVideo(getContentAsString());
                 logger.info("Settings config: " + config);
@@ -154,6 +167,7 @@ class iPrimaFileRunner extends AbstractRunner {
     private IPrimaVideo getSelectedVideo(String videoPlayerContent) throws ErrorDuringDownloadingException {
         Matcher matcher = PlugUtils.matcher("(?s)'?HLS'?:[^}]+?'?src'?\\s*:\\s*'([^']+?)'", videoPlayerContent);
         if (!matcher.find()) {
+            logger.warning(videoPlayerContent);
             throw new PluginImplementationException("HLS playlist not found");
         }
         String sdPlaylist = matcher.group(1); //assume SD
@@ -302,7 +316,10 @@ class iPrimaFileRunner extends AbstractRunner {
         }
 
         boolean isStale() {
-            return System.currentTimeMillis() - created > MAX_AGE;
+            //return System.currentTimeMillis() - created > MAX_AGE;
+            //Under certain circumstances (ip address changes?) login cookies are invalidated,
+            //so it's better to force login if it's needed to
+            return true;
         }
 
         public String getUsername() {
