@@ -86,8 +86,8 @@ class iPrimaFileRunner extends AbstractRunner {
                             }
                             checkLocationProblems();
                             checkProblems();
-                        } catch (ErrorDuringDownloadingException e) {
-                            if (i == 0 && (e instanceof iPrimaGeoLocationException)) {
+                        } catch (iPrimaGeoLocationException e) {
+                            if (i == 0) {
                                 TorProxyClient torClient = TorProxyClient.forCountry("cz", client, getPluginService().getPluginContext().getConfigurationStorageSupport());
                                 if (!torClient.makeRequest(method)) {
                                     checkLocationProblems();
@@ -100,35 +100,9 @@ class iPrimaFileRunner extends AbstractRunner {
                                 throw e;
                             }
                         }
-                        if (getContentAsString().contains("code: 'SLOT_REQUIRED'")) {
-                            String redirectUrl;
-                            try {
-                                redirectUrl = PlugUtils.getStringBetween(getContentAsString(), "redirectUrl: '", "'");
-                            } catch (PluginImplementationException e) {
-                                throw new PluginImplementationException("Slot redirect URL not found");
-                            }
-                            if (!makeRedirectedRequest(getGetMethod(redirectUrl))) {
-                                checkProblems();
-                                throw new ServiceConnectionProblemException();
-                            }
-                            checkProblems();
-
-                            method = getMethodBuilder().setReferer(redirectUrl).setActionFromFormWhereActionContains("/tdi/", true).toPostMethod();
-                            if (!makeRedirectedRequest(method)) {
-                                logger.warning(getContentAsString());
-                                checkProblems();
-                                throw new ServiceConnectionProblemException();
-                            }
-                            checkProblems();
-                            iPrimaPlay = isIPrimaPlay();
-                            productId = getProductId(iPrimaPlay);
-                            succeed = false;
-                            i++;
-                            continue;
-                        }
                         succeed = true;
-                    } catch (ErrorDuringDownloadingException e) {
-                        if (i == 0 && e instanceof iPrimaAccountRequiredException) {
+                    } catch (iPrimaAccountRequiredException e) {
+                        if (i == 0) {
                             //Only login if it's needed to,
                             //if login is failed/no account then there is no point to retry/re-request
                             if (!login()) {
@@ -140,7 +114,7 @@ class iPrimaFileRunner extends AbstractRunner {
                     }
                     i++;
                 }
-                while (!(succeed || i > 2)); //Retry if (the video requires login, and the login succeed) and/or (slot is required)
+                while (!(succeed || i >= 2)); //Retry if the video requires login, and the login succeed
                 checkLocationProblems();
                 checkProblems();
 
@@ -253,6 +227,9 @@ class iPrimaFileRunner extends AbstractRunner {
         if (content.contains("code: 'USER_REQUIRED'")) {
             throw new iPrimaAccountRequiredException("iPrima account is required");
         }
+        if (content.contains("code: 'SLOT_REQUIRED'")) {
+            throw new PluginImplementationException("Device slot is required");
+        }
     }
 
     private void checkLocationProblems() throws iPrimaGeoLocationException {
@@ -301,7 +278,7 @@ class iPrimaFileRunner extends AbstractRunner {
                 .setActionFromFormWhereTagContains("/login/formular", true)
                 .setParameter("email", username)
                 .setParameter("password", password)
-                .setParameter("remember", "true")
+                .setParameter("remember", "false")
                 .toPostMethod();
         if (!makeRedirectedRequest(method)) {
             throw new ServiceConnectionProblemException();
@@ -361,10 +338,7 @@ class iPrimaFileRunner extends AbstractRunner {
         }
 
         boolean isStale() {
-            //return System.currentTimeMillis() - created > MAX_AGE;
-            //Under certain circumstances (ip address changes?) login cookies are invalidated,
-            //so it's better to force login if it's needed to
-            return true;
+            return System.currentTimeMillis() - created > MAX_AGE;            
         }
 
         public String getUsername() {
