@@ -31,11 +31,16 @@ public class TestApp extends PluginDevApplication {
             //connectionSettings.setProxy("localhost", 9150, Proxy.Type.SOCKS); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
             final iPrimaServiceImpl service = new iPrimaServiceImpl(); //instance of service - of our plugin
+            /*
             iPrimaSettingsConfig config = new iPrimaSettingsConfig();
             config.setVideoQuality(VideoQuality._400_1600);
-            //config.setUsername("*****");
-            //config.setPassword("*****");
+            config.setUsername("*****");
+            config.setPassword("*****");
             service.setConfig(config);
+            */
+            service.setPluginContext(getPluginContext());
+            iPrimaSettingsConfig config = service.getConfig();
+
             //runcheck makes the validation
             //setUseTempFiles(true);
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner

@@ -73,14 +73,7 @@ class iPrimaFileRunner extends AbstractRunner {
                 }
             } else {
                 boolean iPrimaPlay = isIPrimaPlay();
-                String productId;
-                try {
-                    productId = (iPrimaPlay ? PlugUtils.getStringBetween(getContentAsString(), "data-product=\"", "\"") :
-                            PlugUtils.getStringBetween(getContentAsString(), "prehravac/embedded?id=", "\""));
-                } catch (PluginImplementationException e) {
-                    throw new PluginImplementationException("Video ID not found");
-                }
-
+                String productId = getProductId(iPrimaPlay);
                 int i = 0;
                 boolean succeed = false;
                 do {
@@ -94,23 +87,60 @@ class iPrimaFileRunner extends AbstractRunner {
                             checkLocationProblems();
                             checkProblems();
                         } catch (ErrorDuringDownloadingException e) {
-                            TorProxyClient torClient = TorProxyClient.forCountry("cz", client, getPluginService().getPluginContext().getConfigurationStorageSupport());
-                            if (!torClient.makeRequest(method)) {
+                            if (i == 0 && (e instanceof iPrimaGeoLocationException)) {
+                                TorProxyClient torClient = TorProxyClient.forCountry("cz", client, getPluginService().getPluginContext().getConfigurationStorageSupport());
+                                if (!torClient.makeRequest(method)) {
+                                    checkLocationProblems();
+                                    checkProblems();
+                                    throw new ServiceConnectionProblemException();
+                                }
                                 checkLocationProblems();
+                                checkProblems();
+                            } else {
+                                throw e;
+                            }
+                        }
+                        if (getContentAsString().contains("code: 'SLOT_REQUIRED'")) {
+                            String redirectUrl;
+                            try {
+                                redirectUrl = PlugUtils.getStringBetween(getContentAsString(), "redirectUrl: '", "'");
+                            } catch (PluginImplementationException e) {
+                                throw new PluginImplementationException("Slot redirect URL not found");
+                            }
+                            if (!makeRedirectedRequest(getGetMethod(redirectUrl))) {
                                 checkProblems();
                                 throw new ServiceConnectionProblemException();
                             }
-                            checkLocationProblems();
                             checkProblems();
+
+                            method = getMethodBuilder().setReferer(redirectUrl).setActionFromFormWhereActionContains("/tdi/", true).toPostMethod();
+                            if (!makeRedirectedRequest(method)) {
+                                logger.warning(getContentAsString());
+                                checkProblems();
+                                throw new ServiceConnectionProblemException();
+                            }
+                            checkProblems();
+                            iPrimaPlay = isIPrimaPlay();
+                            productId = getProductId(iPrimaPlay);
+                            succeed = false;
+                            i++;
+                            continue;
                         }
                         succeed = true;
                     } catch (ErrorDuringDownloadingException e) {
-                        if (i == 0 && e.getMessage().equals("iPrima account is required")) {
-                            login(); //only login if it's needed to
+                        if (i == 0 && e instanceof iPrimaAccountRequiredException) {
+                            //Only login if it's needed to,
+                            //if login is failed/no account then there is no point to retry/re-request
+                            if (!login()) {
+                                throw e;
+                            }
+                        } else {
+                            throw e;
                         }
                     }
                     i++;
-                } while (!(succeed || i >= 2));
+                }
+                while (!(succeed || i > 2)); //Retry if (the video requires login, and the login succeed) and/or (slot is required)
                 checkLocationProblems();
                 checkProblems();
 
@@ -126,6 +156,17 @@ class iPrimaFileRunner extends AbstractRunner {
         }
     }
 
+    private String getProductId(boolean iPrimaPlay) throws PluginImplementationException {
+        String productId;
+        try {
+            productId = (iPrimaPlay ? PlugUtils.getStringBetween(getContentAsString(), "data-product=\"", "\"") :
+                    PlugUtils.getStringBetween(getContentAsString(), "prehravac/embedded?id=", "\""));
+        } catch (PluginImplementationException e) {
+            throw new PluginImplementationException("Video ID not found");
+        }
+        return productId;
+    }
+
     private void adultContentCheck(String content) throws Exception {
         if (content.contains(ADULT_CONTENT_MARKER)) {
             final PostMethod confirmMethod = (PostMethod) getMethodBuilder()
@@ -134,7 +175,11 @@ class iPrimaFileRunner extends AbstractRunner {
                     .setParameter("enter", "enter")
                     .removeParameter("leave")
                     .toPostMethod();
-            makeRedirectedRequest(confirmMethod);
+            if (!makeRedirectedRequest(confirmMethod)) {
+                checkProblems();
+                throw new ServiceConnectionProblemException();
+            }
+            checkProblems();
             if (getContentAsString().contains(ADULT_CONTENT_MARKER)) {
                 throw new PluginImplementationException("Cannot confirm age");
             }
@@ -206,14 +251,14 @@ class iPrimaFileRunner extends AbstractRunner {
             throw new URLNotAvailableAnymoreException("File not found");
         }
         if (content.contains("code: 'USER_REQUIRED'")) {
-            throw new PluginImplementationException("iPrima account is required");
+            throw new iPrimaAccountRequiredException("iPrima account is required");
         }
     }
 
-    private void checkLocationProblems() throws ErrorDuringDownloadingException {
+    private void checkLocationProblems() throws iPrimaGeoLocationException {
         String content = getContentAsString();
         if (content.contains("tento pořad nelze z licenčních důvodů přehrávat mimo Českou republiku")) {
-            throw new PluginImplementationException("This show can not be played outside the Czech Republic due to licensing reasons");
+            throw new iPrimaGeoLocationException("This show can not be played outside the Czech Republic due to licensing reasons");
         }
     }
 
