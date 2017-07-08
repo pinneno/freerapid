@@ -15,10 +15,31 @@ Internal - indicates an internal change - information for FRD developers - nothi
 
 ??? - FreeRapid Downloader 1.0
   Changed : Support for Java 9
-  Changed : many improvements for easier plugins coding
-  Added : editable URLs
-  Added : internal option 'fontSize' to be able increase font size on screen with high resolutions
-  Added : upgraded JTattoo library to the latest version LaF + support for Texture Look and Feel
+  Changed : Many improvements for easier plugins coding
+  Changed : Load history items from database only/max once per session.
+  Added : Editable URLs (optional)
+  Added : Check new items against download history (optional)
+  Added : Internal option 'fontSize' to be able increase font size on screen with high resolutions
+  Added : Upgraded JTattoo library to the latest version LaF + support for Texture Look and Feel
+  Added : Toolbar editor
+  Added : Proxy per plugin
+  Added : Connection settings per download item
+  Added : Plugin settings per download item
+  Added : Queueing download item next to some download item
+  Added : Total downloads, file count in History dialog
+  Added : Multi word filters in History dialog
+  Added : Max concurrent downloads and plugin's max download on overlay panel/popup
+  Added : Explicitly save file to history list (for decrypter)
+  Fixed : Download file renaming
+  Fixed : Parentheses () are valid chars in URL path
+  Fixed : Redirection for POST request
+
+  Behavioral changes:
+  *Remove completed downloads*
+  - In previous version: remove completed downloads (At startup or Immediately) only hides the completed downloads. So if the option is changed to "Never", the previous completed downloads will be shown again.
+  - Current version: remove completed downloads (At startup or Immediately) actually removes the completed downloads. So if the option is changed to "Never", the previous completed downloads will not be shown, only the current and the future completed downloads are shown.
+  All completed downloads still can be accessed via "Download History" window.
+  Reason: the previous version's implementation sometimes produced inconsistence download item's list ordering.
 
 
 18th May 2014 - FreeRapid Downloader 0.9 Update 4
