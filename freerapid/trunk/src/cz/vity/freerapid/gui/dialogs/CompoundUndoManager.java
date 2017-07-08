@@ -57,14 +57,20 @@ public class CompoundUndoManager extends UndoManager implements UndoableEditList
 
         //  Check for an incremental edit, backspace or attribute change
 
-        AbstractDocument.DefaultDocumentEvent event =
-                (AbstractDocument.DefaultDocumentEvent) e.getEdit();
+        final UndoableEdit undoableEdit = e.getEdit();
 
+        boolean isChangeEvent;
+        if (e.getEdit() instanceof AbstractDocument.DefaultDocumentEvent) { //for JDK 8 or less
+            isChangeEvent = DocumentEvent.EventType.CHANGE.equals(((AbstractDocument.DefaultDocumentEvent) undoableEdit).getType());
+        } else {
+            //JDK 9, I didn't find a better way how to detect type
+            isChangeEvent = UIManager.getString("AbstractDocument.styleChangeText").equals(undoableEdit.getPresentationName());
+        }
         //System.out.println(event.getLength());
 
         int diff = editor.getCaretPosition() - lastOffset;
 
-        if (Math.abs(diff) == 1 || event.getType().equals(DocumentEvent.EventType.CHANGE)) {
+        if (Math.abs(diff) == 1 || isChangeEvent) {
             compoundEdit.addEdit(e.getEdit());
             lastOffset += diff;
             return;
