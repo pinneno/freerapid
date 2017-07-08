@@ -405,6 +405,8 @@ final public class UserProp {
     public static final String FILE_URL_EDITABLE = "fileUrlEditable";
     public static final boolean FILE_URL_EDITABLE_DEFAULT = false;
 
+    public static final String UI_FONT_SIZE = "fontSize";
+
 }
 
 

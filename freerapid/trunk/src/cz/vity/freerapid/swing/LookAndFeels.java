@@ -8,6 +8,7 @@ import cz.vity.freerapid.utilities.LogUtils;
 import cz.vity.freerapid.utilities.Utils;
 
 import javax.swing.*;
+import javax.swing.plaf.FontUIResource;
 import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.swing.plaf.metal.MetalTheme;
 import java.awt.*;
@@ -19,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static cz.vity.freerapid.core.UserProp.UI_FONT_SIZE;
 
 /**
  * Nacita definovany look&feel
@@ -87,7 +90,7 @@ public final class LookAndFeels {
             selectedTheme = null;
             if ("system".equals(s)) {
                 selectedLookAndFeelClassName = UIManager.getSystemLookAndFeelClassName();
-            } else if (!"default".equals(s) && s != null && !s.isEmpty()) {
+            } else if (!"default".equals(s) && !s.isEmpty()) {
                 selectedLookAndFeelClassName = s;
             } else
                 selectedLookAndFeelClassName = org.jdesktop.swingx.util.OS.isMacOSX() ? AQUA : DEFAULT_LAF;
@@ -124,7 +127,7 @@ public final class LookAndFeels {
                         return name.endsWith(".jar");
                     }
                 });
-                final int jarsCount = jars.length; //pocet jaru
+                final int jarsCount = jars != null ? jars.length : 0; //pocet jaru
                 final URL[] urls = new URL[jarsCount]; //vytvori pole URL
                 final boolean isDebug = logger.isLoggable(Level.INFO);
                 for (int i = 0; i < jarsCount; ++i) {
@@ -290,13 +293,25 @@ public final class LookAndFeels {
             laf.getClass().getMethod("setCurrentTheme", new Class[]{MetalTheme.class}).invoke(laf, new Object[]{metalTheme});//dynamicke volani metody setCurrentTheme
         }
 
+
+        //laf.getDefaults().put("defaultFont", new Font("Arial", Font.BOLD, 20));
         UIManager.put("ClassLoader", classLoader); //nastavi aktualni classloader UIManagera na nas vytvoreny classloader
         UIManager.setLookAndFeel(laf); //nastavi globalni vzhled
+        final int defaultFontSize = AppPrefs.getProperty(UI_FONT_SIZE, 0);
+        if (defaultFontSize != 0) {
+            final Font font = (Font) UIManager.get("Table.font"); //based on current LaF
+            if (font != null) {
+                setUIFont(new FontUIResource(font.deriveFont((float) defaultFontSize)));
+            } else {
+                logger.warning("Cannot set default font size, default font UI key is not found");
+            }
+        }
         UIManager.put("ClassLoader", classLoader);
 
-        final Font font = (Font) UIManager.get("TitledBorder.font"); //
-        if (font != null) {
-            UIManager.put("TitledBorder.font", font.deriveFont(Font.BOLD));
+
+        final Font titleBorderFont = (Font) UIManager.get("TitledBorder.font"); //
+        if (titleBorderFont != null) {
+            UIManager.put("TitledBorder.font", titleBorderFont.deriveFont(Font.BOLD));
         }
     }
 
@@ -321,6 +336,7 @@ public final class LookAndFeels {
             }
         } else
             initLafWithTheme(lookAndFeelClassName, null);
+//        final Font font = (Font) UIManager.get("TitledBorder.font"); //
     }
 
     /**
@@ -358,7 +374,7 @@ public final class LookAndFeels {
      * Based on the Sun SwingUtilities.updateComponentTreeUI, but ensures that the update happens on the components of a
      * JToolbar before the JToolbar itself.
      */
-    public static void updateComponentTreeUI(final Component c) {
+    private static void updateComponentTreeUI(final Component c) {
         updateComponentTreeUI0(c);
         c.invalidate();
         c.validate();
@@ -402,6 +418,18 @@ public final class LookAndFeels {
                 for (Component aChildren : children) {
                     updateComponentTreeUI0(aChildren);
                 }
+            }
+        }
+    }
+
+
+    private static void setUIFont(FontUIResource f) {
+        java.util.Enumeration keys = UIManager.getDefaults().keys();
+        while (keys.hasMoreElements()) {
+            Object key = keys.nextElement();
+            Object value = UIManager.get(key);
+            if (value != null && value instanceof javax.swing.plaf.FontUIResource) {
+                UIManager.put(key, f);
             }
         }
     }
