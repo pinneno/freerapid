@@ -13,7 +13,7 @@ import cz.vity.freerapid.model.PluginMetaData;
 import cz.vity.freerapid.plugins.webclient.DownloadState;
 import cz.vity.freerapid.swing.Swinger;
 import cz.vity.freerapid.utilities.LogUtils;
-import cz.vity.freerapid.xmlimport.ver1.Plugin;
+import cz.vity.freerapid.xmlimport.ver2.Plugin;
 import org.java.plugin.registry.Version;
 import org.jdesktop.application.ApplicationContext;
 import org.jdesktop.application.Task;

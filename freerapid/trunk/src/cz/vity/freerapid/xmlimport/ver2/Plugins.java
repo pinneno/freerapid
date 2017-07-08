@@ -1,6 +1,9 @@
-package cz.vity.freerapid.xmlimport.ver1;
+package cz.vity.freerapid.xmlimport.ver2;
 
-import javax.xml.bind.annotation.*;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,15 +25,17 @@ import java.util.List;
  * &lt;/complexType>
  * </pre>
  */
-@XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "", propOrder = {
-        "plugin"
-        })
-@XmlRootElement(name = "plugins")
+
+@JacksonXmlRootElement(localName = "plugins")
 public class Plugins {
 
-    @XmlElement(required = true)
-    protected List<Plugin> plugin;
+    @JacksonXmlProperty(localName = "plugin")
+    @JacksonXmlElementWrapper(useWrapping = false)
+    protected List<Plugin> plugin = new ArrayList<Plugin>();
+
+
+    public Plugins() {
+    }
 
     /**
      * Gets the value of the plugin property.
@@ -53,18 +58,10 @@ public class Plugins {
      * {@link Plugin }
      */
     public List<Plugin> getPlugin() {
-        if (plugin == null) {
-            plugin = new ArrayList<Plugin>();
-        }
-        return this.plugin;
+        return plugin;
     }
 
-    public boolean isSetPlugin() {
-        return ((this.plugin != null) && (!this.plugin.isEmpty()));
+    public void setPlugin(List<Plugin> plugin) {
+        this.plugin = plugin;
     }
-
-    public void unsetPlugin() {
-        this.plugin = null;
-    }
-
 }

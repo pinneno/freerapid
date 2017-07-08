@@ -112,6 +112,23 @@ public class PluginsManager {
             final ShadingPathResolver resolver = new ShadingPathResolver() {
                 @Override
                 protected URL maybeJarUrl(URL url) throws MalformedURLException {
+                    /*
+                     * The original method uses toLowerCase(Locale.getDefault()).
+                     * All classes with these issues: StandardPathResolver, ShadingPathResolver, StandardPluginLocation
+                     */
+                    if ("jar".equalsIgnoreCase(url.getProtocol())) {
+                        return url;
+                    }
+                    File file = IoUtil.url2file(url);
+                    if ((file == null) || !file.isFile()) {
+                        return url;
+                    }
+                    String fileName = file.getName().toLowerCase(Locale.ROOT);
+                    if (fileName.endsWith(".jar")
+                            || fileName.endsWith(".zip")
+                            ) {
+                        return new URL("jar:" + IoUtil.file2url(file).toExternalForm() + "!/");
+                    }
                     return url;
                 }
             };

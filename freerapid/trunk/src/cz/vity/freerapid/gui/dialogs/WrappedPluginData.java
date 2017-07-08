@@ -1,7 +1,7 @@
 package cz.vity.freerapid.gui.dialogs;
 
 import cz.vity.freerapid.model.DownloadFile;
-import cz.vity.freerapid.xmlimport.ver1.Plugin;
+import cz.vity.freerapid.xmlimport.ver2.Plugin;
 
 /**
  * @author Ladislav Vitasek
