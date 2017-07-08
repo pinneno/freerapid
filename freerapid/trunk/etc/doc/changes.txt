@@ -13,6 +13,14 @@ Fixed - indicates a bug fix
 Internal - indicates an internal change - information for FRD developers - nothing important for users
 
 
+??? - FreeRapid Downloader 1.0
+  Changed : Support for Java 9
+  Changed : many improvements for easier plugins coding
+  Added : editable URLs
+  Added : internal option 'fontSize' to be able increase font size on screen with high resolutions
+  Added : upgraded JTattoo library to the latest version LaF + support for Texture Look and Feel
+
+
 18th May 2014 - FreeRapid Downloader 0.9 Update 4
   Fixed: Recent files combobox uses MRU [by Tong2Shot - thanks!]
   Fixed : widen up main frame's status bar's info label a bit as it got truncated on some LaFs that use bold font.

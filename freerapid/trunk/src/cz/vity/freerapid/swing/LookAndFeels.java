@@ -149,30 +149,32 @@ public final class LookAndFeels {
      * @return seznam
      */
     public final java.util.List<LaF> getAvailableLookAndFeels() {
-        if (availableLaFs == null) {
-            availableLaFs = new ArrayList<LaF>();
-            final Properties properties = Utils.loadProperties(Consts.LAFSDIRFILE, true);
-            final String namePostfix = ".name", themePostfix = ".theme", opaquePostfix = ".opaque", alonePostfix = ".alone";
-            final String[] lafs = properties.getProperty("lafs", "").split("\\|");
-            String className, theme, nameLaF, themeCode, themeName;
-            boolean opaque;
-            for (String lafID : lafs) {
-                className = properties.getProperty(lafID + ".class");
-                if (className != null && isPresent(className) != null) {
-                    opaque = "true".equals(properties.getProperty(lafID + opaquePostfix, "true"));
-                    int themeCounter = -1;
-                    nameLaF = properties.getProperty(lafID + namePostfix, className);
-                    if ("true".equals(properties.getProperty(lafID + alonePostfix, "true")))
-                        availableLaFs.add(new LaF(className, nameLaF, "", opaque));
-                    while (!(theme = properties.getProperty(themeCode = (lafID + themePostfix + ++themeCounter), "")).isEmpty()) {
-                        if (isPresent(theme) != null) {
-                            themeName = nameLaF + " - " + properties.getProperty(themeCode + namePostfix, " - theme");
-                            availableLaFs.add(new LaF(className, themeName, theme, opaque));
-                        }
+        if (availableLaFs != null) {
+            return availableLaFs;
+        }
+        availableLaFs = new ArrayList<LaF>();
+        final Properties properties = Utils.loadProperties(Consts.LAFSDIRFILE, true);
+        final String namePostfix = ".name", themePostfix = ".theme", opaquePostfix = ".opaque", alonePostfix = ".alone";
+        final String[] lafs = properties.getProperty("lafs", "").split("\\|");
+        String className, theme, nameLaF, themeCode, themeName;
+        boolean opaque;
+        for (String lafID : lafs) {
+            className = properties.getProperty(lafID + ".class");
+            if (className != null && isPresent(className) != null) {
+                opaque = "true".equals(properties.getProperty(lafID + opaquePostfix, "true"));
+                int themeCounter = -1;
+                nameLaF = properties.getProperty(lafID + namePostfix, className);
+                if ("true".equals(properties.getProperty(lafID + alonePostfix, "true")))
+                    availableLaFs.add(new LaF(className, nameLaF, "", opaque));
+                while (!(theme = properties.getProperty(themeCode = (lafID + themePostfix + ++themeCounter), "")).isEmpty()) {
+                    if (isPresent(theme) != null) {
+                        themeName = nameLaF + " - " + properties.getProperty(themeCode + namePostfix, " - theme");
+                        availableLaFs.add(new LaF(className, themeName, theme, opaque));
                     }
                 }
             }
         }
+
         //final String crossSystem = UIManager.getSystemLookAndFeelClassName();
         //availableLaFs.add(new LaF(crossSystem, "System", "", false));
         return availableLaFs;
