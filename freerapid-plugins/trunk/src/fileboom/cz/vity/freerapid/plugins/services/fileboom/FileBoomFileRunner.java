@@ -63,7 +63,11 @@ class FileBoomFileRunner extends AbstractRunner {
             checkProblems();
 
             String dlLink;
-            if (!getContentAsString().contains("window.location.href")) {
+            if (getContentAsString().contains("window.location.href")) {
+                dlLink = getMethodBuilder().setReferer(fileURL).setActionFromTextBetween("window.location.href = '", "'").getEscapedURI();
+            } else if (getContentAsString().contains("id=\"yw0\" href=")) {
+                dlLink = getMethodBuilder().setReferer(fileURL).setActionFromTextBetween("id=\"yw0\" href=\"", "\"").getEscapedURI();
+            } else {
                 final String uniqueId = PlugUtils.getStringBetween(getContentAsString(), "uniqueId\" value=\"", "\"");
                 do {
                     final HttpMethod bMethod = doCaptcha(getMethodBuilder()
@@ -92,8 +96,6 @@ class FileBoomFileRunner extends AbstractRunner {
                 checkProblems();
 
                 dlLink = getMethodBuilder().setReferer(fileURL).setActionFromAHrefWhereATagContains("this").getEscapedURI();
-            } else {
-                dlLink = getMethodBuilder().setReferer(fileURL).setActionFromTextBetween("window.location.href = '", "'").getEscapedURI();
             }
             final HttpMethod httpMethod = getGetMethod(dlLink);
 

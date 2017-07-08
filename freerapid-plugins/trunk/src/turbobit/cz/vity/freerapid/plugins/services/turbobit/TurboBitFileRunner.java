@@ -102,10 +102,18 @@ public class TurboBitFileRunner extends AbstractRunner {
             if (getContentAsString().contains("Error: 2965")) {
                 throw new PluginImplementationException("Plugin is broken");
             }
-
+            Matcher match = getMatcherAgainstContent("<a[^>]+href=['\"]([^'\"]+)['\"][^>]+>Download");
+            try {
+                do { match.find();
+                } while (match.group(1).contains("/started/"));
+            } catch (Exception x) {
+                match = getMatcherAgainstContent("['\"]([^'\"]*/redirect/[^'\"]+)['\"]");
+                if (!match.find())
+                    throw new PluginImplementationException("Download link not found");
+            }
             method = getMethodBuilder()
                     .setReferer(ref)
-                    .setActionFromAHrefWhereATagContains("Download")
+                    .setAction(match.group(1))
                     .toGetMethod();
             if (!tryDownloadAndSaveFile(method)) {
                 checkProblems();

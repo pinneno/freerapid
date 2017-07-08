@@ -67,7 +67,7 @@ class FileFactoryFileRunner extends AbstractRunner {
 
             final HttpMethod httpMethod = getMethodBuilder()
                     .setReferer(fileURL)
-                    .setActionFromAHrefWhereATagContains("Download with FileFactory")
+                    .setActionFromAHrefWhereATagContains("Download")
                     .toGetMethod();
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();
