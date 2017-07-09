@@ -16,7 +16,10 @@ Internal - indicates an internal change - information for FRD developers - nothi
 ??? - FreeRapid Downloader 1.0
   Changed : Support for Java 9
   Changed : Many improvements for easier plugins coding
-  Changed : Load history items from database only/max once per session.
+  Changed : Load history items from database only/max once per session
+  Changed : Year is included in main table and history table tooltip as default
+  Changed : Update ObjectDB to version 2.7.1
+  Changed : Update Jackson to version 2.8.9
   Added : Editable URLs (optional)
   Added : Check new items against download history (optional)
   Added : Internal option 'fontSize' to be able increase font size on screen with high resolutions
@@ -25,14 +28,20 @@ Internal - indicates an internal change - information for FRD developers - nothi
   Added : Proxy per plugin
   Added : Connection settings per download item
   Added : Plugin settings per download item
+  Added : Plugin settings is available on popup/context menu
   Added : Queueing download item next to some download item
   Added : Total downloads, file count in History dialog
   Added : Multi word filters in History dialog
   Added : Max concurrent downloads and plugin's max download on overlay panel/popup
   Added : Explicitly save file to history list (for decrypter)
+  Added : Support to create child directories for container
+  Added : Preferences option to view completed % in progress bar column
   Fixed : Download file renaming
   Fixed : Parentheses () are valid chars in URL path
   Fixed : Redirection for POST request
+  Fixed : Download history table sort for file size and avg speed
+  Fixed : Search on demand functionality and the flickering
+  Fixed : Crypto restrictions removal for Java7 and Java8
 
   Behavioral changes:
   *Remove completed downloads*
