@@ -18,6 +18,7 @@ import java.awt.event.KeyListener;
 /**
  * @author Vity
  */
+@SuppressWarnings("WeakerAccess")
 abstract class FindOnDemandAction extends AbstractAction implements DocumentListener, KeyListener {
     protected JPanel searchPanel;
     protected JTextField searchField;
@@ -68,8 +69,8 @@ abstract class FindOnDemandAction extends AbstractAction implements DocumentList
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
     }
 
-    protected JComponent comp = null;
-    protected boolean ignoreCase;
+    private JComponent comp = null;
+    boolean ignoreCase;
 
     /*-------------------------------------------------[ ActionListener ]---------------------------------------------------*/
 
@@ -80,7 +81,7 @@ abstract class FindOnDemandAction extends AbstractAction implements DocumentList
             if (!initialized)
                 initPanels();
             comp = (JComponent) ae.getSource();
-            ignoreCase = !((ae.getModifiers() & ActionEvent.SHIFT_MASK) != 0);
+            ignoreCase = (ae.getModifiers() & ActionEvent.SHIFT_MASK) == 0;
 
             searchField.removeActionListener(this);
             searchField.removeKeyListener(this);
@@ -157,7 +158,7 @@ abstract class FindOnDemandAction extends AbstractAction implements DocumentList
             if (e.isActionKey())
                 return;
             final String s = String.valueOf(e.getKeyChar());
-            if ((e.getModifiers() == 0 || e.isShiftDown()) && (Character.isLetterOrDigit(e.getKeyChar()) || s.matches("\\p{Punct}"))) {
+            if ((e.getModifiersEx() == 0 || e.isShiftDown()) && (Character.isLetterOrDigit(e.getKeyChar()) || s.matches("\\p{Punct}"))) {
                 actionPerformed(new ActionEvent(e.getSource(), e.getID(), "press"));
                 searchField.setText(s);
             }
@@ -171,8 +172,8 @@ abstract class FindOnDemandAction extends AbstractAction implements DocumentList
 
     public void install(JComponent comp) {
         comp.addKeyListener(this);
-        comp.registerKeyboardAction(this, KeyStroke.getKeyStroke('F', KeyEvent.CTRL_MASK), JComponent.WHEN_FOCUSED);
-        comp.registerKeyboardAction(this, KeyStroke.getKeyStroke('F', KeyEvent.CTRL_MASK | KeyEvent.SHIFT_MASK), JComponent.WHEN_FOCUSED);
+        comp.registerKeyboardAction(this, KeyStroke.getKeyStroke('F', KeyEvent.CTRL_DOWN_MASK), JComponent.WHEN_FOCUSED);
+        comp.registerKeyboardAction(this, KeyStroke.getKeyStroke('F', KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK), JComponent.WHEN_FOCUSED);
     }
 
     public void uninstall(JComponent comp) {
