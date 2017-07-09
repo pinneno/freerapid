@@ -1048,7 +1048,7 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
             valueDate.setTimeInMillis((Long) value);
             Long time = valueDate.getTime().getTime();
             value = millisToString((Long) value);
-            setToolTipText(String.format(dateFormat + " %tH:%tM", time, time));
+            setToolTipText(String.format("%1$tY " + dateFormat + " %tH:%tM", time, time));
             this.setHorizontalAlignment(CENTER);
             return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
         }

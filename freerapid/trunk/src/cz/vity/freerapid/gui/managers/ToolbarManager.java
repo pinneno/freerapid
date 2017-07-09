@@ -229,7 +229,7 @@ public class ToolbarManager implements PropertyChangeListener {
 
     private void addToolbarButtons() {
         final String customButtons = AppPrefs.getProperty(UserProp.CUSTOM_TOOLBAR_BUTTONS, UserProp.CUSTOM_TOOLBAR_BUTTONS_DEFAULT);
-        for (char button : customButtons.toUpperCase().toCharArray()) {
+        for (char button : customButtons.toCharArray()) {
             if (button == '-') {
                 toolbar.add(new ToolbarSeparator());
             } else if (button == 'W') {

@@ -33,7 +33,7 @@ class DateCellRenderer extends DefaultTableCellRenderer {
             } else {
                 value = millisToString(dateInserted);
                 final long time = dateInserted.getTime();
-                setToolTipText(String.format(dateFormat + " %tH:%tM", time, time));
+                setToolTipText(String.format("%1$tY " + dateFormat + " %tH:%tM", time, time));
             }
         }
         this.setHorizontalAlignment(CENTER);

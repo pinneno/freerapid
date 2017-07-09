@@ -37,8 +37,8 @@ public class ToolbarDialog extends AppDialog {
 
     public ToolbarDialog(JFrame owner) throws Exception {
         super(owner, true);
-        defaultToolbarString = UserProp.CUSTOM_TOOLBAR_BUTTONS_DEFAULT.toUpperCase();
-        currentToolbarString = AppPrefs.getProperty(UserProp.CUSTOM_TOOLBAR_BUTTONS, UserProp.CUSTOM_TOOLBAR_BUTTONS_DEFAULT).toUpperCase();
+        defaultToolbarString = UserProp.CUSTOM_TOOLBAR_BUTTONS_DEFAULT;
+        currentToolbarString = AppPrefs.getProperty(UserProp.CUSTOM_TOOLBAR_BUTTONS, UserProp.CUSTOM_TOOLBAR_BUTTONS_DEFAULT);
         newToolbarString = currentToolbarString;
         this.setName("ToolbarDialog");
         toolbarManager = MainApp.getInstance(MainApp.class).getManagerDirector().getToolbarManager();
@@ -341,7 +341,7 @@ public class ToolbarDialog extends AppDialog {
         @Override
         public void valueChanged(ListSelectionEvent e) {
             setToolbarListSelected((toolbarList.getSelectedIndex() >= 0) && (toolbarList.getSelectedIndex() < toolbarModel.size()-1));
-            setFunctionListSelected((functionsList.getSelectedIndex() >= 0) && (functionsList.getSelectedIndex() < functionModel.size() - 1));
+            setFunctionListSelected((functionsList.getSelectedIndex() >= 0) && (functionsList.getSelectedIndex() < functionModel.size()));
         }
     }
 
