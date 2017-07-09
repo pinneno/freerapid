@@ -32,7 +32,7 @@ abstract class FindOnDemandAction extends AbstractAction implements DocumentList
 
     private void initPanels() {
         searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        searchField = new JTextField();
+        searchField = new JTextField(20);//20 chars for preffered size
         popup = new JPopupMenu();
 
         searchPanel.setBackground(UIManager.getColor("ToolTip.background")); //NOI18N
@@ -105,8 +105,8 @@ abstract class FindOnDemandAction extends AbstractAction implements DocumentList
 
     private void changed(Position.Bias bias) {
         // note: popup.pack() doesn't work for first character insert
-        popup.setVisible(false);
-        popup.setVisible(true);
+//        popup.setVisible(false);
+//        popup.setVisible(true);
 
         searchField.requestFocus();
         searchField.setForeground(changed(comp, searchField.getText(), bias) ? Color.black : Color.red);
