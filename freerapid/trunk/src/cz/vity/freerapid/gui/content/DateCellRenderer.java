@@ -18,7 +18,7 @@ class DateCellRenderer extends DefaultTableCellRenderer {
     private final String dateFormat;
 
     DateCellRenderer() {
-        dateFormat = AppPrefs.getProperty(UserProp.CONTENT_TABLE_DATE_FORMAT, "%1$tB %1$te");
+        dateFormat = AppPrefs.getProperty(UserProp.CONTENT_TABLE_DATE_FORMAT, "%1$tY %1$tB %1$te");
     }
 
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -33,7 +33,7 @@ class DateCellRenderer extends DefaultTableCellRenderer {
             } else {
                 value = millisToString(dateInserted);
                 final long time = dateInserted.getTime();
-                setToolTipText(String.format("%1$tY " + dateFormat + " %tH:%tM", time, time));
+                setToolTipText(String.format(dateFormat + " %tH:%tM", time, time));
             }
         }
         this.setHorizontalAlignment(CENTER);
