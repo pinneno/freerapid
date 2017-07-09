@@ -36,11 +36,16 @@ Internal - indicates an internal change - information for FRD developers - nothi
 
   Behavioral changes:
   *Remove completed downloads*
-  - In previous version: remove completed downloads (At startup or Immediately) only hides the completed downloads. So if the option is changed to "Never", the previous completed downloads will be shown again.
-  - Current version: remove completed downloads (At startup or Immediately) actually removes the completed downloads. So if the option is changed to "Never", the previous completed downloads will not be shown, only the current and the future completed downloads are shown.
+  - In previous version: remove completed downloads (At startup or Immediately) only hides the completed downloads.
+    So if the option is changed to "Never", the previous completed downloads will be shown again.
+  - Current version: remove completed downloads (At startup or Immediately) actually removes the completed downloads.
+    So if the option is changed to "Never", the previous completed downloads will not be shown,
+    only the current and the future completed downloads are shown.
   All completed downloads still can be accessed via "Download History" window.
   Reason: the previous version's implementation sometimes produced inconsistence download item's list ordering.
 
+ *Use temporary .part files while downloading*
+  - creating .part files is disabled by default
 
 18th May 2014 - FreeRapid Downloader 0.9 Update 4
   Fixed: Recent files combobox uses MRU [by Tong2Shot - thanks!]

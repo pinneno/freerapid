@@ -19,7 +19,7 @@ final public class UserProp {
     public static final String LAST_USED_FOLDER_EXPORT = "lastUsedFolderExport";
 
     public static final String USE_TEMPORARY_FILES = "useTemporaryFiles";
-    public static final boolean USE_TEMPORARY_FILES_DEFAULT = true;
+    public static final boolean USE_TEMPORARY_FILES_DEFAULT = false;
 
     public static final String DOWNLOAD_ON_APPLICATION_START = "downloadOnStart";
     public static final boolean DOWNLOAD_ON_APPLICATION_START_DEFAULT = true;
