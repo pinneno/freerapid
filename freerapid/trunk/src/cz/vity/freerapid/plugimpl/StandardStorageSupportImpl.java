@@ -86,4 +86,9 @@ public class StandardStorageSupportImpl implements ConfigurationStorageSupport {
         }
     }
 
+    @Override
+    public File getConfigDirectory() {
+        return context.getLocalStorage().getDirectory();
+    }
+
 }

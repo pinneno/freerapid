@@ -189,4 +189,9 @@ public class StandardDialogSupportImpl implements DialogSupport {
         passwordResult = (String) JOptionPane.showInputDialog(parentComponent, context.getResourceMap(DownloadTask.class).getString("FileIsPasswordProtected", name), context.getResourceMap(DownloadTask.class).getString("InsertPassword"), JOptionPane.PLAIN_MESSAGE, null, null, null);
     }
 
+    @Override
+    public Object getDialogLock() {
+        return captchaLock;
+    }
+
 }

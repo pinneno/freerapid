@@ -50,7 +50,7 @@ public interface DialogSupport {
      * @param dialogTitle title for dialog
      * @throws Exception if something went wrong or thread was interrupted
      */
-    public void showOKDialog(Component container, String dialogTitle) throws Exception;
+    void showOKDialog(Component container, String dialogTitle) throws Exception;
 
     /**
      * Shows default simple input dialog for getting input from user.
@@ -59,7 +59,7 @@ public interface DialogSupport {
      * @return returns string given from user - returns null if user cancelled dialog; method can return empty string
      * @throws Exception if something went wrong or thread was interrupted
      */
-    public String askForCaptcha(final BufferedImage image) throws Exception;
+    String askForCaptcha(final BufferedImage image) throws Exception;
 
     /**
      * Shows default simple input dialog for getting input from user.
@@ -69,6 +69,14 @@ public interface DialogSupport {
      * @throws Exception if something went wrong or thread was interrupted
      * @since 0.84
      */
-    public String askForPassword(final String name) throws Exception;
+    String askForPassword(final String name) throws Exception;
+
+    /**
+     * Returns the dialog lock object. Synchronize on this object while displaying custom dialogs to prevent displaying multiple dialogs at the same time.
+     *
+     * @return the dialog lock object
+     * @since 1.0
+     */
+    Object getDialogLock();
 
 }
