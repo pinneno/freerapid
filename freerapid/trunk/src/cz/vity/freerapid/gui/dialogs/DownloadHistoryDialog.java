@@ -1038,7 +1038,7 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
 
         private DateCellRenderer(ResourceMap map) {
             this.yesterday = map.getString("yesterday");
-            this.dateFormat = AppPrefs.getProperty(UserProp.HISTORY_TABLE_DATE_FORMAT, "%1$tB %1$te");
+            this.dateFormat = AppPrefs.getProperty(UserProp.HISTORY_TABLE_DATE_FORMAT, "%1$tY %1$tB %1$te");
         }
 
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -1048,7 +1048,7 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
             valueDate.setTimeInMillis((Long) value);
             Long time = valueDate.getTime().getTime();
             value = millisToString((Long) value);
-            setToolTipText(String.format("%1$tY " + dateFormat + " %tH:%tM", time, time));
+            setToolTipText(String.format(dateFormat + " %tH:%tM", time, time));
             this.setHorizontalAlignment(CENTER);
             return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
         }
