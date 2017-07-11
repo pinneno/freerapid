@@ -11,6 +11,7 @@ import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -24,7 +25,6 @@ import java.util.regex.Matcher;
  */
 class iPrimaFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(iPrimaFileRunner.class.getName());
-    private final static Map<Class<?>, LoginData> LOGIN_CACHE = new WeakHashMap<Class<?>, LoginData>(2);
     private final static String DEFAULT_EXT = ".ts";
     private final static String ADULT_CONTENT_MARKER = "/rodicovska-kontrola/formular";
     private iPrimaSettingsConfig config;
@@ -100,6 +100,33 @@ class iPrimaFileRunner extends AbstractRunner {
                                 throw e;
                             }
                         }
+                        if (getContentAsString().contains("code: 'SLOT_REQUIRED'")) {
+                            logger.info("Requesting slot");
+                            String redirectUrl;
+                            try {
+                                redirectUrl = PlugUtils.getStringBetween(getContentAsString(), "redirectUrl: '", "'");
+                            } catch (PluginImplementationException e) {
+                                throw new PluginImplementationException("Slot redirect URL not found");
+                            }
+                            if (!makeRedirectedRequest(getGetMethod(redirectUrl))) {
+                                checkProblems();
+                                throw new ServiceConnectionProblemException();
+                            }
+                            checkProblems();
+
+                            method = getMethodBuilder().setReferer(redirectUrl).setActionFromFormWhereActionContains("/tdi/", true).toPostMethod();
+                            if (!makeRedirectedRequest(method)) {
+                                logger.warning(getContentAsString());
+                                checkProblems();
+                                throw new ServiceConnectionProblemException();
+                            }
+                            checkProblems();
+                            iPrimaPlay = isIPrimaPlay();
+                            productId = getProductId(iPrimaPlay);
+                            succeed = false;
+                            i++;
+                            continue;
+                        }
                         succeed = true;
                     } catch (iPrimaAccountRequiredException e) {
                         if (i == 0) {
@@ -114,7 +141,7 @@ class iPrimaFileRunner extends AbstractRunner {
                     }
                     i++;
                 }
-                while (!(succeed || i >= 2)); //Retry if the video requires login, and the login succeed
+                while (!(succeed || i > 2)); //Retry if the video requires login, and the login succeed
                 checkLocationProblems();
                 checkProblems();
 
@@ -227,9 +254,6 @@ class iPrimaFileRunner extends AbstractRunner {
         if (content.contains("code: 'USER_REQUIRED'")) {
             throw new iPrimaAccountRequiredException("iPrima account is required");
         }
-        if (content.contains("code: 'SLOT_REQUIRED'")) {
-            throw new PluginImplementationException("Device slot is required");
-        }
     }
 
     private void checkLocationProblems() throws iPrimaGeoLocationException {
@@ -244,22 +268,27 @@ class iPrimaFileRunner extends AbstractRunner {
             String username = config.getUsername();
             String password = config.getPassword();
             if (config == null || username == null || username.isEmpty()) {
-                LOGIN_CACHE.remove(getClass());
                 logger.info("No account data set, skipping login");
                 return false;
             }
-            final LoginData loginData = LOGIN_CACHE.get(getClass());
-            if (loginData == null || !username.equals(loginData.getUsername()) || loginData.isStale()) {
+            if (config.getSessionCookies() == null || !username.equals(config.getSessionUsername()) || !password.equals(config.getSessionPassword())) {
                 logger.info("Logging in");
                 doLogin(username, password);
                 final Cookie[] cookies = getCookies();
                 if ((cookies == null) || (cookies.length == 0)) {
                     throw new PluginImplementationException("Login cookies not found");
                 }
-                LOGIN_CACHE.put(getClass(), new LoginData(username, password, cookies));
+                long created = System.currentTimeMillis();
+                config.setSessionCookies(cookies);
+                config.setSessionUsername(username);
+                config.setSessionPassword(password);
+                config.setSessionCreated(created);
+                logger.info("Create session on: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(created)));
+                getPluginService().getPluginContext().getConfigurationStorageSupport().storeConfigToFile(config, iPrimaServiceImpl.CONFIG_FILE);
             } else {
                 logger.info("Login data cache hit");
-                client.getHTTPClient().getState().addCookies(loginData.getCookies());
+                logger.info("Session was created on: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(config.getSessionCreated())));
+                client.getHTTPClient().getState().addCookies(config.getSessionCookies());
             }
             return true;
         }
@@ -278,7 +307,7 @@ class iPrimaFileRunner extends AbstractRunner {
                 .setActionFromFormWhereTagContains("/login/formular", true)
                 .setParameter("email", username)
                 .setParameter("password", password)
-                .setParameter("remember", "false")
+                .setParameter("remember", "true")
                 .toPostMethod();
         if (!makeRedirectedRequest(method)) {
             throw new ServiceConnectionProblemException();
@@ -321,37 +350,4 @@ class iPrimaFileRunner extends AbstractRunner {
                     '}';
         }
     }
-
-
-    private class LoginData {
-        private final static long MAX_AGE = 86400000; //1 day
-        private final long created;
-        private final String username;
-        private final String password;
-        private final Cookie[] cookies;
-
-        LoginData(final String username, final String password, final Cookie[] cookies) {
-            this.created = System.currentTimeMillis();
-            this.username = username;
-            this.password = password;
-            this.cookies = cookies;
-        }
-
-        boolean isStale() {
-            return System.currentTimeMillis() - created > MAX_AGE;            
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public Cookie[] getCookies() {
-            return cookies;
-        }
-    }
-
 }

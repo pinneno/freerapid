@@ -18,6 +18,7 @@ import java.beans.XMLEncoder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
@@ -149,7 +150,7 @@ public abstract class XFileSharingRunner extends AbstractRunner {
         HttpMethod method = getGetMethod(fileURL);
         int httpStatus = client.makeRequest(method, false);
         if (httpStatus / 100 == 3) {
-            if (handleDirectDownload(method)) {
+            if (handleRedirection(method)) {
                 return;
             }
         } else if (httpStatus != 200) {
@@ -208,10 +209,51 @@ public abstract class XFileSharingRunner extends AbstractRunner {
     }
 
     /**
+     * Handle redirection for the first request
+     * <p>
+     * Any redirection can be handled, but in general it's for http -> https redirection.
+     * For other redirections (redirect to new (sub)domain for example), it's better to correct fileURL
+     * by overriding {@link #correctURL()}.
+     *
+     * @param method method to be checked/handled its redirection
+     * @return true if it's handled as direct download, otherwise false
+     * @throws Exception when there's file problem, connection problem, etc
+     */
+    protected boolean handleRedirection(HttpMethod method) throws Exception {
+        HttpMethod redirectMethod = redirectToLocation(method);
+        String location = redirectMethod.getURI().getEscapedURI();
+        //check whether it's http -> https redirection
+        if (location.replaceFirst("^https?://", "").equals(fileURL.replaceFirst("^https?://", ""))) {
+            logger.info("http -> https redirection");
+            fileURL = location;
+            int httpStatus = client.makeRequest(redirectMethod, false);
+            if (httpStatus / 100 == 3) {
+                return handleDirectDownload(redirectMethod);
+            } else if (httpStatus != 200) {
+                checkFileProblems();
+                throw new ServiceConnectionProblemException();
+            }
+            return false;
+        } else { //not http -> https redirection, so it's direct download
+            return handleDirectDownload(method);
+        }
+    }
+
+    @Override
+    protected String getBaseURL() {
+        try {
+            URL url = new URL(fileURL);
+            return url.getProtocol() + "://" + url.getAuthority();
+        } catch (MalformedURLException e) {
+            return super.getBaseURL();
+        }
+    }
+
+    /**
      * Handle direct download
      *
      * @param method HttpMethod to be passed on to the next step
-     * @return true if the file was downloaded, false otherwise
+     * @return true if it's handled as direct download, false otherwise
      * @throws Exception something goes wrong
      */
     protected boolean handleDirectDownload(HttpMethod method) throws Exception {
@@ -606,7 +648,7 @@ public abstract class XFileSharingRunner extends AbstractRunner {
 
     /**
      * Load download link data from XML string
-     * <p>     
+     * <p>
      * In the future, can be simplified with: {@link cz.vity.freerapid.plugins.webclient.AbstractFileShareService#loadConfigFromString(String, Class)} call
      *
      * @param content XML string representation of download link data
@@ -635,7 +677,7 @@ public abstract class XFileSharingRunner extends AbstractRunner {
 
     /**
      * Convert download link data to XML string
-     * <p>     
+     * <p>
      * In the future, can be simplified with: {@link cz.vity.freerapid.plugins.webclient.AbstractFileShareService#convertConfigToString(Object)} call
      *
      * @param object Downlink link data object

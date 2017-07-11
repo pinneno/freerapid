@@ -13,7 +13,7 @@ import java.util.logging.Logger;
  * @author JPEXS
  */
 public class iPrimaServiceImpl extends AbstractFileShareService {
-    private static final String CONFIG_FILE = "iPrimaSettings.xml";
+    static final String CONFIG_FILE = "iPrimaSettings.xml";
     private static final Logger logger = Logger.getLogger(iPrimaServiceImpl.class.getName());
     private volatile iPrimaSettingsConfig config;
 

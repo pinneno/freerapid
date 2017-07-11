@@ -48,13 +48,15 @@ class iPrimaSettingsPanel extends JPanel {
         final JTextField txtfldUsername = new JTextField(40);
         final JLabel lblPassword = new JLabel("Password:");
         final JPasswordField pswdfldPassword = new JPasswordField(40);
+        final JButton btnClearSlotData = new JButton("Clear session data");
 
         lblUsername.setAlignmentX(Component.LEFT_ALIGNMENT);
         txtfldUsername.setAlignmentX(Component.LEFT_ALIGNMENT);
         lblPassword.setAlignmentX(Component.LEFT_ALIGNMENT);
         pswdfldPassword.setAlignmentX(Component.LEFT_ALIGNMENT);
-        txtfldUsername.setMaximumSize(new Dimension(1000, 24));
-        pswdfldPassword.setMaximumSize(new Dimension(1000, 24));
+        btnClearSlotData.setAlignmentX(Component.LEFT_ALIGNMENT);
+        txtfldUsername.setMaximumSize(new Dimension(500, 24));
+        pswdfldPassword.setMaximumSize(new Dimension(500, 24));
 
         txtfldUsername.setText(config.getUsername());
         pswdfldPassword.setText(config.getPassword());
@@ -82,12 +84,23 @@ class iPrimaSettingsPanel extends JPanel {
                 config.setPassword((pswdfldPassword.getPassword().length == 0) ? null : new String(pswdfldPassword.getPassword()));
             }
         });
+
+        btnClearSlotData.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                config.setSessionCookies(null);
+                config.setSessionUsername(null);
+                config.setSessionPassword(null);
+            }
+        });
         JPanel pnlAccount = new JPanel();
         pnlAccount.setLayout(new BoxLayout(pnlAccount, BoxLayout.Y_AXIS));
         pnlAccount.add(lblUsername);
         pnlAccount.add(txtfldUsername);
         pnlAccount.add(lblPassword);
         pnlAccount.add(pswdfldPassword);
+        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        pnlAccount.add(btnClearSlotData);
 
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.add("Quality settings", pnlQuality);
