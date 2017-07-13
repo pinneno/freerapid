@@ -13,6 +13,8 @@ import org.apache.commons.httpclient.methods.PostMethod;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
@@ -25,6 +27,7 @@ import java.util.regex.Matcher;
  */
 class iPrimaFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(iPrimaFileRunner.class.getName());
+    private final static SlotRequestState slotRequestState = new SlotRequestState();
     private final static String DEFAULT_EXT = ".ts";
     private final static String ADULT_CONTENT_MARKER = "/rodicovska-kontrola/formular";
     private iPrimaSettingsConfig config;
@@ -101,33 +104,42 @@ class iPrimaFileRunner extends AbstractRunner {
                             }
                         }
                         if (getContentAsString().contains("code: 'SLOT_REQUIRED'")) {
-                            logger.info("Requesting slot");
-                            String redirectUrl;
-                            try {
-                                redirectUrl = PlugUtils.getStringBetween(getContentAsString(), "redirectUrl: '", "'");
-                            } catch (PluginImplementationException e) {
-                                throw new PluginImplementationException("Slot redirect URL not found");
-                            }
-                            if (!makeRedirectedRequest(getGetMethod(redirectUrl))) {
-                                checkProblems();
-                                throw new ServiceConnectionProblemException();
-                            }
-                            checkProblems();
+                            if (slotRequestState.isSlotNotBeingRequested()) {
+                                logger.info("Requesting slot");
+                                try {
+                                    String redirectUrl;
+                                    try {
+                                        //redirectUrl example: https://play.iprima.cz/tdi/prehravac/nove-zarizeni?productId=p210231
+                                        redirectUrl = PlugUtils.getStringBetween(getContentAsString(), "redirectUrl: '", "'");
+                                    } catch (PluginImplementationException e) {
+                                        throw new PluginImplementationException("Slot redirect URL not found");
+                                    }
+                                    if (!makeRedirectedRequest(getGetMethod(redirectUrl))) {
+                                        checkProblems();
+                                        throw new ServiceConnectionProblemException();
+                                    }
+                                    checkProblems();
 
-                            method = getMethodBuilder().setReferer(redirectUrl).setActionFromFormWhereActionContains("/tdi/", true).toPostMethod();
-                            if (!makeRedirectedRequest(method)) {
-                                logger.warning(getContentAsString());
-                                checkProblems();
-                                throw new ServiceConnectionProblemException();
+                                    method = getMethodBuilder().setReferer(redirectUrl).setActionFromFormWhereActionContains("/tdi/", true).toPostMethod();
+                                    if (!makeRedirectedRequest(method)) {
+                                        logger.warning(getContentAsString());
+                                        checkProblems();
+                                        throw new ServiceConnectionProblemException();
+                                    }
+                                    checkProblems();
+                                    config.setSessionCookies(getCookies());
+                                    getPluginService().getPluginContext().getConfigurationStorageSupport().storeConfigToFile(config, iPrimaServiceImpl.CONFIG_FILE);
+                                } finally {
+                                    slotRequestState.signalSlotRequested();
+                                }
+                            } else {
+                                slotRequestState.awaitSlotRequest();
+                                client.getHTTPClient().getState().addCookies(config.getSessionCookies());
+                                makeRedirectedRequest(getGetMethod("http://play.iprima.cz/")); //to revalidate the cookies
                             }
-                            checkProblems();
-                            iPrimaPlay = isIPrimaPlay();
-                            productId = getProductId(iPrimaPlay);
-                            succeed = false;
-                            i++;
-                            continue;
+                        } else {
+                            succeed = true;
                         }
-                        succeed = true;
                     } catch (iPrimaAccountRequiredException e) {
                         if (i == 0) {
                             //Only login if it's needed to,
@@ -289,6 +301,7 @@ class iPrimaFileRunner extends AbstractRunner {
                 logger.info("Login data cache hit");
                 logger.info("Session was created on: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(config.getSessionCreated())));
                 client.getHTTPClient().getState().addCookies(config.getSessionCookies());
+                makeRedirectedRequest(getGetMethod("http://play.iprima.cz/")); //to revalidate the cookies
             }
             return true;
         }
@@ -314,6 +327,27 @@ class iPrimaFileRunner extends AbstractRunner {
         }
         if (getContentAsString().contains("user.login.bad.credentials")) {
             throw new BadLoginException("Invalid account login information");
+        }
+    }
+
+    private static class SlotRequestState {
+        private final AtomicBoolean request = new AtomicBoolean();
+        private final CountDownLatch countDownLatch = new CountDownLatch(1);
+
+        private SlotRequestState() {
+        }
+
+        //has slot not been requested / is slot not being requested
+        private boolean isSlotNotBeingRequested() {
+            return !request.getAndSet(true);
+        }
+
+        private void signalSlotRequested() {
+            countDownLatch.countDown();
+        }
+
+        private void awaitSlotRequest() throws InterruptedException {
+            countDownLatch.await();
         }
     }
 

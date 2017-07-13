@@ -91,6 +91,7 @@ class iPrimaSettingsPanel extends JPanel {
                 config.setSessionCookies(null);
                 config.setSessionUsername(null);
                 config.setSessionPassword(null);
+                config.setSessionCreated(-1);
             }
         });
         JPanel pnlAccount = new JPanel();
