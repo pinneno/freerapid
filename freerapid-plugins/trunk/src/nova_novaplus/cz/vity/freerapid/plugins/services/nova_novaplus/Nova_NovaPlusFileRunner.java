@@ -4,13 +4,9 @@ import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
 import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
-import cz.vity.freerapid.plugins.services.rtmp.RtmpDownloader;
-import cz.vity.freerapid.plugins.services.rtmp.RtmpSession;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
@@ -56,7 +52,7 @@ class Nova_NovaPlusFileRunner extends AbstractRunner {
         } catch (PluginImplementationException e) {
             throw new PluginImplementationException("File name not found");
         }
-        httpFile.setFileName(filename + ".flv");
+        httpFile.setFileName(filename + ".mp4");
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 
@@ -68,11 +64,18 @@ class Nova_NovaPlusFileRunner extends AbstractRunner {
         if (makeRedirectedRequest(method)) {
             checkProblems();
             checkNameAndSize(getContentAsString());
-            Matcher matcher = PlugUtils.matcher("url:\\s*?\"(http://[^\"]+?config\\.php[^\"]+?)\"", getContentAsString());
+            setConfig();
+            Matcher matcher = PlugUtils.matcher("(?s)params\\s*?=\\s*?([^;]+);", getContentAsString());
             if (!matcher.find()) {
                 throw new PluginImplementationException("Config URL not found");
             }
-            String configUrl = matcher.group(1);
+            String configUrl = matcher.group(1).replaceAll("fallback.+", "").replaceAll("\\s*", "").replace("?',", "?")
+                    .replace("{configUrl:'", "").replace(":'", "=").replace("),", "&")
+                    .replace("',", "&").replace("'+'", "").replace("'}", "")
+                    .replace(",", "").replace(":parseInt(", "=");
+            if (!configUrl.startsWith("http")) {
+                throw new PluginImplementationException("Invalid config URL");
+            }
             HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setAction(configUrl).toGetMethod();
             if (!makeRedirectedRequest(httpMethod)) {
                 checkProblems();
@@ -80,27 +83,11 @@ class Nova_NovaPlusFileRunner extends AbstractRunner {
             }
             checkProblems();
 
-            String base64Config;
-            try {
-                base64Config = PlugUtils.getStringBetween(getContentAsString(), "'", "';");
-            } catch (PluginImplementationException e) {
-                throw new PluginImplementationException("Base64 config not found");
-            }
-            String configDecrypted = new Crypto().decrypt(base64Config);
-            setConfig();
-            if (configDecrypted.contains("\"nacevi-resolver\":{")) { //RTMP
-                String mediaListContent = getMediaListContent(configDecrypted);
-                Nova_NovaPlusVideo selectedVideo = getSelectedRtmpVideo(mediaListContent);
-                RtmpSession rtmpSession = new RtmpSession(selectedVideo.baseUrl, selectedVideo.url);
-                new RtmpDownloader(client, downloadTask).tryDownloadAndSaveFile(rtmpSession);
-            } else { //HTTP
-                Nova_NovaPlusVideo selectedVideo = getSelectedHttpVideo(configDecrypted);
-                httpFile.setFileName(httpFile.getFileName().replaceFirst("\\..{3,4}$", ".mp4"));
-                httpMethod = getMethodBuilder().setReferer(fileURL).setAction(selectedVideo.url).toHttpMethod();
-                if (!tryDownloadAndSaveFile(httpMethod)) {
-                    checkProblems();
-                    throw new ServiceConnectionProblemException("Error starting download");
-                }
+            String videoUrl = PlugUtils.getStringBetween(getContentAsString(), "\"src\":\"", "\"").replace("\\/", "/");
+            httpMethod = getMethodBuilder().setReferer(fileURL).setAction(videoUrl).toGetMethod();
+            if (!tryDownloadAndSaveFile(httpMethod)) {
+                checkProblems();
+                throw new ServiceConnectionProblemException("Error starting download");
             }
         } else {
             checkProblems();
@@ -113,82 +100,6 @@ class Nova_NovaPlusFileRunner extends AbstractRunner {
         if (contentAsString.contains("ale hledáte stránku, která neexistuje")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
-    }
-
-    private String getTimeString() throws Exception {
-        if (!makeRequest(getGetMethod(TIME_SERVICE_URL))) {
-            throw new PluginImplementationException("Time service not available");
-        }
-        return getContentAsString().substring(0, 14);
-    }
-
-    private String getMediaListContent(String configDecrypted) throws Exception {
-        String timeStr = getTimeString();
-        String mediaId;
-        String resolverContent;
-        //String serviceUrl;
-        String appId;
-        String secret;
-        try {
-            mediaId = PlugUtils.getStringBetween(configDecrypted, "\"mediaId\":", ",");
-            resolverContent = PlugUtils.getStringBetween(configDecrypted, "\"nacevi-resolver\":{", "},");
-            //serviceUrl = PlugUtils.getStringBetween(resolverContent, "\"serviceUrl\":\"", "\"").replace("\\/", "/");
-            appId = PlugUtils.getStringBetween(resolverContent, "\"appId\":\"", "\"");
-            secret = PlugUtils.getStringBetween(resolverContent, "\"secret\":\"", "\"");
-        } catch (PluginImplementationException e) {
-            logger.warning(configDecrypted);
-            throw new PluginImplementationException("Error parsing media config content", e);
-        }
-        String hashString = appId + "|" + mediaId + "|" + timeStr + "|" + secret;
-        String base64FromBA = Base64.encodeBase64String(DigestUtils.md5(hashString));
-        HttpMethod method = getMethodBuilder()
-                //.setAction(serviceUrl)
-                .setAction("http://voyo.nova.cz/lbin/cdn-cra-r.php")
-                .setParameter("c", appId + "|" + mediaId)
-                .setParameter("h", "0")
-                .setParameter("t", timeStr)
-                .setParameter("s", base64FromBA)
-                .setParameter("tm", "nova")
-                .setParameter("d", "1")
-                .setEncodeParameters(true)
-                .toGetMethod();
-        if (!makeRedirectedRequest(method) || !getContentAsString().contains("<status>Ok</status>")) {
-            throw new PluginImplementationException("Error getting media list content");
-        }
-        return getContentAsString();
-    }
-
-    private Nova_NovaPlusVideo getSelectedRtmpVideo(String mediaListContent) throws PluginImplementationException {
-        List<Nova_NovaPlusVideo> videoList = new ArrayList<Nova_NovaPlusVideo>();
-        String baseUrl = PlugUtils.getStringBetween(mediaListContent, "<baseUrl>", "</baseUrl>").replace("<![CDATA[", "").replace("]]>", "");
-        Matcher mediaMatcher = PlugUtils.matcher("(?s)<media>(.+?)</media>", mediaListContent);
-        while (mediaMatcher.find()) {
-            String mediaContent = mediaMatcher.group(1);
-            Matcher qualityMatcher = PlugUtils.matcher("(?s)<quality>(.+?)</quality>", mediaContent);
-            Matcher urlMatcher = PlugUtils.matcher("(?s)<url>(.+?)</url>", mediaContent);
-            if (!qualityMatcher.find() || !urlMatcher.find()) {
-                logger.warning(mediaListContent);
-                throw new PluginImplementationException("Error parsing media");
-            }
-            String quality = qualityMatcher.group(1).replace("<![CDATA[", "").replace("]]>", "");
-            String url = urlMatcher.group(1).replace("<![CDATA[", "").replace("]]>", "");
-            for (VideoQuality videoQuality : VideoQuality.values()) {
-                if (videoQuality.getLabel().contains(quality)) {
-                    Nova_NovaPlusVideo novaPlusVideo = new Nova_NovaPlusVideo(videoQuality, baseUrl, url);
-                    videoList.add(novaPlusVideo);
-                    logger.info("Found video: " + novaPlusVideo);
-                    break;
-                }
-            }
-        }
-        if (videoList.isEmpty()) {
-            logger.warning(mediaListContent);
-            throw new PluginImplementationException("No available videos");
-        }
-        Nova_NovaPlusVideo selectedVideo = Collections.min(videoList);
-        logger.info("Config settings : " + config);
-        logger.info("Selected video  : " + selectedVideo);
-        return selectedVideo;
     }
 
     private Nova_NovaPlusVideo getSelectedHttpVideo(String configDecrypted) throws Exception {
@@ -233,7 +144,7 @@ class Nova_NovaPlusFileRunner extends AbstractRunner {
         private final String url;
         private int weight;
 
-        public Nova_NovaPlusVideo(final VideoQuality videoQuality, String baseUrl, final String url) {
+        Nova_NovaPlusVideo(final VideoQuality videoQuality, String baseUrl, final String url) {
             this.videoQuality = videoQuality;
             this.baseUrl = baseUrl;
             this.url = url;
