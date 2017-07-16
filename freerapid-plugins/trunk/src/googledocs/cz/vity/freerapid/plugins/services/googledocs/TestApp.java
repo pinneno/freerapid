@@ -21,6 +21,8 @@ public class TestApp extends PluginDevApplication {
             httpFile.setNewURL(new URL("https://drive.google.com/file/d/0B1CF32bGU4sbSnpLU1dBNGswczA"));
             //httpFile.setNewURL(new URL("https://drive.google.com/uc?id=0BzA84spRUpoVdFFKaVhVNlkyNE0&export=download"));
             //httpFile.setNewURL(new URL("https://drive.google.com/uc?id=0B1tPAVVh4TR1dHBaTUlOSWx0OUU&export=download"));  // google login needed
+            httpFile.setNewURL(new URL("https://drive.google.com/drive/folders/0BywwGfqmkI2dMGhITkhuR2Vkc3M"));
+            httpFile.setNewURL(new URL("https://drive.google.com/open?id=0BywwGfqmkI2dQi1BbUUwbmhhRTg"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             final GoogleDocsServiceImpl service = new GoogleDocsServiceImpl();

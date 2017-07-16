@@ -3,14 +3,18 @@ package cz.vity.freerapid.plugins.services.googledocs;
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadClientConsts;
+import cz.vity.freerapid.plugins.webclient.DownloadState;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.hoster.PremiumAccount;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
+import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
@@ -42,10 +46,15 @@ class GoogleDocsFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        PlugUtils.checkName(httpFile, content, "\"og:title\" content=\"", "\"");
-        Matcher matcher = getMatcherAgainstContent("\\[\\w+,\\w+,\"(\\d+)\"\\]");
-        if (matcher.find())
-            httpFile.setFileSize(PlugUtils.getFileSizeFromString(matcher.group(1).trim()));
+        if (fileURL.contains("/folder")) {
+            PlugUtils.checkName(httpFile, content, "<title>", " - Google");
+            httpFile.setFileName("Folder > " + httpFile.getFileName());
+        } else {
+            PlugUtils.checkName(httpFile, content, "\"og:title\" content=\"", "\"");
+            Matcher matcher = getMatcherAgainstContent("\\[\\w+,\\w+,\"(\\d+)\"\\]");
+            if (matcher.find())
+                httpFile.setFileSize(PlugUtils.getFileSizeFromString(matcher.group(1).trim()));
+        }
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 
@@ -70,38 +79,52 @@ class GoogleDocsFileRunner extends AbstractRunner {
             checkProblems();
             doLogin();
             checkNameAndSize(getContentAsString());
-            Matcher matcher = getMatcherAgainstContent("\"(https?://[^\"]+?download)\"");
-            if (!matcher.find()) {
-                throw new PluginImplementationException("Download URL not found");
-            }
-            String downloadUrl = PlugUtils.unescapeUnicode(matcher.group(1));
-            setClientParameter(DownloadClientConsts.NO_CONTENT_LENGTH_AVAILABLE, true);
-            httpFile.setResumeSupported(true);
-            HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setAction(downloadUrl).toGetMethod();
-            if (!tryDownloadAndSaveFile(httpMethod)) {
-                httpMethod = getMethodBuilder().setReferer(fileURL).setAction(downloadUrl).toGetMethod();
-                if (!makeRedirectedRequest(httpMethod)) {
-                    checkProblems();
-                    throw new ServiceConnectionProblemException();
+            if (fileURL.contains("/folder")) {
+                List<URI> list = new LinkedList<URI>();
+                Matcher match = getMatcherAgainstContent("\\\\x5b\\\\x22([^\\\\,]+)\\\\x22,\\\\x5b\\\\x22");
+                while (match.find()) {
+                    list.add(new URI(getMethodBuilder().setReferer(fileURL).setAction("/open?id=" + match.group(1).trim()).getEscapedURI()));
                 }
-                checkProblems();
+                if (list.isEmpty()) throw new PluginImplementationException("No links found");
+                getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, list);
+                httpFile.setFileName("Link(s) Extracted !");
+                httpFile.setState(DownloadState.COMPLETED);
+                httpFile.getProperties().put("removeCompleted", true);
 
-                String referer = httpMethod.getURI().toString();
-                URL url = new URL(referer);
-                matcher = getMatcherAgainstContent("<a id=\"uc-download-link\".*? href=\"(.+?)\"");
+            } else {
+                Matcher matcher = getMatcherAgainstContent("\"(https?://[^\"]+?download)\"");
                 if (!matcher.find()) {
-                    throw new PluginImplementationException("Download link not found");
+                    throw new PluginImplementationException("Download URL not found");
                 }
-                String downloadLink = PlugUtils.replaceEntities(URLDecoder.decode(matcher.group(1).trim(), "UTF-8"));
-                String baseUrl = url.getProtocol() + "://" + url.getAuthority();
-                httpMethod = getMethodBuilder()
-                        .setReferer(referer)
-                        .setBaseURL(baseUrl)
-                        .setAction(downloadLink)
-                        .toGetMethod();
+                String downloadUrl = PlugUtils.unescapeUnicode(matcher.group(1));
+                setClientParameter(DownloadClientConsts.NO_CONTENT_LENGTH_AVAILABLE, true);
+                httpFile.setResumeSupported(true);
+                HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setAction(downloadUrl).toGetMethod();
                 if (!tryDownloadAndSaveFile(httpMethod)) {
+                    httpMethod = getMethodBuilder().setReferer(fileURL).setAction(downloadUrl).toGetMethod();
+                    if (!makeRedirectedRequest(httpMethod)) {
+                        checkProblems();
+                        throw new ServiceConnectionProblemException();
+                    }
                     checkProblems();
-                    throw new ServiceConnectionProblemException("Error starting download");
+
+                    String referer = httpMethod.getURI().toString();
+                    URL url = new URL(referer);
+                    matcher = getMatcherAgainstContent("<a id=\"uc-download-link\".*? href=\"(.+?)\"");
+                    if (!matcher.find()) {
+                        throw new PluginImplementationException("Download link not found");
+                    }
+                    String downloadLink = PlugUtils.replaceEntities(URLDecoder.decode(matcher.group(1).trim(), "UTF-8"));
+                    String baseUrl = url.getProtocol() + "://" + url.getAuthority();
+                    httpMethod = getMethodBuilder()
+                            .setReferer(referer)
+                            .setBaseURL(baseUrl)
+                            .setAction(downloadLink)
+                            .toGetMethod();
+                    if (!tryDownloadAndSaveFile(httpMethod)) {
+                        checkProblems();
+                        throw new ServiceConnectionProblemException("Error starting download");
+                    }
                 }
             }
         } else {

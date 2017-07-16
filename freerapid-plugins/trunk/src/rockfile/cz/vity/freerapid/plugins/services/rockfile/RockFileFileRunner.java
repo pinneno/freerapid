@@ -107,4 +107,12 @@ class RockFileFileRunner extends XFileSharingRunner {
         }
         return 0;
     }
+
+    @Override
+    protected void checkDownloadProblems(final String content) throws ErrorDuringDownloadingException {
+        super.checkDownloadProblems(content);
+        if (content.contains("Maintenance in progress")) {
+            throw new ServiceConnectionProblemException("Maintenance in progress");
+        }
+    }
 }

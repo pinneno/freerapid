@@ -1,11 +1,10 @@
-package cz.vity.freerapid.plugins.services.uploadshub;
+package cz.vity.freerapid.plugins.services.fileshd;
 
 import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileNameHandler;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandler;
-import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandlerNoSize;
 import cz.vity.freerapid.plugins.webclient.interfaces.HttpFile;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 
@@ -18,13 +17,7 @@ import java.util.regex.Pattern;
  *
  * @author birchie
  */
-class UploadsHubFileRunner extends XFileSharingRunner {
-
-    @Override
-    protected void correctURL() throws Exception {
-        fileURL = fileURL.replaceFirst("https?://(www\\.)?uploadshub\\.com", "https://upload.so");
-        fileURL = fileURL.replaceFirst("https?://(www\\.)?upload\\.so", "https://uplod.ws");
-    }
+class FilesHDFileRunner extends XFileSharingRunner {
 
     @Override
     protected List<FileNameHandler> getFileNameHandlers() {
@@ -32,7 +25,7 @@ class UploadsHubFileRunner extends XFileSharingRunner {
         fileNameHandlers.add(0, new FileNameHandler() {
             @Override
             public void checkFileName(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
-                PlugUtils.checkName(httpFile, content, "finame\">", "<");
+                PlugUtils.checkName(httpFile, content, "filename\">", "<");
             }
         });
         return fileNameHandlers;
@@ -51,14 +44,22 @@ class UploadsHubFileRunner extends XFileSharingRunner {
                 httpFile.setFileSize(PlugUtils.getFileSizeFromString(matcher.group(1)));
             }
         });
-        fileSizeHandlers.add(new FileSizeHandlerNoSize());
         return fileSizeHandlers;
+    }
+
+    @Override
+    protected int getWaitTime() throws Exception {
+        final Matcher matcher = getMatcherAgainstContent("id=\"countdown\".*?<span[^>]*>\\s*(\\d+)\\s*</span");
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1)) + 1;
+        }
+        return 0;
     }
 
     @Override
     protected List<String> getDownloadLinkRegexes() {
         final List<String> downloadLinkRegexes = super.getDownloadLinkRegexes();
-        downloadLinkRegexes.add(0, "<a[^>]*href\\s*=\\s*[\"'](http.+?" + Pattern.quote(httpFile.getFileName()) + ")[\"'][^>]*btn-download");
+        downloadLinkRegexes.add("<a[^>]*href\\s*=\\s*[\"'](http.+?" + Pattern.quote(httpFile.getFileName()) + ")[\"']");
         return downloadLinkRegexes;
     }
 }

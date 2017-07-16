@@ -19,11 +19,13 @@ import java.util.regex.Matcher;
  */
 class xHamsterFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(xHamsterFileRunner.class.getName());
+    private SettingsConfig config;
 
     @Override
     public void runCheck() throws Exception {
         super.runCheck();
         checkURL();
+        loadConfig();
         final GetMethod getMethod = getGetMethod(fileURL);
         if (makeRedirectedRequest(getMethod)) {
             checkProblems();
@@ -35,12 +37,12 @@ class xHamsterFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        Matcher matcher = PlugUtils.matcher("<title[^<>]*?>(.+?)</title>", content);
+        Matcher matcher = PlugUtils.matcher("<h1[^<>]*>(.+?)</h1>", content);
         if (!matcher.find()) {
             throw new PluginImplementationException("File name not found");
         }
         httpFile.setFileName(matcher.group(1).replace("- xHamster", "").trim() + ".mp4");
-        PlugUtils.checkFileSize(httpFile, content, "quality (", ")");
+        PlugUtils.checkFileSize(httpFile, content, config.toString() + " quality (", ")");
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 
@@ -48,20 +50,26 @@ class xHamsterFileRunner extends AbstractRunner {
     public void run() throws Exception {
         super.run();
         checkURL();
+        loadConfig();
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL);
         if (makeRedirectedRequest(method)) {
             checkProblems();
             checkNameAndSize(getContentAsString());
             //final String file = PlugUtils.getStringBetween(getContentAsString(), "&file=", "&");   //flv
-            final String file = PlugUtils.getStringBetween(getContentAsString(), "file: '", "'");  //mp4
-            final String videoURL;
+            //final String file = PlugUtils.getStringBetween(getContentAsString(), "file: '", "'");  //mp4
+            Matcher match = getMatcherAgainstContent("\"" + config.toString() + "\":\"([^\"]+)\"");
+            if (!match.find())
+                throw new PluginImplementationException(config.toString() + " Video not found");
+            final String file = match.group(1).replace("\\", "");
+            String videoURL;
             if (file.startsWith("http")) {
                 videoURL = URLDecoder.decode(file, "UTF-8");
             } else {
                 final String srv = PlugUtils.getStringBetween(getContentAsString(), "&srv=", "&");
                 videoURL = URLDecoder.decode(srv + "/key=" + file, "UTF-8");
             }
+            videoURL = videoURL.replaceAll("\\s", "+");
             final HttpMethod httpMethod = getMethodBuilder()
                     .setReferer(fileURL.replace("88.208.24.43", "xhamster.com"))
                     .setAction(videoURL)
@@ -86,6 +94,9 @@ class xHamsterFileRunner extends AbstractRunner {
         if (contentAsString.contains("<title>Restricted access to video")) {
             throw new NotRecoverableDownloadException("Access to video is restricted");
         }
+        if (!contentAsString.contains("\"" + config.toString() + "\":")) {
+            throw new NotRecoverableDownloadException("Video not available in selected video quality (" + config.toString() + ")");
+        }
     }
 
     private void checkURL() {
@@ -94,4 +105,8 @@ class xHamsterFileRunner extends AbstractRunner {
         fileURL = fileURL.replaceFirst("//88\\.208\\.24\\.43", "//xhamster.com");
     }
 
+    private void loadConfig() throws Exception {
+        xHamsterServiceImpl service = (xHamsterServiceImpl) getPluginService();
+        config = service.getConfig();
+    }
 }
