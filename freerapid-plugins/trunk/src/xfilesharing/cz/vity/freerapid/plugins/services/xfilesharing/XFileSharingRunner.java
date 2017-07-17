@@ -12,6 +12,7 @@ import cz.vity.freerapid.utilities.LogUtils;
 import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpMethod;
+import org.apache.commons.httpclient.URI;
 
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
@@ -210,10 +211,6 @@ public abstract class XFileSharingRunner extends AbstractRunner {
 
     /**
      * Handle redirection for the first request
-     * <p>
-     * Any redirection can be handled, but in general it's for http -> https redirection.
-     * For other redirections (redirect to new (sub)domain for example), it's better to correct fileURL
-     * by overriding {@link #correctURL()}.
      *
      * @param method method to be checked/handled its redirection
      * @return true if it's handled as direct download, otherwise false
@@ -222,21 +219,32 @@ public abstract class XFileSharingRunner extends AbstractRunner {
     protected boolean handleRedirection(HttpMethod method) throws Exception {
         HttpMethod redirectMethod = redirectToLocation(method);
         String location = redirectMethod.getURI().getEscapedURI();
-        //check whether it's http -> https redirection
+
+        URI fileUri = new URI(fileURL, true, "UTF-8");
+        URI locationUri = new URI(location, true, "UTF-8");
+
+        //Two kinds of redirection will be checked:
+        //1. http -> https redirection
+        //2. New (sub) domain redirection
         if (location.replaceFirst("^https?://", "").equals(fileURL.replaceFirst("^https?://", ""))) {
             logger.info("http -> https redirection");
-            fileURL = location;
-            int httpStatus = client.makeRequest(redirectMethod, false);
-            if (httpStatus / 100 == 3) {
-                return handleDirectDownload(redirectMethod);
-            } else if (httpStatus != 200) {
-                checkFileProblems();
-                throw new ServiceConnectionProblemException();
-            }
-            return false;
-        } else { //not http -> https redirection, so it's direct download
+        } else if (new URI(locationUri.getScheme(), locationUri.getAuthority(), fileUri.getPath(), fileUri.getQuery(), fileUri.getFragment())
+                .equals(locationUri)) {
+            logger.info("New (sub) domain redirection: " + fileUri.getScheme() + "://" + fileUri.getAuthority() + " -> " +
+                    locationUri.getScheme() + "://" + locationUri.getAuthority());
+        } else {
             return handleDirectDownload(method);
         }
+
+        fileURL = location;
+        int httpStatus = client.makeRequest(redirectMethod, false);
+        if (httpStatus / 100 == 3) {
+            return handleDirectDownload(redirectMethod);
+        } else if (httpStatus != 200) {
+            checkFileProblems();
+            throw new ServiceConnectionProblemException();
+        }
+        return false;
     }
 
     @Override
