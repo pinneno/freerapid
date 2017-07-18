@@ -46,7 +46,7 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
     }
 
     private boolean isBonus(String fileUrl) {
-        return fileUrl.contains("/bonus/");
+        return fileUrl.contains("/bonus/") || fileUrl.contains("/bonusy/");
     }
 
     @Override
@@ -178,7 +178,7 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
         if (!getContentAsString().contains("getPlaylistUrl(")) {
             //check if it has specific iframe that contains video player URL
             Matcher iframeMatcher = Pattern.compile("(<i?frame(.*?)>)", Pattern.DOTALL | Pattern.CASE_INSENSITIVE | Pattern.MULTILINE).matcher(getContentAsString());
-            Matcher srcMatcher = Pattern.compile("src\\s?=\\s?(?:\"|')(.+?)(?:\"|')", Pattern.DOTALL | Pattern.CASE_INSENSITIVE | Pattern.MULTILINE).matcher(getContentAsString());
+            Matcher srcMatcher = Pattern.compile("src\\s?=\\s?[\"'](.+?)[\"']", Pattern.DOTALL | Pattern.CASE_INSENSITIVE | Pattern.MULTILINE).matcher(getContentAsString());
             String action = null;
             final String lower = "iFramePlayer".toLowerCase();
             while (iframeMatcher.find()) {
