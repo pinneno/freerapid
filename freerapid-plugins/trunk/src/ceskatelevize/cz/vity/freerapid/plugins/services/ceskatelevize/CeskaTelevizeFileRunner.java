@@ -324,9 +324,22 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
         checkProblems();
         setConfig();
 
-        List<SwitchItem> switchItems = getSwitchItems(getContentAsString());
+        JsonNode rootNode;
+        try {
+            rootNode = new JsonMapper().getObjectMapper().readTree(getContentAsString());
+        } catch (IOException e) {
+            throw new PluginImplementationException("Error parsing playlist", e);
+        }
+
+        List<SwitchItem> switchItems = getSwitchItems(rootNode);
         //Check whether the playlist contains one part or multipart videos
         if (switchItems.size() == 1) {
+            if (isBonus(fileURL)) {
+                String title = rootNode.findPath("playlist").findPath("title").getTextValue();
+                if (title != null) {
+                    httpFile.setFileName(title + DEFAULT_EXT);
+                }
+            }
             SwitchItem selectedSwitchItem = switchItems.get(0);
             logger.info("Selected switch item : " + selectedSwitchItem);
             logger.info("Settings config: " + config);
@@ -353,14 +366,7 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
         }
     }
 
-    private List<SwitchItem> getSwitchItems(String playlistContent) throws PluginImplementationException {
-        JsonNode rootNode;
-        try {
-            rootNode = new JsonMapper().getObjectMapper().readTree(playlistContent);
-        } catch (IOException e) {
-            throw new PluginImplementationException("Error parsing playlist", e);
-        }
-
+    private List<SwitchItem> getSwitchItems(JsonNode rootNode) throws PluginImplementationException {
         JsonNode playlistNode = rootNode.findPath("playlist");
         List<SwitchItem> switchItems = new ArrayList<SwitchItem>();
         for (JsonNode playlistItem : playlistNode) {
