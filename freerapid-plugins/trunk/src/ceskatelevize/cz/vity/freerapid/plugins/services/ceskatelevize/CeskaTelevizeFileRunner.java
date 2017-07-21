@@ -181,16 +181,23 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
             Matcher srcMatcher = Pattern.compile("src\\s?=\\s?[\"'](.+?)[\"']", Pattern.DOTALL | Pattern.CASE_INSENSITIVE | Pattern.MULTILINE).matcher(getContentAsString());
             String action = null;
             final String lower = "iFramePlayer".toLowerCase();
+            String iFrameUrl = null;
             while (iframeMatcher.find()) {
                 srcMatcher.region(iframeMatcher.start(1), iframeMatcher.end(1));
                 final String content = iframeMatcher.group(1);
                 if (content.toLowerCase().contains(lower) && srcMatcher.find()) {
-                    final String iFrameUrl = PlugUtils.replaceEntities(srcMatcher.group(1));
+                    iFrameUrl = PlugUtils.replaceEntities(srcMatcher.group(1));
+                    //check bonus, non bonus rule
                     if ((!isBonus(fileURL) && !iFrameUrl.contains("bonus=")) || (isBonus(fileURL) && iFrameUrl.contains("bonus="))) {
                         action = iFrameUrl;
                         break;
                     }
                 }
+            }
+
+            //ignore bonus, nonbonus rule
+            if (action == null && iFrameUrl != null) {
+                action = iFrameUrl;
             }
 
             //if it doesn't have the iframe, then find another way to get video player url.
