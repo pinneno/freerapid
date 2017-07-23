@@ -4,6 +4,7 @@ import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadState;
+import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
@@ -37,10 +38,20 @@ class ShinkInFileRunner extends AbstractRunner {
             }
         } while (getContentAsString().contains("Error captcha"));
 
-        final Matcher m = getMatcherAgainstContent("<a[^>]*href='(.+?)'[^>]*>GET LINK<");
-        if (!m.find()) throw new PluginImplementationException("Link not found");
+        Matcher matcher = getMatcherAgainstContent("\"timer\"[^>]*>\\s*(\\d+)\\s*</");
+        if (matcher.find()) {
+            downloadTask.sleep(1 + Integer.parseInt(matcher.group(1).trim()));
+        }
+        HttpMethod httpMethod = getMethodBuilder().setActionFromFormWhereTagContains("GET LINK", true).toPostMethod();
+        if (!makeRedirectedRequest(httpMethod)) {
+            checkProblems();
+            throw new ServiceConnectionProblemException();
+        }
+        matcher = PlugUtils.matcher("url=(.+);?", httpMethod.getResponseHeader("Refresh").getValue());
+        if (!matcher.find())
+            throw new PluginImplementationException("Target url not found");
 
-        this.httpFile.setNewURL(new URL(m.group(1)));
+        this.httpFile.setNewURL(new URL(matcher.group(1)));
         this.httpFile.setPluginID("");
         this.httpFile.setState(DownloadState.QUEUED);
     }

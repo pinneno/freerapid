@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
-<plugin class="cz.vity.freerapid.plugins.services.upera.UperaServiceImpl"
-        id="upera.co" vendor="birchie" version="1.0.1">
+<plugin class="cz.vity.freerapid.plugins.services.admy.AdMyServiceImpl"
+        id="admy.link" vendor="birchie" version="1.0.0">
     <attributes>
-        <attribute id="urlRegex" value="https?://(\w+\.)?upera\.co/.+"/>
+        <attribute id="urlRegex" value="https?://(www\.)?admy\.link/.+"/>
         <attribute id="minver" value="0.855"/>
         <attribute id="maxver" value="0.899"/>
-        <attribute id="services" value="upera.co"/>
-        <attribute id="maxDownloads" value="1"/>
+        <attribute id="services" value="admy.link"/>
+        <attribute id="maxDownloads" value="10"/>
         <attribute id="faviconImage" value="resources/favicon.png"/>
     </attributes>
 
     <runtime>
-        <library id="upera.co" path="/" type="code"/>
+        <library id="admy.link" path="/" type="code"/>
     </runtime>
 </plugin>

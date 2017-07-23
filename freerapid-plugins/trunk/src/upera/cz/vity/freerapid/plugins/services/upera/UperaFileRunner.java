@@ -3,11 +3,14 @@ package cz.vity.freerapid.plugins.services.upera;
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
+import cz.vity.freerapid.plugins.webclient.MethodBuilder;
+import cz.vity.freerapid.plugins.webclient.hoster.CaptchaSupport;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 
 /**
  * Class which contains main code
@@ -54,6 +57,25 @@ class UperaFileRunner extends AbstractRunner {
                 throw new ServiceConnectionProblemException();
             }
             checkProblems();
+            Matcher match = getMatcherAgainstContent("var counter\\s*=\\s*(\\d+)");
+            if (match.find()) {
+                downloadTask.sleep(1 + Integer.parseInt(match.group(1)));
+                String captchaStepUrl = PlugUtils.getStringBetween(getContentAsString(), "url: '", "',");
+                httpMethod = getMethodBuilder().setAction(captchaStepUrl).setReferer(fileURL).setAjax().toGetMethod();
+                if (!makeRedirectedRequest(httpMethod)) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
+                }
+                do{
+                    httpMethod = doCaptcha(getMethodBuilder().setActionFromFormWhereTagContains("Download", true)
+                            .setAction(fileURL).setReferer(fileURL).setAjax()).toPostMethod();
+                    if (!makeRedirectedRequest(httpMethod)) {
+                        checkProblems();
+                        throw new ServiceConnectionProblemException();
+                    }
+                } while (getContentAsString().contains("CAPTCHA was Incorrect"));
+                checkProblems();
+            }
             httpMethod = getMethodBuilder().setActionFromAHrefWhereATagContains("Download Link").toGetMethod();
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed
@@ -72,4 +94,14 @@ class UperaFileRunner extends AbstractRunner {
         }
     }
 
+    private MethodBuilder doCaptcha(MethodBuilder builder) throws Exception {
+        if (getContentAsString().contains("g-recaptcha-response")) {
+            final CaptchaSupport captchaSupport = getCaptchaSupport();
+            final String captchaSrc = getMethodBuilder().setActionFromImgSrcWhereTagContains("captcha").getEscapedURI();
+            final String captcha = captchaSupport.getCaptcha(captchaSrc);
+            if (captcha == null) throw new CaptchaEntryInputMismatchException();
+            return builder.setParameter("g-recaptcha-response", captcha);
+        }
+        return builder;
+    }
 }

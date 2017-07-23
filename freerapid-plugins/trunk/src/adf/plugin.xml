@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
 <plugin class="cz.vity.freerapid.plugins.services.adf.AdfServiceImpl"
-        id="adf.ly" vendor="ntoskrnl" version="1.2.11">
+        id="adf.ly" vendor="ntoskrnl" version="1.2.12">
     <attributes>
-        <attribute id="urlRegex" value="https?://(www\.)?(adf\.ly|adf\.acb\.im|atomcurve\.com|atominik\.com|ay\.gy|babblecase\.com|bitigee\.com|bluenik\.com|goo\.gl|j\.gs|microify\.com|picocurl\.com|pintient\.com|q\.gs|riffhold\.com|tinyium\.com)/.+"/>
+        <attribute id="urlRegex" value="https?://(www\.)?(adf\.ly|adf\.acb\.im|atomcurve\.com|atominik\.com|ay\.gy|babblecase\.com|bitigee\.com|bluenik\.com|goo\.gl|j\.gs|microify\.com|picocurl\.com|pintient\.com|q\.gs|riffhold\.com|tinyical\.com|tinyium\.com)/.+"/>
         <attribute id="minver" value="0.855"/>
         <attribute id="maxver" value="0.899"/>
-        <attribute id="services" value="adf.ly adf.acb.im atomcurve.com atominik.com ay.gy babblecase.com bitigee.com bluenik.com goo.gl j.gs microify.com picocurl.com pintient.com q.gs riffhold.com tinyium.com"/>
+        <attribute id="services" value="adf.ly adf.acb.im atomcurve.com atominik.com ay.gy babblecase.com bitigee.com bluenik.com goo.gl j.gs microify.com picocurl.com pintient.com q.gs riffhold.com tinyical.com tinyium.com"/>
         <attribute id="maxDownloads" value="10"/>
         <attribute id="faviconImage" value="resources/favicon.png"/>
     </attributes>
