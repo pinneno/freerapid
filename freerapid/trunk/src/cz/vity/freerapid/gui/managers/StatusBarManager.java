@@ -375,7 +375,7 @@ public class StatusBarManager implements PropertyChangeListener, ListDataListene
         } else if (UserProp.SPEED_LIMIT_ENABLED.equals(key)) {
             if (Boolean.TRUE.equals(Boolean.valueOf(evt.getNewValue())))
                 Swinger.inputFocus(slider);
-        } else if (UserProp.GLOBAL_SPEED_SLIDER_MAX.equals(key) || UserProp.GLOBAL_SPEED_SLIDER_MAX.equals(key) || UserProp.GLOBAL_SPEED_SLIDER_STEP.equals(key)) {
+        } else if (UserProp.GLOBAL_SPEED_SLIDER_MAX.equals(key) || UserProp.GLOBAL_SPEED_SLIDER_STEP.equals(key)) {
             bindSpeedSlider(slider);
         } else if (UserProp.MAX_DOWNLOADS_AT_A_TIME.equals(key)) {
             spinnerMaxConcurrentDownloads.setValue(AppPrefs.getProperty(UserProp.MAX_DOWNLOADS_AT_A_TIME, UserProp.MAX_DOWNLOADS_AT_A_TIME_DEFAULT));

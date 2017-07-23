@@ -322,6 +322,8 @@ class ScreenInputBlocker extends Task.InputBlocker {
     @Override
     protected void block() {
         switch (getScope()) {
+            case NONE:
+                break;
             case ACTION:
                 setActionTargetBlocked(true);
                 break;
@@ -339,6 +341,8 @@ class ScreenInputBlocker extends Task.InputBlocker {
     @Override
     public void unblock() {
         switch (getScope()) {
+            case NONE:
+                break;
             case ACTION:
                 setActionTargetBlocked(false);
                 break;
