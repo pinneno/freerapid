@@ -13,12 +13,12 @@ import java.util.logging.Logger;
  * Mapper should be used only 1 for 1 thread
  * @since 0.855
  */
-public class JsonMapper {
+public class JsonMapperV2 {
 
     private final ObjectMapper objectMapper;
     private final static Logger logger = Logger.getLogger(PlugUtils.class.getName());
 
-    public JsonMapper() {
+    public JsonMapperV2() {
         objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         //objectMapper.configure(DeserializationConfig.Feature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
