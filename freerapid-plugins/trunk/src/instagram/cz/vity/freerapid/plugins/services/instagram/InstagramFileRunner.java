@@ -101,7 +101,6 @@ class InstagramFileRunner extends AbstractRunner {
                     while (match.find()) {
                         list.add(new URI("https://instagram.com/p/" + match.group(1)));
                     }
-logger.info("##### "+list.size());
                     if (content.contains("\"has_next_page\":true") || content.contains("\"has_next_page\": true")) {
                         nextPage = true;
                         final Matcher lastMatch = PlugUtils.matcher("end_cursor\"\\s*:\\s*\"(.+?)\"", content);
@@ -144,7 +143,11 @@ logger.info("##### "+list.size());
     }
 
     private String getDownloadLink(String content) throws PluginImplementationException {
-        final Matcher match = PlugUtils.matcher("\"(?:display_(?:src|url)|video_url)\"\\s*:\\s*\"([^\"]+?)\"", content);
+        final Matcher match;
+        if (content.contains(":type\" content=\"video"))
+            match = PlugUtils.matcher("\"video_url\"\\s*:\\s*\"([^\"]+?)\"", content);
+        else
+            match = PlugUtils.matcher("\"display_(?:src|url)\"\\s*:\\s*\"([^\"]+?)\"", content);
         if (!match.find())
             throw new PluginImplementationException("Download link not found");
         return match.group(1);

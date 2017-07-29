@@ -16,8 +16,8 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            //httpFile.setNewURL(new URL("http://instagram.com/p/Zt7r7rLjqV/"));
-            httpFile.setNewURL(new URL("http://instagram.com/p/owU_nPlPwu/")); //video
+            httpFile.setNewURL(new URL("http://instagram.com/p/Zt7r7rLjqV/"));
+            httpFile.setNewURL(new URL("https://www.instagram.com/p/BXB8S7bFNbN/?taken-by=katiecrewe")); //video
             httpFile.setNewURL(new URL("https://instagram.com/FitnessFAQs/"));    //user
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection

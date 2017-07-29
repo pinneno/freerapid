@@ -53,7 +53,7 @@ class ShareRapidRunner extends AbstractRunner {
             Login(serverURL);
 
             Matcher matcher = PlugUtils.matcher("(?:<h1>|<div class=\"download_button_group\">|<div style=\"margin: 30px 0 10px 30px;\">|<span style=\"padding: 12px 0px 0px 10px; display: block\">)\\s*?<a href=\"([^\"]+)\" title=\"[^\"]+\">.+?</a>", getContentAsString());
-            Matcher matcher2 = PlugUtils.matcher("<a href=\"(.+?)\" class=\".*?download-button.*?\">.*?Stáhnout soubor.*?</a>", getContentAsString());
+            Matcher matcher2 = PlugUtils.matcher("(?s)<a href=\"([^\"]+?)\"[^>]*class=\"[^\"]*download-button[^\"]*\">.*?Stáhnout soubor.*?</a>", getContentAsString());
             boolean match2 = matcher2.find();
             if (matcher.find() || match2) {
                 String downURL;
@@ -71,7 +71,6 @@ class ShareRapidRunner extends AbstractRunner {
                         return;
                     if (!getContentAsString().equals(""))
                         checkProblems();
-logger.info("###############"+getContentAsString()+"################");
                     downloadTask.sleep(timeToCheck);
 
                     /*
@@ -192,6 +191,8 @@ logger.info("###############"+getContentAsString()+"################");
         if (matcher.find()) {
             throw new NotRecoverableDownloadException("No credit for download!");
         }
+        if (content.contains("404 Not Found"))
+            throw new URLNotAvailableAnymoreException("404 Not Found");
     }
 
 }

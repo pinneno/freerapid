@@ -57,10 +57,19 @@ class EuroShareFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
-            final Matcher match = PlugUtils.matcher("<a[^<>]*?href=\"(.+?)\"[^<>]*?>STIAHNU", contentAsString);
+            Matcher match = PlugUtils.matcher("<a[^<>]*?href=\"(.+?)\"[^<>]*?>STIAHNU", contentAsString);
             if (!match.find())
-                throw new PluginImplementationException("Download link not found");
-            final HttpMethod httpMethod = getGetMethod(PlugUtils.unescapeHtml(match.group(1).trim()));
+                throw new PluginImplementationException("Download link not found 1");
+            HttpMethod httpMethod = getGetMethod(PlugUtils.unescapeHtml(match.group(1).trim()));
+            if (!makeRedirectedRequest(httpMethod)) {
+                checkProblems();
+                throw new ServiceConnectionProblemException();
+            }
+            checkProblems();
+            match = PlugUtils.matcher("<a[^<>]*?href=\"(.+?)\"[^<>]*?>STIAHNU", getContentAsString());
+            if (!match.find())
+                throw new PluginImplementationException("Download link not found 2");
+            httpMethod = getGetMethod(PlugUtils.unescapeHtml(match.group(1).trim()));
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
@@ -111,7 +120,7 @@ class EuroShareFileRunner extends AbstractRunner {
             if (!makeRedirectedRequest(method)) {
                 throw new ServiceConnectionProblemException("Error posting login info");
             }
-            if (getContentAsString().contains("\"error\"")) {
+            if (getContentAsString().contains("\"error\"") && !getContentAsString().contains("\"error\":\"\"")) {
                 throw new BadLoginException("ERROR: "+ PlugUtils.getStringBetween(getContentAsString(), "\"error\":\"", "\""));
             }
         }
