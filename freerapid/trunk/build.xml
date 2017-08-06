@@ -324,11 +324,12 @@
     </target>
 
     <taskdef name="jarbundler"
-             classpath="./dev/ant-tasks/jarbundler.jar"
-             classname="net.sourceforge.jarbundler.JarBundler"/>
+             classpath="./dev/ant-tasks/jarbundler-core-3.3.0/jarbundler-core-3.3.0.jar"
+             classname="com.ultramixer.jarbundler.JarBundler"/>
 
     <!--todo chali you have to call target "dist" before this target-->
-    <!--this task is platform depend, you can use it only on mac os x-->
+    <!--see https://github.com/tofi86/universalJavaApplicationStub for more details-->
+    <!--this task is platform dependant, you can use it only on mac os x-->
     <target name="mac-os-package">
         <delete file="${macos.dmg}"/>
         <mkdir dir="${macos.dmg.temp.dir}"/>
@@ -336,7 +337,9 @@
                     name="FreeRapid"
                     mainclass="cz.vity.freerapid.core.MainApp"
                     icon="./${build.dir}/frd.icns"
-                    vmoptions="-Djava.net.preferIPv4Stack=true -Xmx128m"
+                    vmoptions="-Djava.net.preferIPv4Stack=true -Xmx160m"
+                    stubfile="./dev/universalJavaApplicationStub"
+                    useJavaXKey="true"
                     arguments="">
             <jarfileset dir="./${build.dir}/lib"/>
             <jarfileset dir="./${build.dir}" includes="frd.jar"/>
