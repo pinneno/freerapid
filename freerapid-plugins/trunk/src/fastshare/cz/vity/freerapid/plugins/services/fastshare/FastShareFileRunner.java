@@ -60,7 +60,7 @@ class FastShareFileRunner extends AbstractRunner {
         final String contentAsString = getContentAsString();
         checkDownloadProblems();
         checkNameAndSize(contentAsString);
-        final Matcher match = PlugUtils.matcher("<form.+?action=(/free[^>]+?)>", getContentAsString());
+        final Matcher match = PlugUtils.matcher("<form.+?action=[\"']?(/free[^>]+?)[\"'>]", getContentAsString());
         if (!match.find())
             throw new PluginImplementationException("Download form not found");
         HttpMethod httpMethod = stepCaptcha(getMethodBuilder()

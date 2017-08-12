@@ -17,7 +17,7 @@ public class TestApp extends PluginDevApplication {
         try {
             //httpFile.setNewURL(new URL("http://www.gorillavid.in/cnb/382tq3tx1la3"));
             //httpFile.setNewURL(new URL("http://gorillavid.com/m4vl88f54cv4"));  //no route to host, server problem
-            httpFile.setNewURL(new URL("http://gorillavid.in/45v8hfkpgzv5"));
+            httpFile.setNewURL(new URL("http://gorillavid.in/k571tb79ivmk"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081);
             final GorillaVidServiceImpl service = new GorillaVidServiceImpl();

@@ -60,6 +60,7 @@ class GorillaVidFileRunner extends XFileSharingRunner {
         final List<String> downloadPageMarkers = super.getDownloadPageMarkers();
         downloadPageMarkers.add(0, "file: \"");
         downloadPageMarkers.add(0, "lnk_download\"");
+        downloadPageMarkers.add(0, "src: '");
         return downloadPageMarkers;
     }
 
@@ -68,6 +69,7 @@ class GorillaVidFileRunner extends XFileSharingRunner {
         final List<String> downloadLinkRegexes = super.getDownloadLinkRegexes();
         downloadLinkRegexes.add(0, "file: \"(http.+?)\"");
         downloadLinkRegexes.add(0, "lnk_download\" href=\"(http.+?)\""); //skip download manager
+        downloadLinkRegexes.add(0, "src: '(http.+?)'");
         return downloadLinkRegexes;
     }
 

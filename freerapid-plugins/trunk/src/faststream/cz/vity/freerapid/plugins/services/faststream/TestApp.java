@@ -17,7 +17,8 @@ public class TestApp extends PluginDevApplication {
         try {
             //we set file URL
             //httpFile.setNewURL(new URL("http://faststream.in/u8qv0mq041qn"));
-            httpFile.setNewURL(new URL("http://fastvideo.in/xtlpbcx21x0s"));
+            //httpFile.setNewURL(new URL("http://fastvideo.in/xtlpbcx21x0s"));
+            httpFile.setNewURL(new URL("http://faststream.ws/wj9mmprew5pj"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication

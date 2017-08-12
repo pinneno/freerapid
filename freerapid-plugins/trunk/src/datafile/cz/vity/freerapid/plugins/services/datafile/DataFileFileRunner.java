@@ -133,6 +133,9 @@ class DataFileFileRunner extends AbstractRunner {
         if (contentAsString.contains("This file can be downloaded only by users with<br />Premium account")) {
             throw new NotRecoverableDownloadException("This file can only be downloaded by premium users"); //let to know user in FRD
         }
+        if (contentAsString.contains("This is private folder")) {
+            throw new NotRecoverableDownloadException("This is private folder");
+        }
         if (contentAsString.contains("You are downloading another file at this moment") ||
                 contentAsString.contains("You can not download more than one file at a time")) {
             throw new YouHaveToWaitException("You can not download more than one file at a time", 5*60);
