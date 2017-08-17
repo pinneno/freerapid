@@ -24,7 +24,7 @@ class DoUploadsFileRunner extends XFileSharingRunner {
         fileNameHandlers.add(new FileNameHandler() {
             @Override
             public void checkFileName(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
-                Matcher match = PlugUtils.matcher("\\]([^\\[]+?)\\s*-\\s*\\d[^\\[]+\\[/", content);
+                Matcher match = PlugUtils.matcher("\\]([^\\[]+?)\\s*-\\s*\\d[^-\\[]+\\[/", content);
                 if (!match.find())
                     throw new PluginImplementationException("File name not found");
                 httpFile.setFileName(match.group(1).trim());
@@ -39,7 +39,7 @@ class DoUploadsFileRunner extends XFileSharingRunner {
         fileSizeHandlers.add(0, new FileSizeHandler() {
             @Override
             public void checkFileSize(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
-                Matcher matcher = PlugUtils.matcher("\\][^\\[]+?\\s*-\\s*(\\d[^\\[]+)\\[/", content);
+                Matcher matcher = PlugUtils.matcher("\\][^\\[]+?\\s*-\\s*(\\d[^-\\[]+)\\[/", content);
                 if (!matcher.find()) {
                     throw new PluginImplementationException("File size not found");
                 }

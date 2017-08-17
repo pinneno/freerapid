@@ -14,6 +14,7 @@ import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.net.URI;
+import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -92,11 +93,12 @@ class RapidGatorFileRunner extends AbstractRunner {
                 return;
             }
             checkNameAndSize(contentAsString);
+            fileURL = method.getURI().getURI();
             final int waitTime = PlugUtils.getWaitTimeBetween(contentAsString, "var secs =", ";", TimeUnit.SECONDS);
             final String fileId = PlugUtils.getStringBetween(contentAsString, "var fid =", ";");
             HttpMethod httpMethod = getMethodBuilder()
                     .setReferer(fileURL)
-                    .setAction("http://rapidgator.net/download/AjaxStartTimer")
+                    .setAction("/download/AjaxStartTimer")
                     .setParameter("fid", fileId)
                     .toGetMethod();
             httpMethod.addRequestHeader("X-Requested-With", "XMLHttpRequest");
@@ -110,7 +112,7 @@ class RapidGatorFileRunner extends AbstractRunner {
             downloadTask.sleep(waitTime + 1);
             httpMethod = getMethodBuilder()
                     .setReferer(fileURL)
-                    .setAction("http://rapidgator.net/download/AjaxGetDownloadLink")
+                    .setAction("/download/AjaxGetDownloadLink")
                     .setParameter("sid", sid)
                     .toGetMethod();
             httpMethod.addRequestHeader("X-Requested-With", "XMLHttpRequest");
@@ -121,7 +123,7 @@ class RapidGatorFileRunner extends AbstractRunner {
             checkProblems();
             httpMethod = getMethodBuilder()
                     .setReferer(fileURL)
-                    .setAction("http://rapidgator.net/download/captcha")
+                    .setAction("/download/captcha")
                     .toGetMethod();
             if (!makeRedirectedRequest(httpMethod)) {
                 checkProblems();
@@ -164,7 +166,7 @@ class RapidGatorFileRunner extends AbstractRunner {
         if (getContentAsString().contains("NoScript.aspx")) {
             logger.info("Captcha Type 1");
             HttpMethod method = getMethodBuilder()
-                    .setReferer("http://rapidgator.net/download/captcha")
+                    .setReferer(getMethodBuilder().setReferer(fileURL).setAction("/download/captcha").getEscapedURI())
                     .setActionFromIFrameSrcWhereTagContains("NoScript.aspx")
                     .toGetMethod();
             if (!makeRedirectedRequest(method)) {
@@ -185,7 +187,7 @@ class RapidGatorFileRunner extends AbstractRunner {
             if (captchaTxt == null) throw new CaptchaEntryInputMismatchException("No Input");
             MethodBuilder methodBuilder = getMethodBuilder()
                     .setReferer(fileURL)
-                    .setAction("http://rapidgator.net/download/captcha")
+                    .setAction("/download/captcha")
                     .setParameter("adscaptcha_challenge_field", codeTxt)
                     .setParameter("adscaptcha_response_field", captchaTxt)
                     .setParameter("DownloadCaptchaForm[captcha]", "");
@@ -202,7 +204,7 @@ class RapidGatorFileRunner extends AbstractRunner {
                 throw new YouHaveToWaitException("Retry request to avoid captcha expired", 5);
             final MethodBuilder methodBuilder = getMethodBuilder()
                     .setReferer(fileURL)
-                    .setAction("http://rapidgator.net/download/captcha")
+                    .setAction("/download/captcha")
                     .setParameter("DownloadCaptchaForm[captcha]", "");
             return solveMediaCaptcha.modifyResponseMethod(methodBuilder).toPostMethod();
         } else if (getContentAsString().contains("api.recaptcha.net/challenge")) {
@@ -220,7 +222,7 @@ class RapidGatorFileRunner extends AbstractRunner {
             r.setRecognized(captcha);
             final MethodBuilder methodBuilder = getMethodBuilder()
                     .setReferer(fileURL)
-                    .setAction("http://rapidgator.net/download/captcha")
+                    .setAction("/download/captcha")
                     .setParameter("DownloadCaptchaForm[captcha]", "");
             return r.modifyResponseMethod(methodBuilder).toPostMethod();
         } else {
@@ -265,5 +267,12 @@ class RapidGatorFileRunner extends AbstractRunner {
         }
     }
 
-
+    protected String getBaseURL() {
+        try {
+            URL file = new URL(fileURL);
+            return file.getProtocol() + "://" + file.getAuthority();
+        } catch (Exception x) {
+            return super.getBaseURL();
+        }
+    }
 }
