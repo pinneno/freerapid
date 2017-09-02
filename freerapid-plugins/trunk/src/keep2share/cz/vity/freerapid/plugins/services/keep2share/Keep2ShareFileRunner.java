@@ -1,6 +1,7 @@
 package cz.vity.freerapid.plugins.services.keep2share;
 
 import cz.vity.freerapid.plugins.exceptions.*;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
@@ -146,6 +147,12 @@ class Keep2ShareFileRunner extends AbstractRunner {
     }
 
     private MethodBuilder doCaptcha(final MethodBuilder builder) throws Exception {
+        final Matcher m = getMatcherAgainstContent("['\"]?sitekey['\"]?\\s*[:=]\\s*['\"]([^\"]+)['\"]");
+        if (m.find()) {
+            final String reCaptchaKey = m.group(1);
+            final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
+            return builder.setParameter("ReCaptchaForm[verifyCode]", r.getResponse());
+        }
         final HttpMethod newCaptcha = getMethodBuilder().setBaseURL(baseUrl).setAction("/file/captcha.html?refresh=1").setAjax().toGetMethod();
         if (!makeRedirectedRequest(newCaptcha)) {
             throw new ServiceConnectionProblemException();

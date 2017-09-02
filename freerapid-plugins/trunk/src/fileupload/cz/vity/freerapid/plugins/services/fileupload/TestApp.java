@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.keep2share;
+package cz.vity.freerapid.plugins.services.fileupload;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -16,13 +16,18 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://k2s.cc/file/9976464ac77e4/XA7kArch1v3sPics-6851.zip"));
-            httpFile.setNewURL(new URL("https://k2s.cc/file/c2bc8bdfaf5b5"));
+            httpFile.setNewURL(new URL("https://file-upload.com/nprun0ziybfs"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
-            //then we tries to download
-            final Keep2ShareServiceImpl service = new Keep2ShareServiceImpl(); //instance of service - of our plugin
+            final FileUploadServiceImpl service = new FileUploadServiceImpl(); //instance of service - of our plugin
+            /*
+            //we set premium account details
+            final PremiumAccount config = new PremiumAccount();
+            config.setUsername("****");
+            config.setPassword("****");
+            service.setConfig(config);
+            //*/
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console

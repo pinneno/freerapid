@@ -37,6 +37,7 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("https://www.facebook.com/messenger/videos/963404803779200/"));
             //httpFile.setNewURL(new URL("https://www.facebook.com/zitounatv.official/videos/853401871457107/"));
             httpFile.setNewURL(new URL("https://www.facebook.com/ShevaHD.Official.Page1/videos/410753062397803/"));
+            httpFile.setNewURL(new URL("https://www.facebook.com/MisaTravnicek/videos/vb.1566352983/10213844910828055"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication

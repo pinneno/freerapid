@@ -62,7 +62,7 @@ class FaceBookFileRunner extends AbstractRunner {
                     throw new URLNotAvailableAnymoreException("This video either has been removed or is not visible due to privacy settings");
                 }
                 final String content = getContentAsString();
-                Matcher matcher = PlugUtils.matcher("<title id=\"pageTitle\">(.+?)(?:\\| Facebook)?</title>", content);
+                Matcher matcher = PlugUtils.matcher("(?s)<title id=\"pageTitle\">(.+?)(?:\\| Facebook)?</title>", content);
                 if (!matcher.find()) {
                     throw new PluginImplementationException("File name not found");
                 }
