@@ -17,6 +17,7 @@ public class TestApp extends PluginDevApplication {
         try {
             //we set file URL
             httpFile.setNewURL(new URL("http://www.opensubtitles.org/en/subtitles/5483255/frozen-en"));
+            httpFile.setNewURL(new URL("https://www.opensubtitles.org/en/subtitles/3107550/the-blind-swordsman-zatoichi-en"));
             //httpFile.setNewURL(new URL("http://www.opensubtitles.org/en/subtitles/3830632/ping-pongkingen-en"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection

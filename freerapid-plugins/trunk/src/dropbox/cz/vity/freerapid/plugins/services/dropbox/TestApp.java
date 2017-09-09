@@ -19,6 +19,7 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("https://www.dropbox.com/s/gn3sr42r1gtuiah/The%20Ironwood%20Tree%20%28The%20Spiderwick%20Chronicles%20%234%29%20by%20Holly%20Black%2C%20Tony%20DiTerlizzi.epub"));
             //httpFile.setNewURL(new URL("https://www.dropbox.com/s/0oth4k2q7eh6xda/%5BMINDS%5DThe.Heirs.E01.LIMO.srt"));
             httpFile.setNewURL(new URL("https://www.dropbox.com/s/f8i51fq8ikfcs5v/3D%20covers.zip"));
+            httpFile.setNewURL(new URL("https://www.dropbox.com/sh/eninofzoma41rt9/AAD_M88SJNLpQXzZfcTIl-6-a/ROM.bin?dl=0"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication

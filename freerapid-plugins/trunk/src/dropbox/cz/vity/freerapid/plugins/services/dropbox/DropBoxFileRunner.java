@@ -37,7 +37,7 @@ class DropBoxFileRunner extends AbstractRunner {
         PlugUtils.checkName(httpFile, content, "<title>Dropbox - ", "<");
         final Matcher match = PlugUtils.matcher("<div class=\"meta\">.+? ([0-9].+?)</div>", content);
         if (!match.find()) {
-            PlugUtils.checkFileSize(httpFile, content, "\"size\": \"", "\"");
+            PlugUtils.checkFileSize(httpFile, content, "\"bytes\": ", ",");
         } else {
             httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1)));
         }
@@ -85,10 +85,12 @@ class DropBoxFileRunner extends AbstractRunner {
         final String contentAsString = getContentAsString();
         if (contentAsString.contains("Invalid Link") ||
                 contentAsString.contains("The file you&rsquo;re looking for has been moved or deleted") ||
+                contentAsString.contains("We can't find the page you're looking for") ||
                 contentAsString.contains("That file isn’t here anymore")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
-        if (contentAsString.contains("links are generating too much traffic and have been temporarily disabled"))
+        if (contentAsString.contains("links are generating too much traffic and have been temporarily disabled")
+                || contentAsString.contains("This link is temporarily disabled"))
             throw new ServiceConnectionProblemException("This account's public links are generating too much traffic and have been temporarily disabled!");
     }
 

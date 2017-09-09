@@ -35,12 +35,12 @@ class OpenSubtitlesFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        Matcher match = PlugUtils.matcher("(?s)Subtitle filename\".*?>(.+?)\\(\\d", content);
+        Matcher match = PlugUtils.matcher("(?s)Subtitle filename\"[^<>]*>([^<>]+?)\\(\\d[^()]+?\\)\\s*<", content);
         if (match.find())
             httpFile.setFileName(match.group(1).trim());
         else
             PlugUtils.checkName(httpFile, content, "<title>Subtitles ", "</title>");
-        match = PlugUtils.matcher("(?s)Subtitle filename\".*?>.+?\\((\\d.+?)\\)\\s*?<", content);
+        match = PlugUtils.matcher("(?s)Subtitle filename\"[^<>]*>[^<>]+?\\((\\d[^()]+?)\\)\\s*<", content);
         if (!match.find())
             throw new PluginImplementationException("File size not found");
         httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1)));

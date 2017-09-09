@@ -13,6 +13,12 @@ import java.util.List;
  * @author birchie
  */
 class UploadBoyFileRunner extends XFileSharingRunner {
+
+    @Override
+    protected void correctURL() throws Exception {
+        fileURL = fileURL.replaceFirst("://uploadboy.me/", "://uploadboy.com/");
+    }
+
     @Override
     protected List<FileNameHandler> getFileNameHandlers() {
         final List<FileNameHandler> fileNameHandlers = super.getFileNameHandlers();

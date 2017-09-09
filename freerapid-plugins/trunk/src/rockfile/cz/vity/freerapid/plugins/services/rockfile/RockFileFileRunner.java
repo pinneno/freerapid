@@ -95,7 +95,7 @@ class RockFileFileRunner extends XFileSharingRunner {
     @Override
     protected String getDownloadLinkFromRegexes() throws ErrorDuringDownloadingException {
         String link = super.getDownloadLinkFromRegexes();
-        httpFile.setFileName(1 + link.substring(link.lastIndexOf("/")));
+        httpFile.setFileName(link.substring(1 + link.lastIndexOf("/")));
         return link;
     }
 
