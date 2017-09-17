@@ -83,9 +83,16 @@ class Keep2ShareFileRunner extends AbstractRunner {
                 }
                 if (!getContentAsString().replaceAll("\\s", "").contains(">Downloadnow<")) {
                     do {
-                        final MethodBuilder captchaMethod = getMethodBuilder()
+                        MethodBuilder captchaMethod;
+                        try {
+                            captchaMethod = getMethodBuilder()
                                 .setBaseURL(baseUrl)
                                 .setActionFromFormWhereTagContains("Slow download", true);
+                        } catch (Exception x) {
+                            captchaMethod = getMethodBuilder()
+                                    .setBaseURL(baseUrl)
+                                    .setActionFromFormByName("captcha-form", true);
+                        }
                         if (!makeRedirectedRequest(doCaptcha(captchaMethod).toPostMethod())) {
                             checkProblems();
                             throw new ServiceConnectionProblemException();
