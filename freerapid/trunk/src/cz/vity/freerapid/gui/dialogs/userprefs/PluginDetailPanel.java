@@ -22,7 +22,13 @@ class PluginDetailPanel extends JPanel {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         // Generated using JFormDesigner Open Source Project license - unknown
         //ResourceBundle bundle = ResourceBundle.getBundle("PluginDetails");
-        titleSeparator = new JXTitledSeparator();
+        final ComponentOrientation componentOrientation = new JLabel().getComponentOrientation();
+        titleSeparator = new JXTitledSeparator("") {
+            @Override
+            public ComponentOrientation getComponentOrientation() {
+                return componentOrientation;
+            }
+        };
         JLabel labelVersion = new JLabel();
         versionLabel = new JLabel();
         JLabel labelAuthor = new JLabel();

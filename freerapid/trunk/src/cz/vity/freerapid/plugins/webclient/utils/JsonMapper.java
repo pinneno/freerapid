@@ -1,8 +1,8 @@
 package cz.vity.freerapid.plugins.webclient.utils;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
-import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -11,7 +11,7 @@ import java.util.logging.Logger;
 /**
  * @author VitasekL
  * Mapper should be used only 1 for 1 thread
- * @since 0.855
+ * @since 1.0
  */
 public class JsonMapper {
 
@@ -20,7 +20,7 @@ public class JsonMapper {
 
     public JsonMapper() {
         objectMapper = new ObjectMapper();
-        objectMapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         //objectMapper.configure(DeserializationConfig.Feature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
     }
 
@@ -36,12 +36,12 @@ public class JsonMapper {
      */
     public <T> T deserialize(String contentAsString, Class<T> objectClass) throws PluginImplementationException {
         //if (objectMapper.canDeserialize(objectMapper.constructType(objectClass))) {
-        try {
-            return objectMapper.readValue(contentAsString, objectClass);
-        } catch (IOException e) {
-            logger.log(Level.SEVERE, "cannot parse json", e);
-            throw new PluginImplementationException("Cannot parse JSON for class" + objectClass.getName());
-        }
+            try {
+                return objectMapper.readValue(contentAsString, objectClass);
+            } catch (IOException e) {
+                logger.log(Level.SEVERE, "cannot parse json", e);
+                throw new PluginImplementationException("Cannot parse JSON for class" + objectClass.getName());
+            }
         //}
         //throw new PluginImplementationException("Cannot deserialize JSON for class " + objectClass.getName());
     }

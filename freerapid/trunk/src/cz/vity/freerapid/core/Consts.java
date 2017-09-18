@@ -15,7 +15,7 @@ public class Consts {
     /**
      * Version
      */
-    public static final String VERSION = "0.9u4";
+    public static final String VERSION = "1.0beta";
 
     /**
      * verze a jmeno programu
@@ -76,29 +76,21 @@ public class Consts {
     // hodnoty pro defaultni hodnoty pripojeni
 
     public static final String APP_CODE = "frd";
-    public static final String AUTHORS = "DevTeam (c) 2008-2014";
+    public static final String AUTHORS = "DevTeam (c) 2008-2017";
 
     public static final String LINUX_SHELL_SCRIPT = APP_CODE + ".sh";
     public static final String LINUX_ICON_NAME = APP_CODE + ".png";
     public static final String WINDOWS_ICON_NAME = APP_CODE + ".ico";
     public static final String WINDOWS_EXE_NAME = APP_CODE + ".exe";
 
-    /**
-     * Soubor pod kterym jsou polozky ulozeny
-     */
-    static final String DEFAULT_PROPERTIES = "frd.xml";
-
     public static final String PLUGIN_CHECK_UPDATE_URL = "http://wordrider.net/freerapid/pluginsCheck.php";
     /**
      * version of API
      */
-    public static final String APIVERSION = "0.855";
+    public static final String APIVERSION = "0.865";
     public static final String PLUGINSSTATUS_URL = "http://wordrider.net/freerapid/plugins.html";
     public static final String SEARCH_ENGINES_URL = "https://addons.mozilla.org/en-US/firefox/search-engines/";
 
-    /**
-     * Od teto tridy se nebudou delat zadne instance
-     */
     private Consts() {
     }
 }

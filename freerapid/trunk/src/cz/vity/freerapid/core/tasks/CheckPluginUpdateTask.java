@@ -77,6 +77,7 @@ public class CheckPluginUpdateTask extends CoreTask<List<Plugin>, Void> {
         final String url = AppPrefs.getProperty(UserProp.PLUGIN_CHECK_URL_SELECTED, Consts.PLUGIN_CHECK_UPDATE_URL);
         if (url.toLowerCase().endsWith(".xml")) { //for testing purposes
             method = client.getGetMethod(url);
+            method.setFollowRedirects(true);//it's done for post method
         } else {
             PostMethod postMethod = client.getPostMethod(url);
             postMethod.addParameter(PRODUCT_PARAM, Consts.PRODUCT);

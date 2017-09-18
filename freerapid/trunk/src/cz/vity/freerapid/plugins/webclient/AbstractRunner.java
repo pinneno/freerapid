@@ -4,7 +4,7 @@ import cz.vity.freerapid.plugins.exceptions.BuildMethodException;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.webclient.hoster.CaptchaSupport;
 import cz.vity.freerapid.plugins.webclient.interfaces.*;
-import cz.vity.freerapid.plugins.webclient.utils.JsonMapperV2;
+import cz.vity.freerapid.plugins.webclient.utils.JsonMapper;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpMethod;
@@ -205,7 +205,7 @@ public abstract class AbstractRunner implements PluginRunner {
         if (contentAsString == null) {
             return null;
         }
-        return new JsonMapperV2().deserialize(contentAsString, objectClass);
+        return new JsonMapper().deserialize(contentAsString, objectClass);
     }
 
     /**
