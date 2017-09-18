@@ -34,6 +34,7 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.net.URL;
 import java.text.NumberFormat;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -226,6 +227,8 @@ public class InformationDialog extends AppFrame implements PropertyChangeListene
         }
         JLabel labelSize = new JLabel();
         fieldSize = new JTextField();
+        JLabel labelDate = new JLabel();
+        dateLabel = new JLabel();
         JLabel labelDescription = new JLabel();
         JScrollPane scrollPane1 = new JScrollPane();
         descriptionArea = ComponentFactory.getTextArea();
@@ -285,6 +288,9 @@ public class InformationDialog extends AppFrame implements PropertyChangeListene
                 //---- fieldSize ----
                 fieldSize.setBorder(null);
                 fieldSize.setOpaque(false);
+
+                //---- labelDate ----
+                labelDate.setName("labelDate");
 
                 //---- labelDescription ----
                 labelDescription.setName("labelDescription");
@@ -416,7 +422,9 @@ public class InformationDialog extends AppFrame implements PropertyChangeListene
                 contentPanelBuilder.add(labelFrom, cc.xy(3, 3));
                 contentPanelBuilder.add(fieldFrom, cc.xywh(5, 3, 5, 1));
                 contentPanelBuilder.add(labelSize, cc.xy(3, 5));
-                contentPanelBuilder.add(fieldSize, cc.xywh(5, 5, 3, 1));
+                contentPanelBuilder.add(fieldSize, cc.xy(5, 5));
+                contentPanelBuilder.add(labelDate, cc.xy(7, 5));
+                contentPanelBuilder.add(dateLabel, cc.xy(9, 5));
                 contentPanelBuilder.add(labelDescription, cc.xy(1, 7));
                 contentPanelBuilder.add(scrollPane1, cc.xywh(1, 9, 9, 1));
                 contentPanelBuilder.add(optionsPanel, cc.xywh(1, 11, 9, 1));
@@ -465,6 +473,7 @@ public class InformationDialog extends AppFrame implements PropertyChangeListene
     private void updateInit() {
         updateFrom();
         updateSize();
+        updateDate();
         updateFileName();
         updateState();
     }
@@ -520,6 +529,20 @@ public class InformationDialog extends AppFrame implements PropertyChangeListene
         }
 
         fieldSize.setText(value);
+    }
+
+    private void updateDate() {
+        final Date fd = file.getDateInserted();
+        String ds = "---";
+        String dst = null;
+        if (fd != null) {
+            final String dateFormat = AppPrefs.getProperty(UserProp.INFORMATION_DIALOG_DATE_FORMAT, "%1$tY %1$tB %1$te");
+            final long time = fd.getTime();
+            ds = String.format(dateFormat, time, time);
+            dst = String.format(dateFormat + " %tH:%tM", time, time);
+        }
+        dateLabel.setText(ds);
+        dateLabel.setToolTipText(dst);
     }
 
     private void updateAvgSpeed() {
@@ -604,6 +627,7 @@ public class InformationDialog extends AppFrame implements PropertyChangeListene
     private JLabel pathLabel;
     private EditorPaneLinkDetector fieldFrom;
     private JTextField fieldSize;
+    private JLabel dateLabel;
     private JTextArea descriptionArea;
     private JComboBox comboPath;
     private JButton btnSelectPath;
@@ -630,6 +654,8 @@ public class InformationDialog extends AppFrame implements PropertyChangeListene
             updateFileName();
         } else if ("fileSize".equals(propName)) {
             updateSize();
+        } else if ("fileDate".equals(propName)) {
+            updateDate();
         } else if ("sleep".equals(propName)) {
             updateEstimateTime();
             updateDurationTime();

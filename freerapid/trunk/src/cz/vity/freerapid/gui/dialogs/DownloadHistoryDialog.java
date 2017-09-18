@@ -51,6 +51,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -269,6 +270,7 @@ public class DownloadHistoryDialog extends AppFrame implements ClipboardOwner, L
             down.setDescription(fileH.getDescription());
             down.setFileName(fileH.getFileName());
             down.setFileSize(fileH.getFileSize());
+            down.setDateInserted(new Date(fileH.getFinishedTime()));
             down.setDownloaded(fileH.getFileSize());
             down.setRealDownload(fileH.getFileSize());
             down.setFileType(fileH.getFileType());
