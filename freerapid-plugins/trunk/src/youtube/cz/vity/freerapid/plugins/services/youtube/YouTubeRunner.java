@@ -19,6 +19,8 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
 import java.net.URI;
@@ -29,6 +31,7 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.InflaterInputStream;
 
 /**
  * @author Kajda
@@ -47,7 +50,9 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
     private YouTubeSettingsConfig config;
     private int dashAudioItagValue = -1;
     private int secondaryDashAudioItagValue = -1;
-    private String swfUrl = null;
+
+    private String playerJsCode;
+    private String playerJsFunction;
 
     @Override
     public void runCheck() throws Exception {
@@ -118,13 +123,11 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
             bypassAgeVerification(method);
             Matcher matcher;
             String mainpageContent = getContentAsString();
-            if (swfUrl == null) {
-                matcher = getMatcherAgainstContent("\"url\":\\s*?\"([^\"]+?)\"");
-                if (!matcher.find()) {
-                    throw new PluginImplementationException("SWF URL not found");
-                }
-                swfUrl = matcher.group(1).replace("\\/", "/");
+            matcher = getMatcherAgainstContent("<script src=\"(.+?)\"\\s*?name=\"player/base\"");
+            if (!matcher.find()) {
+                throw new PluginImplementationException("Player js url not found");
             }
+            String playerJsUrl = matcher.group(1);
             //"url_encoded_fmt_stream_map":"type=vi...    " //normal
             //url_encoded_fmt_stream_map=url%3Dhttp%253A... & //embedded
             matcher = getMatcherAgainstContent("\"?url_encoded_fmt_stream_map\"?(=|:)(?: ?\")?([^&\"$]+)(?:\"|&|$)");
@@ -132,9 +135,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
                 throw new PluginImplementationException("Fmt stream map not found");
             }
             String fmtStreamMapContent = matcher.group(1).equals(":") ? matcher.group(2) : URLDecoder.decode(matcher.group(2), "UTF-8");
-            YouTubeSigDecipher ytSigDecipher;
             Map<Integer, YouTubeMedia> afDashStreamMap = new LinkedHashMap<Integer, YouTubeMedia>(); //union between afStreamMap and dashStreamMap
-            logger.info("SWF URL : " + swfUrl);
             if (config.isEnableDash()
                     || (config.getDownloadMode() == DownloadMode.convertToAudio)
                     || (config.getDownloadMode() == DownloadMode.extractAudio)) {
@@ -162,14 +163,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
                         if (!matcher.find()) {
                             throw new PluginImplementationException("Cipher signature not found");
                         }
-                        String signature = matcher.group(1);
-                        ytSigDecipher = YouTubeSigDecipher.getInstance(swfUrl, client);
-                        try {
-                            signature = ytSigDecipher.decipher(signature); //deciphered signature
-                        } catch (Exception e) {
-                            logger.warning("SWF URL: " + swfUrl);
-                            throw e;
-                        }
+                        String signature = decipherSignature(playerJsUrl, matcher.group(1));
                         dashUrl = dashUrl.replaceFirst("/s/[^/]+", "/signature/" + signature);
                         logger.info("DASH URL (deciphered) : " + dashUrl);
                     }
@@ -218,7 +212,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
             logger.info("Config setting : " + config);
             logger.info("Downloading media : " + youTubeMedia);
             setClientParameter(DownloadClientConsts.DONT_USE_HEADER_FILENAME, true);
-            if (!tryDownloadAndSaveFile(getGetMethod(getMediaUrl(swfUrl, youTubeMedia)))) {
+            if (!tryDownloadAndSaveFile(getGetMethod(getMediaUrl(playerJsUrl, youTubeMedia)))) {
                 if (secondaryDashAudioItagValue != -1) { //try secondary dash audio
                     youTubeMedia = afDashStreamMap.get(secondaryDashAudioItagValue);
                     if (youTubeMedia == null) {
@@ -226,7 +220,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
                     }
                     logger.info("Primary DASH audio failed, trying to download secondary DASH audio");
                     logger.info("Downloading media : " + youTubeMedia);
-                    if (!tryDownloadAndSaveFile(getGetMethod(getMediaUrl(swfUrl, youTubeMedia)))) {
+                    if (!tryDownloadAndSaveFile(getGetMethod(getMediaUrl(playerJsUrl, youTubeMedia)))) {
                         checkProblems();
                         throw new ServiceConnectionProblemException("Error downloading secondary DASH audio");
                     }
@@ -259,7 +253,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
         }
     }
 
-    private String getMediaUrl(String swfUrl, YouTubeMedia youTubeMedia) throws Exception {
+    private String getMediaUrl(String playerJsUrl, YouTubeMedia youTubeMedia) throws Exception {
         String videoURL = youTubeMedia.getUrl();
         String signatureInUrl = null;
         try {
@@ -271,13 +265,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
             String signature;
             if (youTubeMedia.isCipherSignature()) { //signature is encrypted
                 logger.info("Cipher signature : " + youTubeMedia.getSignature());
-                YouTubeSigDecipher ytSigDecipher = YouTubeSigDecipher.getInstance(swfUrl, client);
-                try {
-                    signature = ytSigDecipher.decipher(youTubeMedia.getSignature());
-                } catch (Exception e) {
-                    logger.warning("SWF URL: " + swfUrl);
-                    throw e;
-                }
+                signature = decipherSignature(playerJsUrl, youTubeMedia.getSignature());
                 logger.info("Deciphered signature : " + signature);
             } else {
                 signature = youTubeMedia.getSignature();
@@ -285,6 +273,39 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
             videoURL += "&signature=" + signature;
         }
         return videoURL;
+    }
+
+    private String decipherSignature(String playerJsUrl, String signature) throws Exception {
+        if (playerJsCode == null || playerJsFunction == null) {
+            HttpMethod method = getMethodBuilder().setAction(playerJsUrl).setReferer(fileURL).toGetMethod();
+            if (!makeRedirectedRequest(method)) {
+                throw new ServiceConnectionProblemException("Failed to load player js");
+            }
+            Matcher matcher = getMatcherAgainstContent("=(function\\(a\\)\\{a=a\\.split\\(\"\"\\);(..)\\.(?:[^\r\n]+?)return a.join\\(\"\"\\)});");
+            if (!matcher.find()) {
+                throw new PluginImplementationException("Failed to parse player js (1)");
+            }
+            playerJsCode = matcher.group(1);
+            matcher = getMatcherAgainstContent("(?s)(var " + matcher.group(2) + "=.+?\\}\\};)");
+            if (!matcher.find()) {
+                throw new PluginImplementationException("Failed to parse player js (2)");
+            }
+            playerJsFunction = matcher.group(1);
+        }
+
+        final ScriptEngineManager mgr = new ScriptEngineManager();
+        final ScriptEngine engine = mgr.getEngineByName("JavaScript");
+        if (engine == null) {
+            throw new RuntimeException("JavaScript engine not found");
+        }
+        try {
+            engine.eval(playerJsFunction);
+            return engine.eval("(" + playerJsCode + ")(\"" + signature + "\");").toString();
+        } catch (Exception e) {
+            logger.warning("function:\n" + playerJsFunction);
+            logger.warning("code:\n" + playerJsCode);
+            throw new PluginImplementationException("Failed to execute player js", e);
+        }
     }
 
     private void checkFileProblems() throws Exception {
@@ -972,14 +993,14 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
             if (is == null) {
                 throw new ServiceConnectionProblemException("Error downloading embed SWF");
             }
-            String embedSwfContent = YouTubeSigDecipher.readSwfStreamToString(is);
+            String embedSwfContent = readSwfStreamToString(is);
 
             Matcher matcher = PlugUtils.matcher("(?:swf|ssl|WEB|=).*?(https?://.+?\\.swf)", embedSwfContent);
             if (!matcher.find()) {
                 logger.warning(embedSwfContent);
                 throw new PluginImplementationException("SWF URL not found");
             }
-            swfUrl = matcher.group(1).replace("cps.swf", "watch_as3.swf");
+            //swfUrl = matcher.group(1).replace("cps.swf", "watch_as3.swf");
             method = getMethodBuilder()
                     .setReferer(embedSwfUrl)
                     .setAction("https://www.youtube.com/get_video_info")
@@ -1008,4 +1029,47 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
             throw new PluginImplementationException("Age verification is broken");
         }
     }
+
+    private static String readSwfStreamToString(InputStream is) throws IOException {
+        try {
+            final byte[] bytes = new byte[2048];
+            //read the first 8 bytes :
+            //3 bytes - signature
+            //1 byte  - version
+            //4 bytes - file length
+            if (readBytes(is, bytes, 8) != 8) {
+                throw new IOException("Error reading from stream");
+            }
+            if (bytes[0] == 'C' && bytes[1] == 'W' && bytes[2] == 'S') {
+                bytes[0] = 'F';
+                is = new InflaterInputStream(is);
+            } else if (bytes[0] != 'F' || bytes[1] != 'W' || bytes[2] != 'S') {
+                throw new IOException("Invalid SWF stream");
+            }
+
+            final StringBuilder sb = new StringBuilder(8192);
+            sb.append(new String(bytes, 0, 8, "ISO-8859-1"));
+            int len;
+            while ((len = is.read(bytes)) != -1) {
+                sb.append(new String(bytes, 0, len, "ISO-8859-1"));
+            }
+            return sb.toString();
+        } finally {
+            try {
+                is.close();
+            } catch (final Exception e) {
+                LogUtils.processException(logger, e);
+            }
+        }
+    }
+
+    private static int readBytes(InputStream is, byte[] buffer, int count) throws IOException {
+        int read = 0, i;
+        while (count > 0 && (i = is.read(buffer, 0, count)) != -1) {
+            count -= i;
+            read += i;
+        }
+        return read;
+    }
+
 }
