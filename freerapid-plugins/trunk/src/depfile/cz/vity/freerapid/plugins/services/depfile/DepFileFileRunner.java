@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
@@ -43,7 +44,12 @@ class DepFileFileRunner extends AbstractRunner {
 
     @Override
     protected String getBaseURL() {
-        return "https://depfile.com/";
+        try {
+            return new URL(fileURL).getProtocol() + "://" + new URL(fileURL).getAuthority();
+        }
+        catch (Exception x) {
+            return super.getBaseURL();
+        }
     }
 
     @Override
@@ -73,6 +79,7 @@ class DepFileFileRunner extends AbstractRunner {
         if (!makeRedirectedRequest(httpMethod)) {
             throw new ServiceConnectionProblemException();
         }
+        fileURL = httpMethod.getURI().getURI();
         checkProblems();
         checkNameAndSize();
         while (getContentAsString().contains("verifycode")) {

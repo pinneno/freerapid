@@ -23,7 +23,7 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://novaplus.nova.cz/porad/tele-tele/video/2313-tele-tele-47-dil"));
             //httpFile.setNewURL(new URL("http://novaplus.nova.cz/porad/ulice/video/6813-ukazka-z-pondelni-ulice-zkouska-pro-terezu-jak-ji-prijme-romanuv-syn")); //http
             //httpFile.setNewURL(new URL("http://novaplus.nova.cz/porad/ordinace-v-ruzove-zahrade-2/video/8261-ordinace-v-ruzove-zahrade-2-630-dil-1-cast/"));
-            httpFile.setNewURL(new URL("http://novaplus.nova.cz/porad/drazi-sousede/video/13333-drazi-sousede-9-dil-vyhaneni-nevesty/"));
+            httpFile.setNewURL(new URL("http://novaplus.nova.cz/porad/policie-modrava/video/15723-laska-na-modrave-nikdy-to-neni-idylicke-jake-problemy-musi-v-kriminalce-zamilovane-pary-resit/"));
 
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication

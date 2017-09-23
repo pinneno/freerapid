@@ -48,7 +48,7 @@ class Nova_NovaPlusFileRunner extends AbstractRunner {
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
         String filename;
         try {
-            filename = PlugUtils.getStringBetween(content, "<h1>", "</h1>", 2);
+            filename = PlugUtils.getStringBetween(content, "<h1>", "</h1>");
         } catch (PluginImplementationException e) {
             throw new PluginImplementationException("File name not found");
         }
@@ -65,14 +65,19 @@ class Nova_NovaPlusFileRunner extends AbstractRunner {
             checkProblems();
             checkNameAndSize(getContentAsString());
             setConfig();
-            Matcher matcher = PlugUtils.matcher("(?s)params\\s*?=\\s*?([^;]+);", getContentAsString());
+            Matcher matcher = PlugUtils.matcher("(?s)configUrl\\s*[:=]\\s*['\"]?([^'\",]+)['\"]?,", getContentAsString());
             if (!matcher.find()) {
                 throw new PluginImplementationException("Config URL not found");
             }
-            String configUrl = matcher.group(1).replaceAll("fallback.+", "").replaceAll("\\s*", "").replace("?',", "?")
-                    .replace("{configUrl:'", "").replace(":'", "=").replace("),", "&")
-                    .replace("',", "&").replace("'+'", "").replace("'}", "")
-                    .replace(",", "").replace(":parseInt(", "=");
+            String configUrl = matcher.group(1).trim();
+            matcher = PlugUtils.matcher("(?s)[Pp]arams\\s*[:=]\\s*\\{?([^};]+)[};]", getContentAsString());
+            if (!matcher.find()) {
+                throw new PluginImplementationException("Config parameters not found");
+            }
+            String configParams = matcher.group(1).replaceAll("\\s*", "")
+                    .replace(":'", "=").replace("',", "&")
+                    .replace("'+'", "").replace(",", "");
+            configUrl = configUrl + configParams;
             if (!configUrl.startsWith("http")) {
                 throw new PluginImplementationException("Invalid config URL");
             }

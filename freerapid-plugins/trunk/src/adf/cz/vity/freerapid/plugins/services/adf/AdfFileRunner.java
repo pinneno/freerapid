@@ -34,24 +34,7 @@ class AdfFileRunner extends AbstractRunner {
                 httpFile.setState(DownloadState.QUEUED);
                 return;
             }
-            String eu = PlugUtils.getStringBetween(getContentAsString(), "var ysmm = '", "';");
-            int idx1 = eu.indexOf("!HiTommy");
-            if (idx1 != -1) {
-                eu = eu.substring(0, idx1);
-            }
-            String a = "", b = "";
-            for (int i = 0; i < eu.length(); i++) {
-                if (i % 2 == 0) {
-                    a += eu.charAt(i);
-                } else {
-                    b = eu.charAt(i) + b;
-                }
-            }
-            eu = a + b;
-            eu = new String(Base64.decodeBase64(eu));
-            eu = eu.substring(2);
-
-            String url = eu;
+            String url = decodeUrl(PlugUtils.getStringBetween(getContentAsString(), "var ysmm = '", "';"));
             if (url.contains("adf.ly/go.php")) {
                 if (!makeRedirectedRequest(getGetMethod(url))) {
                     throw new ServiceConnectionProblemException();
@@ -72,6 +55,50 @@ class AdfFileRunner extends AbstractRunner {
         if (getContentAsString().contains("that link has been deleted") ||
                 getContentAsString().contains("This AdF.ly account has been suspended")) {
             throw new URLNotAvailableAnymoreException("File not found");
+        }
+    }
+
+    private String decodeUrl(String in) {
+        int idx1 = in.indexOf("!HiTommy");
+        if (idx1 != -1) {
+            in = in.substring(0, idx1);
+        }
+        String a = "", b = "";
+        for (int i = 0; i < in.length(); i++) {
+            if (i % 2 == 0) {
+                a += in.charAt(i);
+            } else {
+                b = in.charAt(i) + b;
+            }
+        }
+        String out = a + b;
+        char[] ca = out.toCharArray();
+        for (int i = 0; i < ca.length; i++) {
+            if (!isNaN(ca[i])) {
+                for (int j = i + 1; j < ca.length; j++) {
+                    if (!isNaN(ca[j])) {
+                        int S = ca[i]^ca[j];
+                        if (S < 10) {
+                            ca[i] = ("" + S).charAt(0);
+                        }
+                        i = j;
+                        j = ca.length;
+                    }
+                }
+            }
+        }
+        out = new String(ca);
+        out = new String(Base64.decodeBase64(out));
+        out = out.substring(16, out.length()-16);
+        return out;
+    }
+
+    public static boolean isNaN(char chr){
+        try{
+            Integer.parseInt(new String(new char[]{chr}));
+            return false;
+        } catch (Exception x) {
+            return true;
         }
     }
 

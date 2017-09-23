@@ -10,6 +10,7 @@ import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 
 /**
  * Class which contains main code
@@ -39,8 +40,12 @@ class PixHostFileRunner extends AbstractRunner {
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
         if (fileURL.equals(content))
             httpFile.setFileName(content.substring(1 + content.lastIndexOf("/")));
-        else
-            PlugUtils.checkName(httpFile, content, "h2>Picture: ", "</h2>");
+        else {
+            Matcher matcher = PlugUtils.matcher("<img id=[^<>]+?alt=\"([^\"]+?)\"", content);
+            if (!matcher.find())
+                throw new PluginImplementationException("File name not found");
+            httpFile.setFileName(matcher.group(1));
+        }
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 
@@ -65,7 +70,10 @@ class PixHostFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);
-            method = getGetMethod(PlugUtils.getStringBetween(contentAsString, "<img id=\"show_image\" src=\"", "\" onClick"));
+            Matcher matcher = PlugUtils.matcher("<img id=[^<>]+?src=\"([^\"]+?)\"", contentAsString);
+            if (!matcher.find())
+                throw new PluginImplementationException("Image source not found");
+            method = getGetMethod(matcher.group(1));
         } else
             checkNameAndSize(fileURL);
         if (!tryDownloadAndSaveFile(method)) {

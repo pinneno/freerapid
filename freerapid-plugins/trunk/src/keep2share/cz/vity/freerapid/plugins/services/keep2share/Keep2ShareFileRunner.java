@@ -42,9 +42,10 @@ class Keep2ShareFileRunner extends AbstractRunner {
             httpFile.setFileName(match.group(1).trim());
             httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(2).trim()));
         } else {
-            match = PlugUtils.matcher("file\\s*:\\s*<span[^<>]*>\\s*([^<>]+?)\\s*</", content);
+            match = PlugUtils.matcher("(?s)class=\"(?:name|title)-file\">\\s*([^<]+?)\\s*<.+?Size\\s*:\\s*(?:<[^>]+>)?([^<]+?)<", content);
             if (match.find()) {
                 httpFile.setFileName(match.group(1).trim());
+                httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(2).trim()));
             } else {
                 PlugUtils.checkName(httpFile, content, "File: <span>", "<");
                 PlugUtils.checkFileSize(httpFile, content, "Size:", "<");
@@ -101,9 +102,10 @@ class Keep2ShareFileRunner extends AbstractRunner {
                     } while (getContentAsString().contains("The verification code is incorrect"));
 
                     final Matcher match = PlugUtils.matcher("download-wait-timer\"[^<>]*>\\s*(.+?)\\s*</", contentAsString+getContentAsString());
-                    if (!match.find())
-                        throw new PluginImplementationException("Wait time not found");
-                    downloadTask.sleep(1 + Integer.parseInt(match.group(1).trim()));
+                    int time = 30;
+                    if (match.find())
+                        time = Integer.parseInt(match.group(1).trim());
+                    downloadTask.sleep(1 + time);
                     final MethodBuilder dlBuilder = getMethodBuilder()
                             .setBaseURL(baseUrl)
                             .setAjax()

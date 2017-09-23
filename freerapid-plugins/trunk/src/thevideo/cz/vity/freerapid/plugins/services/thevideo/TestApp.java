@@ -17,10 +17,16 @@ public class TestApp extends PluginDevApplication {
         try {
             //we set file URL
             httpFile.setNewURL(new URL("http://www.thevideo.me/pvqw2yiljh24"));
+            httpFile.setNewURL(new URL("https://tvad.me/a3cqnoof9z9g"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             final TheVideoServiceImpl service = new TheVideoServiceImpl(); //instance of service - of our plugin
+            //*
+            final SettingsConfig settings = new SettingsConfig();
+            settings.setQualitySetting(VideoQuality._480);
+            service.setSettings(settings);
+            //*/
             /*
             //we set premium account details
             final PremiumAccount config = new PremiumAccount();
