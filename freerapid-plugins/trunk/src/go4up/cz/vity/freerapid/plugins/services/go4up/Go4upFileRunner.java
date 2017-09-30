@@ -66,7 +66,7 @@ class Go4upFileRunner extends AbstractRunner {
                     checkProblems();
                     throw new ServiceConnectionProblemException();
                 }
-                final Matcher matcher = PlugUtils.matcher(">((?:https?://go4up.com)?/rd/[^/]+?/[\\w\\d]{1,5})</a>", getContentAsString().replaceAll("\\\\", ""));
+                final Matcher matcher = PlugUtils.matcher(">((?:https?://(?:(?:dl|www)\\.)?go4up.com)?/rd/[^/]+?/[\\w\\d]{1,5})</a>", getContentAsString().replaceAll("\\\\", ""));
                 while (matcher.find()) {
                     processLink(matcher.group(1), list);
                 }
