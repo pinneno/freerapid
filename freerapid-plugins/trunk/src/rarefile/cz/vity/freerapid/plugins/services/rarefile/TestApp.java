@@ -15,7 +15,7 @@ public class TestApp extends PluginDevApplication {
     protected void startup() {
         final HttpFile httpFile = getHttpFile();
         try {
-            httpFile.setNewURL(new URL("http://www.rarefile.net/04k08trdi7kp/ThirstForLove.part1.rar"));
+            httpFile.setNewURL(new URL("http://www.rarefile.net/89vy2016e7tr/YoungSheldon.S01E01.720pHDTV.mkv"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             final RareFileServiceImpl service = new RareFileServiceImpl();

@@ -40,7 +40,7 @@ class Keep2Share_PremiumFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        Matcher match = PlugUtils.matcher("<span class=\"title-file\">\\s*(.+?)\\s*<em>(.+?)</em>", content);
+        Matcher match = PlugUtils.matcher("<span class=\"title-file\">\\s*(.+?)\\s*<em>\\s*(.+?)\\s*</em>", content);
         if (match.find()) {
             httpFile.setFileName(match.group(1).trim());
             httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(2).trim()));
