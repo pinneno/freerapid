@@ -14,6 +14,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import java.util.List;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Class which contains main code
@@ -57,6 +58,12 @@ class MexaShareFileRunner extends XFileSharingRunner {
         final List<String> downloadPageMarkers = super.getDownloadPageMarkers();
         downloadPageMarkers.add("Start Download");
         return downloadPageMarkers;
+    }
+    @Override
+    protected List<String> getDownloadLinkRegexes() {
+        final List<String> downloadLinkRegexes = super.getDownloadLinkRegexes();
+        downloadLinkRegexes.add(0,"<a[^<>]+href\\s*=\\s*[\"'](http[^\"']+?" + Pattern.quote(httpFile.getFileName()) + ")[\"']");
+        return downloadLinkRegexes;
     }
 
     @Override

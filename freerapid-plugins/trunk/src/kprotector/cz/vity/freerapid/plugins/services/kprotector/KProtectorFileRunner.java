@@ -8,6 +8,7 @@ import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.hoster.CaptchaSupport;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
+import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
@@ -111,7 +112,11 @@ class KProtectorFileRunner extends AbstractRunner {
             return builder.setParameter("ct_captcha", captcha);
         }
         else if (content.contains("kprotector.com/fancycaptcha/")) {
-            throw new PluginImplementationException("Captcha type not supported in FreeRapid");
+            Matcher match = PlugUtils.matcher("kprotector.com(/\\w\\d+)/([\\w\\d]+)", fileURL);
+            if (!match.find())
+                throw new PluginImplementationException("Error parsing url");
+            String cookieName = "flag[" + match.group(2).trim() + "]";
+            addCookie(new Cookie("www.kprotector.com", cookieName, "1", match.group(1).trim(), 86400, false));
         }
         else if (content.contains("kprotector.com/simplecaptcha/")) {
             final CaptchaSupport captchaSupport = getCaptchaSupport();

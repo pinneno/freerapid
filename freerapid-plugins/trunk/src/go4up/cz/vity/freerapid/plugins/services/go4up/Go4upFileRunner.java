@@ -37,7 +37,7 @@ class Go4upFileRunner extends AbstractRunner {
             if (getContentAsString().contains("<title>Download"))
                 sFileName = " For: " + PlugUtils.getStringBetween(getContentAsString(), "<title>Download ", "<");
             httpFile.setFileName("Extract Link(s)" + sFileName);
-            Matcher match = getMatcherAgainstContent("\\((\\d.+)\\)");
+            Matcher match = getMatcherAgainstContent("\\((\\d.+[Bb](?:ytes?)?)\\)");
             if (!match.find())
                 throw new PluginImplementationException("File size not found");
             httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1)));
