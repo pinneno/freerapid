@@ -6,6 +6,7 @@ import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
 import cz.vity.freerapid.plugins.services.youtube.srt.Transcription2SrtUtil;
 import cz.vity.freerapid.plugins.video2audio.AbstractVideo2AudioRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadClientConsts;
+import cz.vity.freerapid.plugins.webclient.DownloadState;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.HttpUtils;
 import cz.vity.freerapid.plugins.webclient.utils.JsonMapper;
@@ -23,10 +24,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
+import java.net.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -83,6 +81,13 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
         super.run();
         logger.info("Starting download in TASK " + fileURL);
         checkUrl();
+        if (fileURL.contains("youtu.be/")) {
+            String url = "https://www.youtube.com/watch?v=" + getIdFromUrl(fileURL);
+            httpFile.setNewURL(new URL(url));
+            httpFile.setPluginID("");
+            httpFile.setState(DownloadState.QUEUED);
+            return;
+        }
         addCookie(new Cookie(".youtube.com", "PREF", "hl=en", "/", 86400, false));
         setConfig();
         if (isAttributionLink()) {
