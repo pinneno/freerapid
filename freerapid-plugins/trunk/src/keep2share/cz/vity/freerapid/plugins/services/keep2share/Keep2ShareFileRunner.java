@@ -160,7 +160,9 @@ class Keep2ShareFileRunner extends AbstractRunner {
         if (m.find()) {
             final String reCaptchaKey = m.group(1);
             final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
-            return builder.setParameter("ReCaptchaForm[verifyCode]", r.getResponse());
+            Matcher match = getMatcherAgainstContent(" name=\"([^\"\\[\\]]+)\\[verifyCode\\]\"");
+            if (!match.find()) throw new PluginImplementationException("Captcha response parameter not found");
+            return builder.setParameter(match.group(1).trim() + "[verifyCode]", r.getResponse());
         }
         final HttpMethod newCaptcha = getMethodBuilder().setBaseURL(baseUrl).setAction("/file/captcha.html?refresh=1").setAjax().toGetMethod();
         if (!makeRedirectedRequest(newCaptcha)) {

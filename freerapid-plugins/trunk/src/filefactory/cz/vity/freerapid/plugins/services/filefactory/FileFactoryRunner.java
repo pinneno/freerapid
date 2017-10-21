@@ -126,6 +126,9 @@ class FileFactoryRunner extends AbstractRunner {
                 || contentAsString.contains("All free download slots are in use")) {
             throw new YouHaveToWaitException("All free download slots are in use", 10 * 60);
         }
+        if (contentAsString.contains("You have exceeded the hourly limit")) {
+            throw new YouHaveToWaitException("You have exceeded the hourly limit", 10 * 60);
+        }
         if (contentAsString.contains("Server Maintenance") ||
                 contentAsString.contains("The server hosting this file is temporarily unavailable")) {
             throw new ServiceConnectionProblemException("File's server currently down for maintenance");

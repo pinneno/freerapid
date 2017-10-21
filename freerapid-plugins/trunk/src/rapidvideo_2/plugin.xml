@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
 <plugin class="cz.vity.freerapid.plugins.services.rapidvideo_2.RapidVideo_2ServiceImpl"
-        id="rapidvideo.com" vendor="birchie" version="1.0.0">
+        id="rapidvideo.com" vendor="birchie" version="1.0.1">
     <attributes>
         <attribute id="urlRegex" value="https?://(www\.)?rapidvideo\.com/.+"/>
         <attribute id="minver" value="0.855"/>
