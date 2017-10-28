@@ -37,13 +37,21 @@ class FastShareFileRunner extends AbstractRunner {
         try {
             PlugUtils.checkName(httpFile, content, "<h1 class=\"dwp\">", "</h1>");
         } catch (Exception e) {
-            PlugUtils.checkName(httpFile, content, "<h3 class=\"section_title\">", "</h3>");
+            try {
+                PlugUtils.checkName(httpFile, content, "<h3 class=\"section_title\">", "</h3>");
+            } catch (Exception ee) {
+                PlugUtils.checkName(httpFile, content, "<title>", "| FastShare.cz</title>");
+            }
         }
         final Matcher match = PlugUtils.matcher("Velikost\\s*?:\\s*?(?:<[^<>]+?>)?(.+?)<", content);
         if (match.find()) {
             httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1).trim()));
         } else {
-            PlugUtils.checkFileSize(httpFile, content, ": ", ", File type");
+            try {
+                PlugUtils.checkFileSize(httpFile, content, ": ", ", File type");
+            } catch (Exception ee) {
+                PlugUtils.checkFileSize(httpFile, content.replace("&nbsp;", " "), "fa-bars\"></i>", "</");
+            }
         }
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }

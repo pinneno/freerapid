@@ -25,7 +25,7 @@ class UsersCloudFileRunner extends XFileSharingRunner {
         final Matcher match = PlugUtils.matcher("userscloud\\.com/([\\w\\d]+)", fileURL);
         if (!match.find())
             throw new InvalidURLOrServiceProblemException("File ID missing from URL");
-        fileURL = "http://userscloud.com/" + match.group(1);
+        fileURL = "https://userscloud.com/" + match.group(1);
     }
 
     @Override
@@ -34,7 +34,7 @@ class UsersCloudFileRunner extends XFileSharingRunner {
         fileNameHandlers.add(new FileNameHandler() {
             @Override
             public void checkFileName(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
-                final Matcher match = PlugUtils.matcher(">([^<>]+?) - \\d[\\d.,]+?\\s\\w*?B(ytes)?<", content);
+                final Matcher match = PlugUtils.matcher(">([^<>]+?) - \\d[\\d.,]*?\\s\\w*?B(ytes)?<", content);
                 if (!match.find())
                     throw  new PluginImplementationException("File name not found");
                 httpFile.setFileName(match.group(1).trim());
