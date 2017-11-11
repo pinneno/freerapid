@@ -70,14 +70,20 @@ class UploadGigFileRunner extends AbstractRunner {
                     throw new NotRecoverableDownloadException("This file reached the maximum number of free downloads");
                 else if (getContentAsString().trim().equals("m"))
                     throw new YouHaveToWaitException("You have reached the max. number of possible free downloads for this hour", 60*60);
-            } while (!getContentAsString().contains("\"ur"));
+            } while (!(getContentAsString().contains("\"ur") || getContentAsString().contains("\"dlpath")));
             checkProblems();
 
-            Matcher match = PlugUtils.matcher("\"ur.+?\":\"(.+?)\"", getContentAsString());
-            if (!match.find())
-                throw new PluginImplementationException("Download link not found");
-            String dlUrl = match.group(1);
-            int wait = 1 + Integer.parseInt(PlugUtils.getStringBetween(getContentAsString(), "cd\":", "}"));
+            Matcher match1 = PlugUtils.matcher("\"fopg\":\"(.+?)\"", getContentAsString());
+            if (!match1.find())
+                throw new PluginImplementationException("Download link not found 1");
+            Matcher match2 = PlugUtils.matcher("\"fghre\":\"(.+?)\"", getContentAsString());
+            if (!match2.find())
+                throw new PluginImplementationException("Download link not found 2");
+            String dlUrl = "http://" + match1.group(1) + match2.group(1) + "/dlfile";
+            int wait = 0;
+            Matcher matchW = PlugUtils.matcher("\"cd\":(\\d+)", getContentAsString());
+            if (matchW.find())
+                wait = 1 + Integer.parseInt(matchW.group(1).trim());
             downloadTask.sleep(wait);
             if (!tryDownloadAndSaveFile(getGetMethod(dlUrl))) {
                 checkProblems();//if downloading failed

@@ -56,6 +56,17 @@ class FilesUploadFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();
             checkProblems();
             checkNameAndSize(contentAsString);
+            if (!fileURL.contains("/download-or-watch/")) {
+                Matcher match = getMatcherAgainstContent("<a[^<>]*href=\"([^\"]*/download-or-watch/[^\"]*)\"");
+                if (!match.find())
+                    throw new PluginImplementationException("Error getting download page");
+                String url = getMethodBuilder().setAction(match.group(1).trim()).setReferer(fileURL).getEscapedURI();
+                if (!makeRedirectedRequest(getGetMethod(url))) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
+                }
+                checkProblems();
+            }
             final HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setActionFromAHrefWhereATagContains("Download").toHttpMethod();
 
             if (!tryDownloadAndSaveFile(httpMethod)) {

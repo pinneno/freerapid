@@ -52,7 +52,7 @@ class MegaFileRunner extends AbstractRunner {
         if (fileURL.contains("%21"))  fileURL = fileURL.replace("%21", "!");
         if (fileURL.contains("%23"))  fileURL = fileURL.replace("%23", "#");
         if (id == null) {
-            Matcher matcher = PlugUtils.matcher("#(N)?(?:!|%21)([a-zA-Z\\d]{8})(?:!|%21)([a-zA-Z\\d\\-_]{43})(?:(?:!|%21)([a-zA-Z\\d]{8}))?$", fileURL);
+            Matcher matcher = PlugUtils.matcher("#(N)?(?:!|%21)([a-zA-Z\\d]{8})(?:!|%21)([a-zA-Z\\d\\-_]{43})(?:(?:!|%21)([a-zA-Z\\d]{8}))?", fileURL);
             if (matcher.find()) {
                 if (matcher.group(1) != null) {
                     type = LinkType.N;

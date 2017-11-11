@@ -16,6 +16,7 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile();
         try {
             httpFile.setNewURL(new URL("http://www.filesupload.org/download-or-watch/8a9b7ba0c878f168504ed69176c80116/2S4n4mr3.mkv"));
+            httpFile.setNewURL(new URL("https://www.filesupload.org/dd3385aa829ebccd0f9247ab09c92bf6/_file_19b0f149e9"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             final FilesUploadServiceImpl service = new FilesUploadServiceImpl();

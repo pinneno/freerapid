@@ -24,8 +24,8 @@ class FilesCdnFileRunner extends XFileSharingRunner {
         fileNameHandlers.add(0, new FileNameHandler() {
             @Override
             public void checkFileName(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
-                final Matcher match = PlugUtils.matcher("<h6.*>([^<>]+)</h6>", content);
-                final Matcher match2 = PlugUtils.matcher("href=\"[^>]+?\"[^>]*>(.+?) - \\d.+?<", content);
+                final Matcher match2 = PlugUtils.matcher("<h6.*>([^<>]+)</h6>", content);
+                final Matcher match = PlugUtils.matcher("href=\"[^>]+?\"[^>]*>(.+?) - \\d.+?<", content);
                 if (match.find())
                     httpFile.setFileName(match.group(1).trim());
                 else if (match2.find())

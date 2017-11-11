@@ -122,7 +122,8 @@ class FileBoomFileRunner extends AbstractRunner {
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String content = getContentAsString();
-        if (content.contains("File Not Found")) {
+        if (content.contains("File Not Found") || content.contains("File not found")
+                || content.contains("This file is no longer available")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
         if (content.contains("Downloading is not possible")) {
