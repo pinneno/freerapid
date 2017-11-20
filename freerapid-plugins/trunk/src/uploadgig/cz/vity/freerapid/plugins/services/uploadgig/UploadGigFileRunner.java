@@ -100,6 +100,8 @@ class UploadGigFileRunner extends AbstractRunner {
         if (contentAsString.contains("File not found")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
+        if (contentAsString.contains("This file can be downloaded by Premium Member only"))
+            throw new NotRecoverableDownloadException("This file can be downloaded by Premium Member only");
     }
 
     private MethodBuilder stepCaptcha(MethodBuilder builder, final String referrer) throws Exception {

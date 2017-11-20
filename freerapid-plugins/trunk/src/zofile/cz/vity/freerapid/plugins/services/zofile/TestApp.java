@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.indishare;
+package cz.vity.freerapid.plugins.services.zofile;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -16,11 +16,11 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://www.indishare.me/jbklhavub297"));
+            httpFile.setNewURL(new URL("http://zofile.com/rln8i6wex110/-_Mega_Bundle_3D_Text_Effect_11284799.rar"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
-            final IndiShareServiceImpl service = new IndiShareServiceImpl(); //instance of service - of our plugin
+            final ZoFileServiceImpl service = new ZoFileServiceImpl(); //instance of service - of our plugin
             /*
             //we set premium account details
             final PremiumAccount config = new PremiumAccount();
