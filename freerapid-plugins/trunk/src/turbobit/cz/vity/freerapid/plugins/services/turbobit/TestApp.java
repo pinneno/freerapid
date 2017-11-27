@@ -21,6 +21,7 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://new.turbobit.net/eu5bhkvpcy7j.html"));
             //httpFile.setNewURL(new URL("http://turo-bit.net/xfsd1eygf59l/diiig.rar.html"));
             httpFile.setNewURL(new URL("http://turbobit.net/u0ukrsfh83t8/vol.86.avi.rar.html"));
+            httpFile.setNewURL(new URL("http://forum.flacmania.ru/3g121p91dwj2.html"));
             //httpFile.setNewURL(new URL("http://dl.rapidlinks.org/urhsrs7kyp50/Poslednee_delo_pirata.2014.SATRip.avi.html"));
 
             //the way we connect to the internet

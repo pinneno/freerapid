@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
 <plugin class="cz.vity.freerapid.plugins.services.adf.AdfServiceImpl"
-        id="adf.ly" vendor="ntoskrnl+birchie" version="1.3.5">
+        id="adf.ly" vendor="ntoskrnl+birchie" version="1.3.6">
     <attributes>
-        <attribute id="urlRegex" value="https?://(www\.)?(adf\.ly|adf\.acb\.im|ay\.gy|goo\.gl|j\.gs|q\.gs|(atomcurve|atominik|babblecase|battleate|bitigee|bluenik|casualient|coginator|cogismith|dataurbia|kaitect|kibuilder|kimechanic|microify|mmoity|picocurl|pintient|quainator|quamiller|riffhold|simizer|tinyical|tinyium|twineer|viahold|vializer|viwright|yabuilder|yoalizer|yobuilder)\.com)/.+"/>
+        <attribute id="urlRegex" value="https?://(www\.)?(adf\.ly|adf\.acb\.im|ay\.gy|goo\.gl|j\.gs|q\.gs|flyserve.co|(atomcurve|atominik|babblecase|battleate|bitigee|bluenik|casualient|coginator|cogismith|dataurbia|fawright|kaitect|kializer|kibuilder|kimechanic|microify|mmoity|picocurl|pintient|quainator|quamiller|riffhold|simizer|skamaker|skamason|tinyical|tinyium|twineer|viahold|vializer|viwright|yabuilder|yamechanic|yoalizer|yobuilder|yoineer|yoitect)\.com)/.+"/>
         <attribute id="minver" value="0.855"/>
         <attribute id="maxver" value="0.899"/>
-        <attribute id="services" value="adf.ly adf.acb.im atomcurve.com atominik.com ay.gy babblecase.com battleate.com bitigee.com bluenik.com casualient.com coginator.com cogismith.com dataurbia.com goo.gl j.gs kaitect.com kibuilder.com kimechanic.com microify.com mmoity.com picocurl.com pintient.com q.gs quainator.com quamiller.com riffhold.com simizer.com tinyical.com tinyium.com twineer.com viahold.com vializer.com viwright.com yabuilder.com yoalizer.com yobuilder.com"/>
+        <attribute id="services" value="adf.ly adf.acb.im atomcurve.com atominik.com ay.gy babblecase.com battleate.com bitigee.com bluenik.com casualient.com coginator.com cogismith.com dataurbia.com fawright.com flyserve.co goo.gl j.gs kaitect.com kializer.com kibuilder.com kimechanic.com microify.com mmoity.com picocurl.com pintient.com q.gs quainator.com quamiller.com riffhold.com simizer.com skamaker.com skamason.com tinyical.com tinyium.com twineer.com viahold.com vializer.com viwright.com yabuilder.com yamechanic.com yoalizer.com yobuilder.com yoineer.com yoitect.com"/>
         <attribute id="maxDownloads" value="10"/>
         <attribute id="faviconImage" value="resources/favicon.png"/>
     </attributes>

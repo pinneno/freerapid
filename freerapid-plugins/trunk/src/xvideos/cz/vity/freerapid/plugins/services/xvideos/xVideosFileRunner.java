@@ -1,6 +1,7 @@
 package cz.vity.freerapid.plugins.services.xvideos;
 
 import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
+import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
 import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
@@ -12,6 +13,7 @@ import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.net.URLDecoder;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 
 /**
  * Class which contains main code
@@ -35,7 +37,10 @@ class xVideosFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        httpFile.setFileName(PlugUtils.getStringBetween(content, "<h2>", " <span") + ".flv");
+        Matcher match = PlugUtils.matcher("<h2(?:[^>]*title[^>]*)?>(.+?)<span", content);
+        if (!match.find())
+            throw new PluginImplementationException("Video name not found");
+        httpFile.setFileName(match.group(1).trim() + ".flv");
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 

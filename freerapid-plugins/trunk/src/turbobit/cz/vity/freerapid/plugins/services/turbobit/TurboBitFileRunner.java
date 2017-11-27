@@ -25,6 +25,7 @@ public class TurboBitFileRunner extends AbstractRunner {
     @Override
     public void runCheck() throws Exception {
         super.runCheck();
+        fileURL = fileURL.replace("//forum.flacmania.ru/", "//turbobit.net/");
         fileURL = checkFileURL(fileURL);
         final HttpMethod method = getMethodBuilder().setAction(fileURL).toGetMethod();
         if (makeRedirectedRequest(method)) {
@@ -62,6 +63,7 @@ public class TurboBitFileRunner extends AbstractRunner {
     public void run() throws Exception {
         super.run();
         logger.info("Starting download in TASK " + fileURL);
+        fileURL = fileURL.replace("//forum.flacmania.ru/", "//turbobit.net/");
         fileURL = checkFileURL(fileURL);
 
         HttpMethod method = getMethodBuilder().setAction(fileURL).toGetMethod();
