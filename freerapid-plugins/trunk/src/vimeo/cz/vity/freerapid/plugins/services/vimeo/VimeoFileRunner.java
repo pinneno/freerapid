@@ -79,7 +79,9 @@ class VimeoFileRunner extends AbstractRunner {
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {
-        if (getContentAsString().contains("Page not found")) {
+        if (getContentAsString().contains("Page not found")
+                || getContentAsString().contains("we couldn&rsquo;t find that page")
+                || getContentAsString().contains("404 Not Found")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
     }

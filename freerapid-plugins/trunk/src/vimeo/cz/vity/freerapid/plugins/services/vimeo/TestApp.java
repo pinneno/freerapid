@@ -25,6 +25,7 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("https://vimeo.com/160776966"));
             //httpFile.setNewURL(new URL("https://vimeo.com/54004198")); //Original
             //httpFile.setNewURL(new URL("https://vimeo.com/44954005"));
+            httpFile.setNewURL(new URL("https://player.vimeo.com/video/141511597"));
 
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication

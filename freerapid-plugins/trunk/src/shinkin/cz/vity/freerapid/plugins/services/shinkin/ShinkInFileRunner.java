@@ -23,6 +23,7 @@ class ShinkInFileRunner extends AbstractRunner {
     @Override
     public void run() throws Exception {
         super.run();
+        fileURL = fileURL.replace("shink.in/", "shink.me/");
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL); //create GET request
         do {

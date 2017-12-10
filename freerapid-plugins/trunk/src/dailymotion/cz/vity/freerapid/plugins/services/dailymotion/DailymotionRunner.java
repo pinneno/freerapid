@@ -135,7 +135,7 @@ class DailymotionRunner extends AbstractRunner {
     private List<DailyMotionVideo> getDailyMotionVideosFromSequence(String sequence, Container container) {
         final List<DailyMotionVideo> dailyMotionVideos = new LinkedList<DailyMotionVideo>();
         for (VideoQuality videoQuality : VideoQuality.values()) {
-            final String urlRegex = String.format("\"%d\":.*?\\{\"type\":\"video\\\\/mp4\",\"url\":\"([^\"]+)\"", videoQuality.getQuality());
+            final String urlRegex = String.format("\"%d\":\\[[^\\]]*?\\{\"type\":\"video\\\\/mp4\",\"url\":\"([^\"]+)\"", videoQuality.getQuality());
             final Matcher matcher = PlugUtils.matcher(urlRegex, sequence);
             if (matcher.find()) {
                 final String url = matcher.group(1).replace("\\/", "/");
