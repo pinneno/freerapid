@@ -37,7 +37,7 @@ class LinkShrinkFileRunner extends AbstractRunner {
             addCookie(new Cookie("linkshrink.net", "_gat", "1", "/", 86400, false));
             if (!makeRedirectedRequest(getMethod)) {
                 checkProblems();
-                throw new ServiceConnectionProblemException();
+                //throw new ServiceConnectionProblemException();
             }
             this.httpFile.setNewURL(new URL(getMethod.getURI().getURI()));
             this.httpFile.setPluginID("");
@@ -57,7 +57,7 @@ class LinkShrinkFileRunner extends AbstractRunner {
     }
 
     private String decodeNextLink() throws Exception {
-        Matcher match = getMatcherAgainstContent("<script>(function.+?)</script><script>.+?(href.+?)</script>");
+        Matcher match = getMatcherAgainstContent("<script>(function.+?)</script><script>.+?window\\.open\\((.+?)[,;].+?</script>");
         if (!match.find()) throw new PluginImplementationException("Script not found");
         try {
             ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");

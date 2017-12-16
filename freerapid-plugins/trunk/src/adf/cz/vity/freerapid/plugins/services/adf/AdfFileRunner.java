@@ -27,11 +27,15 @@ class AdfFileRunner extends AbstractRunner {
         final HttpMethod method = getGetMethod(fileURL);
         if (makeRedirectedRequest(method)) {
             checkProblems();
+            String fileUrlDomain = (new URL(fileURL)).getAuthority();
+            String currentDomain = method.getURI().getAuthority();
+            if (!fileUrlDomain.equals(currentDomain)){
+                changeHttpFileUrl(method.getURI().getURI());
+                return;
+            }
             if (fileURL.contains("/redirecting/")) {
                 String url = PlugUtils.getStringBetween(getContentAsString(), "window.location = '", "'");
-                httpFile.setNewURL(new URL(url));
-                httpFile.setPluginID("");
-                httpFile.setState(DownloadState.QUEUED);
+                changeHttpFileUrl(url);
                 return;
             }
             String url = decodeUrl(PlugUtils.getStringBetween(getContentAsString(), "var ysmm = '", "';"));
@@ -42,13 +46,17 @@ class AdfFileRunner extends AbstractRunner {
                 checkProblems();
                 url = PlugUtils.getStringBetween(getContentAsString(), " URL=", "\"");
             }
-            httpFile.setNewURL(new URL(url));
-            httpFile.setPluginID("");
-            httpFile.setState(DownloadState.QUEUED);
+            changeHttpFileUrl(url);
         } else {
             checkProblems();
             throw new ServiceConnectionProblemException();
         }
+    }
+
+    private void changeHttpFileUrl(String url) throws Exception {
+        httpFile.setNewURL(new URL(url));
+        httpFile.setPluginID("");
+        httpFile.setState(DownloadState.QUEUED);
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {

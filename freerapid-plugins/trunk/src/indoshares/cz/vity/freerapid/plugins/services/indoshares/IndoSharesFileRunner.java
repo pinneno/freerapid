@@ -134,7 +134,7 @@ class IndoSharesFileRunner extends AbstractRunner {
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
-        if (contentAsString.contains("File Not Found")) { //they don't provide "File Not Found" page
+        if (contentAsString.contains("Page Not Found") || contentAsString.contains("page you were trying to view does not exist")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
     }
