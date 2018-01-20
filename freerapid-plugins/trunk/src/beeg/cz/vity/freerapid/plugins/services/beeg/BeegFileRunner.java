@@ -9,6 +9,8 @@ import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.methods.GetMethod;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
@@ -39,10 +41,36 @@ class BeegFileRunner extends AbstractRunner {
         }
     }
 
+    private static String infoUrl;
+    private static String salt;
+
     private String getInfoUrl() throws Exception {
-        Matcher match = PlugUtils.matcher("beeg\\.com/(\\d+)", fileURL);
-        if (!match.find()) throw new PluginImplementationException("Video ID not found");
-        return "http://beeg.com/api/v1/video/" + match.group(1);
+        if (infoUrl == null) {
+            Matcher match = PlugUtils.matcher("beeg\\.com/(\\d+)", fileURL);
+            if (!match.find()) throw new PluginImplementationException("Video ID not found");
+            String videoID = match.group(1);
+            if (!makeRedirectedRequest(getGetMethod(fileURL))) {
+                checkProblems();
+                throw new ServiceConnectionProblemException();
+            }
+            checkProblems();
+            match = PlugUtils.matcher("/static/cpl/(\\d+)\\.js", getContentAsString());
+            if (!match.find()) throw new PluginImplementationException("Beeg Version not found");
+            String beegVer = match.group(1);
+            if (!makeRedirectedRequest(getMethodBuilder().setReferer(fileURL).setAction(match.group(0)).toGetMethod())) {
+                checkProblems();
+                throw new ServiceConnectionProblemException();
+            }
+            match = PlugUtils.matcher("/api/([^/]+/)", getContentAsString());
+            if (!match.find()) throw new PluginImplementationException("API Version not found");
+            String apiVer = match.group(1);
+            infoUrl =  "http://beeg.com/api/" + apiVer + beegVer + "/video/" + videoID;
+
+            match = PlugUtils.matcher("_salt=\"([^\"]+)\"", getContentAsString());
+            if (!match.find()) throw new PluginImplementationException("API Version not found");
+            salt = match.group(1);
+        }
+        return infoUrl;
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
@@ -69,7 +97,10 @@ class BeegFileRunner extends AbstractRunner {
             if (match.find()) {
                 fileUrl = match.group(1);
                 fileUrl = fileUrl.replaceFirst(".+?video.beeg.com", "http://video.beeg.com");
-                fileUrl = fileUrl.replace("{DATA_MARKERS}", "data=pc.US");
+                fileUrl = fileUrl.replace("{DATA_MARKERS}", "data=pc_US");
+                Matcher matcher = PlugUtils.matcher("key=(.+)%2Cend", fileUrl);
+                if (!matcher.find()) throw new PluginImplementationException("Video Key not found");
+                fileUrl = fileUrl.replace(matcher.group(1), decodeKey(matcher.group(1)));
             }
             else // default quality on page
                 fileUrl = PlugUtils.getStringBetween(contentAsString, "'file': '", "',");
@@ -92,4 +123,23 @@ class BeegFileRunner extends AbstractRunner {
         }
     }
 
+    private String decodeKey(String key) throws Exception {
+        String script = "jsalt = \""+ salt +"\";\n"+
+                "String.prototype.str_split=function(e,t){var n=this;e=e||1,t=!!t;var r=[];if(t){var a=n.length%e;a>0&&(r.push(n.substring(0,a)),n=n.substring(a))}for(;n.length>e;)r.push(n.substring(0,e)),n=n.substring(e);return r.push(n),r};\n"+
+                "  function jsaltDecode(e) {\n"+
+                "    e = decodeURIComponent(e);\n"+
+                "    for (var s = jsalt.length, t = \"\", o = 0; o < e.length; o++) {\n"+
+                "      var l = e.charCodeAt(o)\n"+
+                "        , n = o % s\n"+
+                "        , i = jsalt.charCodeAt(n) % 21;\n"+
+                "      t += String.fromCharCode(l - i)\n"+
+                "    }\n"+
+                "    return t.str_split(3, !0).reverse().join(\"\")\n"+
+                "  }\n"+
+                "OUTPUT = jsaltDecode(\""+ key +"\");";
+logger.info("^^^^^^^^^^^^^^^^^^"+script+"^^^");
+        ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+        engine.eval(script);
+        return engine.get("OUTPUT").toString();
+    }
 }

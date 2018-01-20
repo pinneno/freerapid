@@ -35,10 +35,9 @@ class LinkShrinkFileRunner extends AbstractRunner {
                     .setAction(decodeNextLink()).toGetMethod();
             addCookie(new Cookie("linkshrink.net", "s32", "1", "/", 86400, false));
             addCookie(new Cookie("linkshrink.net", "_gat", "1", "/", 86400, false));
-            if (!makeRedirectedRequest(getMethod)) {
-                checkProblems();
-                //throw new ServiceConnectionProblemException();
-            }
+            try {
+                makeRedirectedRequest(getMethod);
+            } catch (Exception x) {/**/}
             this.httpFile.setNewURL(new URL(getMethod.getURI().getURI()));
             this.httpFile.setPluginID("");
             this.httpFile.setState(DownloadState.QUEUED);
