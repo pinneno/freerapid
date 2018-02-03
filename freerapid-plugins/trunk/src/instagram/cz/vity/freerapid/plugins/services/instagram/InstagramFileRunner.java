@@ -78,6 +78,7 @@ class InstagramFileRunner extends AbstractRunner {
                 }
             } else {  // user
                 fileURL = method.getURI().getURI();
+                checkNameAndSize(fileURL);
                 List<URI> list = new LinkedList<URI>();
                 String content = getContentAsString();
                 Matcher matcher = PlugUtils.matcher("owner\"\\s*:\\s*\\{\\s*\"id\"\\s*:\\s*\"([^\"]+?)\"", content);
@@ -108,10 +109,8 @@ class InstagramFileRunner extends AbstractRunner {
                         final String lastPost = lastMatch.group(1);
                         final HttpMethod nextPageMethod = getMethodBuilder(content).setReferer(fileURL)
                                 .setAction("https://www.instagram.com/graphql/query/")
-                                .setParameter("query_id", queryId)
-                                .setParameter("id", userID)
-                                .setParameter("first", "24")
-                                .setParameter("after", lastPost)
+                                .setParameter("query_hash", queryId)
+                                .setParameter("variables", "{\"id\":\"" + userID + "\",\"first\":\"24\",\"after\":\"" + lastPost + "\"}")
                                 .setAjax().toGetMethod();
                         nextPageMethod.setRequestHeader("X-CSRFToken", csrfToken);
                         nextPageMethod.setRequestHeader("X-Instagram-AJAX", "1");

@@ -55,7 +55,7 @@ class DropBoxFileRunner extends AbstractRunner {
             checkNameAndSize(contentAsString);//extract file name and size from the page
             HttpMethod httpMethod;
             try {
-                httpMethod = getMethodBuilder().setReferer(fileURL).setActionFromAHrefWhereATagContains("Download").toHttpMethod();
+                httpMethod = getMethodBuilder().setReferer(fileURL).setActionFromAHrefWhereATagContains("DownloadErrorNotWorking").toHttpMethod();
             } catch (BuildMethodException e) {
                 fileURL = fileURL.replaceFirst("^https?://(www\\.)?", "https://dl.");
                 httpMethod = getGetMethod(fileURL);

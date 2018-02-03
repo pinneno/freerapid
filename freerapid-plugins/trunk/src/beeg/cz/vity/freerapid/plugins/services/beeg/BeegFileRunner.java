@@ -41,8 +41,8 @@ class BeegFileRunner extends AbstractRunner {
         }
     }
 
-    private static String infoUrl;
-    private static String salt;
+    private String infoUrl;
+    private String salt;
 
     private String getInfoUrl() throws Exception {
         if (infoUrl == null) {
@@ -137,7 +137,6 @@ class BeegFileRunner extends AbstractRunner {
                 "    return t.str_split(3, !0).reverse().join(\"\")\n"+
                 "  }\n"+
                 "OUTPUT = jsaltDecode(\""+ key +"\");";
-logger.info("^^^^^^^^^^^^^^^^^^"+script+"^^^");
         ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
         engine.eval(script);
         return engine.get("OUTPUT").toString();

@@ -1,8 +1,6 @@
 package cz.vity.freerapid.plugins.services.fshare;
 
-import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
-import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
-import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
+import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
@@ -46,7 +44,7 @@ class FShareFileRunner extends AbstractRunner {
                 PlugUtils.checkName(httpFile, content, "<title>Fshare - ", "</title>");
             }
         }
-        final Matcher match = PlugUtils.matcher("class=\"(?:capital|fa fa-hdd-o)\">(?:\\s|<[^>]+?>)+(.+?)<", content);
+        final Matcher match = PlugUtils.matcher("class=\"size\">(?:\\s|<.+?</[^>]+?>)+(\\d.+?)\\s*<", content);
         if (match.find())
             httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1).trim()));
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
@@ -76,13 +74,15 @@ class FShareFileRunner extends AbstractRunner {
                         .setParameter("ajax", "download-form")
                         .setParameter("undefined", "undefined")
                         .setAjax().toPostMethod();
-logger.info("######### "+getContentAsString());
                 if (!makeRedirectedRequest(getMethod)) {
                     checkProblems();
                     throw new ServiceConnectionProblemException();
                 }
                 checkProblems();
-                final int count = PlugUtils.getNumberBetween(getContentAsString(), "wait_time\":", "}");
+                int count = 0;
+                Matcher match = PlugUtils.matcher("wait_time\"\\s*:\\s*[\"']?(\\d+),", getContentAsString());
+                if (match.find())
+                    count = Integer.parseInt(match.group(1).trim());
                 final String url = PlugUtils.getStringBetween(getContentAsString(), "url\":\"", "\"").replaceAll("\\\\/", "/");
                 downloadTask.sleep(count + 1);
                 if (!tryDownloadAndSaveFile(getGetMethod(url))) {
@@ -98,7 +98,8 @@ logger.info("######### "+getContentAsString());
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String content = getContentAsString();
-        if (content.contains("Liên kết bạn chọn không tồn tại trên hệ thống")) {
+        if (content.contains("Liên kết bạn chọn không tồn tại trên hệ thống") ||
+                content.contains("<title>Not Found")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
         if (PlugUtils.matcher("<ul class=\"message-error\">\\s+?<li>.+?GUEST.+? \\d+? .+?</li>", content).find())

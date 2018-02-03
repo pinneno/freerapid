@@ -12,6 +12,8 @@ import cz.vity.freerapid.utilities.LogUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.LinkedList;
@@ -69,6 +71,15 @@ class Go4upFileRunner extends AbstractRunner {
                 final Matcher matcher = PlugUtils.matcher(">((?:https?://(?:(?:dl|www)\\.)?go4up.com)?/rd/[^/]+?/[\\w\\d]{1,5})</a>", getContentAsString().replaceAll("\\\\", ""));
                 while (matcher.find()) {
                     processLink(matcher.group(1), list);
+                }
+            }
+            if (list.isEmpty()) {
+                if (getContentAsString().contains("(unescape(")) {
+                    Matcher match = PlugUtils.matcher("\\((unescape\\(\".+?\"\\))\\)", getContentAsString());
+                    if (!match.find()) throw new PluginImplementationException("Link now found");
+                    ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+                    String link = engine.eval(match.group(1)).toString();
+                    list.add(new URI(PlugUtils.getStringBetween(link, "href=\"", "\"")));
                 }
             }
             // add urls to queue

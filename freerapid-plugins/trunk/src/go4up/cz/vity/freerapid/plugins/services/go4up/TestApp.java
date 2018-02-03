@@ -18,6 +18,7 @@ public class TestApp extends PluginDevApplication {
             //we set file URL
             httpFile.setNewURL(new URL("http://go4up.com/dl/1rkJN8Powm8T"));
             httpFile.setNewURL(new URL("https://go4up.com/dl/9edf46c1fa3563"));
+            httpFile.setNewURL(new URL("http://dl.go4up.com//rd/645d4ae8629aa7/50"));
             //httpFile.setNewURL(new URL("http://go4up.com/rd/1rkJN8Powm8T/utb"));
             //httpFile.setNewURL(new URL("http://go4up.com/link.php?id=1rkJN8Powm8T"));
             //the way we connect to the internet
