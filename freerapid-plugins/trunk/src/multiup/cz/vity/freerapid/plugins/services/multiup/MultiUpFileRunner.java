@@ -43,9 +43,9 @@ class MultiUpFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        PlugUtils.checkName(httpFile, content, "Filename : ", "<");
+        PlugUtils.checkName(httpFile, content, "<title>Download ", " - Mirror Upload");
         httpFile.setFileName("Extract Link(s): " + httpFile.getFileName());
-        final String size = PlugUtils.getStringBetween(content, "Size : ", "<").replaceAll("iB", "B").trim();
+        final String size = PlugUtils.getStringBetween(content, "(", ")</").replaceAll("iB", "B").trim();
         httpFile.setFileSize(PlugUtils.getFileSizeFromString(size));
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
@@ -80,10 +80,10 @@ class MultiUpFileRunner extends AbstractRunner {
                 HttpMethod httpMethod;
                 try {
                     httpMethod = getMethodBuilder().setReferer(fileURL)
-                            .setActionFromAHrefWhereATagContains("<h5>DOWNLOAD").toGetMethod();
+                            .setActionFromAHrefWhereATagContains("<strong>Download").toGetMethod();
                 } catch(Exception x) {
                     httpMethod = doCaptcha(getMethodBuilder().setReferer(fileURL)
-                            .setActionFromFormWhereTagContains("<h5>DOWNLOAD", true)).toPostMethod();
+                            .setActionFromFormWhereTagContains("<strong>Download", true)).toPostMethod();
                 }
                 if (!makeRedirectedRequest(httpMethod)) {
                     checkProblems();
@@ -92,9 +92,10 @@ class MultiUpFileRunner extends AbstractRunner {
                 checkProblems();
             }
             final List<URI> list = new LinkedList<URI>();
-            final Matcher matcher = getMatcherAgainstContent("href=\"(.+?)\"\\s*target=\"_blank\"\\s*title");
+            final Matcher matcher = getMatcherAgainstContent("href=\"([^\"]+?)\"[^<>]+?target=\"_blank\"");
             while (matcher.find()) {
-                list.add(new URI((matcher.group(1).trim())));
+                if (!matcher.group(0).contains("Usenet"))
+                    list.add(new URI((matcher.group(1).trim())));
             }
             // add urls to queue
             if (list.isEmpty()) throw new PluginImplementationException("No links found");

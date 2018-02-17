@@ -4,7 +4,10 @@ import cz.vity.freerapid.plugins.exceptions.BadLoginException;
 import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
+import cz.vity.freerapid.plugins.services.xfilesharing.captcha.CaptchaType;
+import cz.vity.freerapid.plugins.services.xfilesharing.captcha.ReCaptchaType;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileNameHandler;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandler;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
@@ -65,12 +68,6 @@ class NovaFileFileRunner extends XFileSharingRunner {
     }
 
     @Override
-    protected boolean stepCaptcha(final MethodBuilder methodBuilder) throws Exception {
-        super.stepCaptcha(methodBuilder);
-        return false;
-    }
-
-    @Override
     protected void checkDownloadProblems() throws ErrorDuringDownloadingException {
         if (getContentAsString().contains("can only be downloaded by Premium")) {
             throw new PluginImplementationException("This file is only available to premium users");
@@ -122,6 +119,42 @@ class NovaFileFileRunner extends XFileSharingRunner {
         }
         if (getContentAsString().contains("Incorrect Login or Password")) {
             throw new BadLoginException("Invalid account login information");
+        }
+    }
+
+    @Override
+    protected boolean stepCaptcha(final MethodBuilder methodBuilder) throws Exception {
+        final Matcher reCaptchaKeyMatcher = PlugUtils.matcher("data-sitekey=['\"]([^'\"]+?)['\"]", getContentAsString());
+        if (!reCaptchaKeyMatcher.find())
+            throw new PluginImplementationException("ReCaptcha key not found");
+
+        Matcher captchaFormMatcher = getMatcherAgainstContent("post\\(\\s*\"([^\"]+)\",\\s*\\{((?:\\s*\"?[^\"{}:,]+\"?\\s*:\\s*\"?[^\"{}:,]+\"?,?)+)");
+        if (!captchaFormMatcher.find())
+            throw new PluginImplementationException("Captcha verification form not found");
+        MethodBuilder builder = getMethodBuilder().setReferer(fileURL)
+                .setAction(captchaFormMatcher.group(1).trim());
+        Matcher captchaFormParametersMatcher = PlugUtils.matcher("\"?([^\"{}:,]+)\"?\\s*:\\s*\"?([^\"{}:,]+)\"?", captchaFormMatcher.group(2));
+        while (captchaFormParametersMatcher.find())
+            builder.setParameter(captchaFormParametersMatcher.group(1).trim(), captchaFormParametersMatcher.group(2).trim());
+
+        final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKeyMatcher.group(1).trim(), fileURL);
+        r.modifyResponseMethod(builder);
+        if (!makeRedirectedRequest(builder.toPostMethod()))
+            throw new ServiceConnectionProblemException("Error submitting captcha");
+        return true;
+    }
+
+    @Override
+    protected List<CaptchaType> getCaptchaTypes() {
+        final List<CaptchaType> captchaTypes = super.getCaptchaTypes();
+        captchaTypes.add(new ReCaptchaType2());
+        return captchaTypes;
+    }
+
+    public class ReCaptchaType2 extends ReCaptchaType {
+        @Override
+        protected String getReCaptchaKeyRegex() {
+            return "(?:recaptcha/api/challenge\\?k=|data-sitekey=\")(.+?)\"";
         }
     }
 }

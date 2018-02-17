@@ -2,6 +2,7 @@ package cz.vity.freerapid.plugins.services.upstore;
 
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.services.recaptcha.ReCaptcha;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
@@ -162,14 +163,21 @@ class UpStoreFileRunner extends AbstractRunner {
     }
 
     private MethodBuilder doCaptcha(MethodBuilder methodBuilder) throws Exception {
-        final String reCaptchaKey = PlugUtils.getStringBetween(getContentAsString(), "Recaptcha.create('", "',");
-        final ReCaptcha r = new ReCaptcha(reCaptchaKey, client);
-        final String captcha = getCaptchaSupport().getCaptcha(r.getImageURL());
-        if (captcha == null) {
-            throw new CaptchaEntryInputMismatchException();
+        Matcher match = PlugUtils.matcher("sitekey[\"']\\s*:\\s*[\"']([^\"']+?)[\"']", getContentAsString());
+        if (match.find()) {
+            final String reCaptchaKey = match.group(1);
+            final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
+            r.modifyResponseMethod(methodBuilder);
+        } else {
+            final String reCaptchaKey = PlugUtils.getStringBetween(getContentAsString(), "Recaptcha.create('", "',");
+            final ReCaptcha r = new ReCaptcha(reCaptchaKey, client);
+            final String captcha = getCaptchaSupport().getCaptcha(r.getImageURL());
+            if (captcha == null) {
+                throw new CaptchaEntryInputMismatchException();
+            }
+            r.setRecognized(captcha);
+            r.modifyResponseMethod(methodBuilder);
         }
-        r.setRecognized(captcha);
-        r.modifyResponseMethod(methodBuilder);
         return methodBuilder;
     }
 }

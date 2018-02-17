@@ -3,7 +3,9 @@ package cz.vity.freerapid.plugins.services.uptobox;
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileNameHandler;
+import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.hoster.PremiumAccount;
+import cz.vity.freerapid.plugins.webclient.interfaces.HttpFile;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 
@@ -24,7 +26,16 @@ class UptoBoxFileRunner extends XFileSharingRunner {
     @Override
     protected List<FileNameHandler> getFileNameHandlers() {
         final List<FileNameHandler> fileNameHandlers = super.getFileNameHandlers();
-        fileNameHandlers.add(0, new UptoBoxFileNameHandler());
+        fileNameHandlers.add(0, new FileNameHandler() {
+            @Override
+            public void checkFileName(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
+                Matcher matcher = PlugUtils.matcher(">(.+?)\\(([\\s\\d\\.,]+?(?:bytes|.B|.b))\\s*\\)", content);
+                if (!matcher.find()) {
+                    throw new PluginImplementationException("File name not found");
+                }
+                httpFile.setFileName(matcher.group(1).trim());
+            }
+        });
         return fileNameHandlers;
     }
 
@@ -35,8 +46,17 @@ class UptoBoxFileRunner extends XFileSharingRunner {
     }
 
     @Override
+    protected MethodBuilder getXFSMethodBuilder(final String content) throws Exception {
+        return getXFSMethodBuilder(content, "create-download-link");
+    }
+
+    @Override
     protected int getWaitTime() throws Exception {
-        final Matcher matcher = getMatcherAgainstContent("[Ww]ait.*?<.+?\">.*?(\\d+).*?</span");
+        Matcher matcher = getMatcherAgainstContent("[Ww]ait.*?<.+?\">.*?(\\d+).*?</span");
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1)) + 1;
+        }
+        matcher = getMatcherAgainstContent("data-remaining-time=[\"'](\\d+)[\"']");
         if (matcher.find()) {
             return Integer.parseInt(matcher.group(1)) + 1;
         }
@@ -66,6 +86,20 @@ class UptoBoxFileRunner extends XFileSharingRunner {
             if (!x.getMessage().contains("Skipped countdown"))      // ignore error
                 throw new PluginImplementationException(x.getMessage());
         }
+    }
+
+    @Override
+    protected boolean stepProcessFolder() throws Exception {
+        if (checkDownloadPageMarker()) {
+            final String downloadLink = getDownloadLinkFromRegexes();
+            HttpMethod method = getMethodBuilder()
+                    .setReferer(fileURL)
+                    .setAction(downloadLink)
+                    .toGetMethod();
+            saveDlLinkToCacheAndDownload(method);
+            return true;
+        }
+        return false;
     }
 
     @Override

@@ -268,7 +268,7 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
             //Wait a minute.., oh well... still can't find a way to get playlist URL.
             //Okay then, let's check some signature
             if (!getContentAsString().contains("getPlaylistUrl(")) {
-                httpMethod = getMethodBuilder().setReferer(referer).setActionFromAHrefWhereATagContains("Přehrát video").toGetMethod();
+                httpMethod = getMethodBuilder().setReferer(referer).setActionFromAHrefWhereATagContains("t video").toGetMethod();
                 if (!makeRedirectedRequest(httpMethod)) {
                     checkProblems();
                     throw new ServiceConnectionProblemException();

@@ -28,6 +28,7 @@ class VidToFileRunner extends XFileSharingRunner {
     protected List<String> getDownloadPageMarkers() {
         final List<String> downloadPageMarkers = super.getDownloadPageMarkers();
         downloadPageMarkers.add("var file_link = ");
+        downloadPageMarkers.add("jwplayer(\"vplayer\").setup");
         return downloadPageMarkers;
     }
 
@@ -35,6 +36,7 @@ class VidToFileRunner extends XFileSharingRunner {
     protected List<String> getDownloadLinkRegexes() {
         final List<String> downloadLinkRegexes = super.getDownloadLinkRegexes();
         downloadLinkRegexes.add("<a.+?href\\s?=\\s?(?:\"|')(http.+?" + Pattern.quote(httpFile.getFileName()) + ")(?:\"|')");
+        downloadLinkRegexes.add("file:[\"']([^\"']+?)[\"']");
         return downloadLinkRegexes;
     }
 

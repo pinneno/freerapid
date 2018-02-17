@@ -3,6 +3,7 @@ package cz.vity.freerapid.plugins.services.kumpulbagi;
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
+import cz.vity.freerapid.plugins.webclient.hoster.PremiumAccount;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -23,7 +24,6 @@ class KumpulBagiFileRunner extends AbstractRunner {
     @Override
     public void runCheck() throws Exception { //this method validates file
         super.runCheck();
-        checkUrl();
         final GetMethod getMethod = getGetMethod(fileURL);//make first request
         if (makeRedirectedRequest(getMethod)) {
             checkProblems();
@@ -50,12 +50,13 @@ class KumpulBagiFileRunner extends AbstractRunner {
     public void run() throws Exception {
         super.run();
         logger.info("Starting download in TASK " + fileURL);
-        checkUrl();
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
+            fileURL = method.getURI().getURI();
+            login();
             final HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setBaseURL(getBaseUrl())
                     .setActionFromFormWhereTagContains("download_form", true)
                     .setAjax().toPostMethod();
@@ -77,17 +78,40 @@ class KumpulBagiFileRunner extends AbstractRunner {
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
-        if (contentAsString.contains("<p>404</p>") ||
+        if (contentAsString.contains("<p>404</p>") || // contentAsString.contains("error404") ||
+                contentAsString.contains("The requested resource is not found") ||
                 contentAsString.contains("tidak bisa menemukan pencarian Anda")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
         if (contentAsString.contains("dialog_sign_up")) {
-            throw new NotRecoverableDownloadException("This file needs account to be downloaded. Account is not supported yet");
+            throw new NotRecoverableDownloadException("This file needs an account for download.");
         }
     }
 
-    private void checkUrl() {
-        fileURL = fileURL.replaceFirst("kumpulbagi\\.com", "kumpulbagi.id");
+    private void login() throws Exception {
+        synchronized (KumpulBagiFileRunner.class) {
+            KumpulBagiServiceImpl service = (KumpulBagiServiceImpl) getPluginService();
+            PremiumAccount pa = service.getConfig();
+            if (pa.isSet()) {
+                Matcher matcher = getMatcherAgainstContent("<a[^>]+?href\\s*=\\s*[\"']([^\"']+?/Account/Login[^\"']+)[\"']");
+                if (!matcher.find())
+                    throw new ServiceConnectionProblemException("Error finding login url");
+                HttpMethod method = getMethodBuilder().setReferer(fileURL)
+                        .setAction(matcher.group(1).trim()).toGetMethod();
+                if (!makeRedirectedRequest(method)) {
+                    throw new ServiceConnectionProblemException("Error loading login page");
+                }
+                method = getMethodBuilder().setReferer(fileURL)
+                        .setActionFromFormWhereActionContains("n/Account/Login", true)
+                        .setParameter("UserName", pa.getUsername())
+                        .setParameter("Password", pa.getPassword())
+                        .toPostMethod();
+                if (!makeRedirectedRequest(method)) {
+                    throw new ServiceConnectionProblemException("Error logging in");
+                }
+                if (getContentAsString().contains("input-validation-error") || getContentAsString().contains("field-validation-error"))
+                    throw new PluginImplementationException("Incorrect account details");
+        }}
     }
 
     private String getBaseUrl() throws PluginImplementationException {

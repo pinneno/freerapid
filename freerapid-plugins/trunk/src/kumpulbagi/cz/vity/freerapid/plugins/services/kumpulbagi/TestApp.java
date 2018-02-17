@@ -16,13 +16,20 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            //httpFile.setNewURL(new URL("http://kumpulbagi.com/hepyy005/beelzebub-single-link-55062/kumpulbagianimebeelzebub-single-link,340208,gallery,1,1.rar"));
-            httpFile.setNewURL(new URL("http://copiapop.com/ovagames/campur15-45753/629842991-seloebrevo-part01,427090,list,1,1.rar"));
+            httpFile.setNewURL(new URL("http://kumpulbagi.com/avesena-arif-nugroho/getter-robo-armageddon-end-288428/getter-robo-armageddon-ep-01,2110588,gallery,1,1.mkv"));
+            //httpFile.setNewURL(new URL("http://copiapop.com/ovagames/campur15-45753/629842991-seloebrevo-part01,427090,list,1,1.rar"));
+            httpFile.setNewURL(new URL("http://kbagi.com/wachid-fatkhu-rk/film-indonesia-151255/18-forever-love,1002781,gallery,1,1.mkv"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
             final KumpulBagiServiceImpl service = new KumpulBagiServiceImpl(); //instance of service - of our plugin
+            /*
+            final PremiumAccount config = new PremiumAccount();
+            config.setUsername("*******");
+            config.setPassword("*******");
+            service.setConfig(config);
+            //*/
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console
