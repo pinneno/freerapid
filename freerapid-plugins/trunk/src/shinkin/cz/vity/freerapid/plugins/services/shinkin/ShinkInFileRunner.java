@@ -47,15 +47,20 @@ class ShinkInFileRunner extends AbstractRunner {
         if (matcher.find()) {
             downloadTask.sleep(1 + Integer.parseInt(matcher.group(1).trim()));
         }
-        HttpMethod httpMethod = getMethodBuilder().setActionFromFormWhereTagContains("GET LINK", true).toPostMethod();
-        if (!makeRedirectedRequest(httpMethod)) {
-            checkProblems(httpMethod);
-            throw new ServiceConnectionProblemException();
+        try {
+            HttpMethod httpMethod = getMethodBuilder().setActionFromFormWhereTagContains("GET LINK", true).toPostMethod();
+            if (!makeRedirectedRequest(httpMethod)) {
+                checkProblems(httpMethod);
+                throw new ServiceConnectionProblemException();
+            }
+            matcher = PlugUtils.matcher("url=(.+);?", httpMethod.getResponseHeader("Refresh").getValue());
+            if (!matcher.find())
+                throw new PluginImplementationException("Target url not found.1");
+        } catch (Exception x) {
+            matcher = getMatcherAgainstContent("<a[^<>]*href=[\"']([^\"']+)[\"'][^<>]*>\\s*GET LINK\\s*</a>");
+            if (!matcher.find())
+                throw new PluginImplementationException("Target url not found.2");
         }
-        matcher = PlugUtils.matcher("url=(.+);?", httpMethod.getResponseHeader("Refresh").getValue());
-        if (!matcher.find())
-            throw new PluginImplementationException("Target url not found");
-
         this.httpFile.setNewURL(new URL(matcher.group(1)));
         this.httpFile.setPluginID("");
         this.httpFile.setState(DownloadState.QUEUED);
