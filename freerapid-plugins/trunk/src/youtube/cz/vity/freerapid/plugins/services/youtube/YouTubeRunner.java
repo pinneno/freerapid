@@ -120,16 +120,14 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
             }
 
             Matcher matcher;
-            String playerJsUrl;
-            if (bypassAgeVerification(method)) {
-                playerJsUrl = getContentAsString();
-            } else {
-                matcher = getMatcherAgainstContent("<script src=\"(.+?)\"\\s*?name=\"player/base\"");
-                if (!matcher.find()) {
-                    throw new PluginImplementationException("Player js url not found");
-                }
-                playerJsUrl = matcher.group(1);
+            matcher = getMatcherAgainstContent("<script src=\"(.+?)\"\\s*?name=\"player/base\"");
+            if (!matcher.find()) {
+                throw new PluginImplementationException("Player js url not found");
             }
+            String playerJsUrl = matcher.group(1);
+
+            bypassAgeVerification(method);
+
             //"url_encoded_fmt_stream_map":"type=vi...    " //normal
             //url_encoded_fmt_stream_map=url%3Dhttp%253A... & //embedded
             matcher = getMatcherAgainstContent("\"?url_encoded_fmt_stream_map\"?(=|:)(?: ?\")?([^&\"$]+)(?:\"|&|$)");
@@ -990,7 +988,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
         }
     }
 
-    private boolean bypassAgeVerification(HttpMethod method) throws Exception {
+    private void bypassAgeVerification(HttpMethod method) throws Exception {
         if (method.getURI().toString().matches("https?://(www\\.)?youtube\\.com/verify_age.*")
                 || getContentAsString().contains("watch7-player-age-gate-content")
                 || getContentAsString().contains("Sign in to confirm your age")
@@ -1029,13 +1027,11 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
                 throw new ServiceConnectionProblemException();
             }
             checkEmbeddingProblems();
-            return true;
         } else if (getContentAsString().contains("I confirm that I am 18 years of age or older")) {
             if (!makeRedirectedRequest(getGetMethod(fileURL + "&has_verified=1"))) {
                 throw new ServiceConnectionProblemException();
             }
         }
-        return false;
     }
 
 }
