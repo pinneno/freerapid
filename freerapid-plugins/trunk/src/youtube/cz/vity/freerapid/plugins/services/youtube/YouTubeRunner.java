@@ -6,7 +6,6 @@ import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
 import cz.vity.freerapid.plugins.services.youtube.srt.Transcription2SrtUtil;
 import cz.vity.freerapid.plugins.video2audio.AbstractVideo2AudioRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadClientConsts;
-import cz.vity.freerapid.plugins.webclient.DownloadState;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.HttpUtils;
 import cz.vity.freerapid.plugins.webclient.utils.JsonMapper;
@@ -24,7 +23,10 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
-import java.net.*;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -81,13 +83,6 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
         super.run();
         logger.info("Starting download in TASK " + fileURL);
         checkUrl();
-        if (fileURL.contains("youtu.be/")) {
-            String url = "https://www.youtube.com/watch?v=" + getIdFromUrl(fileURL);
-            httpFile.setNewURL(new URL(url));
-            httpFile.setPluginID("");
-            httpFile.setState(DownloadState.QUEUED);
-            return;
-        }
         addCookie(new Cookie(".youtube.com", "PREF", "hl=en", "/", 86400, false));
         setConfig();
         if (isAttributionLink()) {
@@ -368,7 +363,18 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
     }
 
     private void checkUrl() {
-        fileURL = fileURL.replaceFirst("://m\\.", "://www.");
+        fileURL = fileURL
+                .replaceFirst("http://", "https://")
+                .replaceFirst("://m\\.", "://www.")
+                .replaceFirst("//(www\\.)?youtu\\.be/", "//www.youtube.com/watch?v=")
+                .replaceFirst("/v/", "/watch?v=")
+                .replaceFirst("/embed/", "/watch?v=")
+                .replaceFirst("(\\?.*?)\\?", "$1&");
+    }
+
+    @Override
+    protected String getBaseURL() {
+        return "https://www.youtube.com/";
     }
 
     private void setConfig() throws Exception {
