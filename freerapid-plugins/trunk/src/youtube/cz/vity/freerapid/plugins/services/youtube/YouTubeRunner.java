@@ -31,7 +31,6 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.InflaterInputStream;
 
 /**
  * @author Kajda
@@ -120,14 +119,17 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
                 return;
             }
 
-            bypassAgeVerification(method);
             Matcher matcher;
-            String mainpageContent = getContentAsString();
-            matcher = getMatcherAgainstContent("<script src=\"(.+?)\"\\s*?name=\"player/base\"");
-            if (!matcher.find()) {
-                throw new PluginImplementationException("Player js url not found");
+            String playerJsUrl;
+            if (bypassAgeVerification(method)) {
+                playerJsUrl = getContentAsString();
+            } else {
+                matcher = getMatcherAgainstContent("<script src=\"(.+?)\"\\s*?name=\"player/base\"");
+                if (!matcher.find()) {
+                    throw new PluginImplementationException("Player js url not found");
+                }
+                playerJsUrl = matcher.group(1);
             }
-            String playerJsUrl = matcher.group(1);
             //"url_encoded_fmt_stream_map":"type=vi...    " //normal
             //url_encoded_fmt_stream_map=url%3Dhttp%253A... & //embedded
             matcher = getMatcherAgainstContent("\"?url_encoded_fmt_stream_map\"?(=|:)(?: ?\")?([^&\"$]+)(?:\"|&|$)");
@@ -197,7 +199,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
                     //fmtStreamMap doesn't contain dash, use afDashStreamMap instead of ytStreamMap
                     queueDashAudio(afDashStreamMap, youTubeMedia);
                 }
-                queueSubtitle(mainpageContent);
+                queueSubtitle();
             } else { //dash audio
                 //at this moment dash audio set from afStreamMap is subset of dash audio set from dashStreamMap,
                 //so it is ok to get youTubeMedia from dashStreamMap, but it's safer to get it from afDashStream.
@@ -901,7 +903,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
         return false;
     }
 
-    private void queueSubtitle(String mainpageContent) throws Exception {
+    private void queueSubtitle() throws Exception {
         if (config.isDownloadSubtitles() && isVideo()) {
             final String id = getIdFromUrl(fileURL);
             HttpMethod method = getGetMethod("http://www.youtube.com/api/timedtext?type=list&v=" + id);
@@ -988,7 +990,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
         }
     }
 
-    private void bypassAgeVerification(HttpMethod method) throws Exception {
+    private boolean bypassAgeVerification(HttpMethod method) throws Exception {
         if (method.getURI().toString().matches("https?://(www\\.)?youtube\\.com/verify_age.*")
                 || getContentAsString().contains("watch7-player-age-gate-content")
                 || getContentAsString().contains("Sign in to confirm your age")
@@ -998,31 +1000,28 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
             logger.info("Trying to bypass age verification");
             //Request embed format to bypass age verification
             String videoId = getIdFromUrl(fileURL);
-            String embedSwfUrl = "https://www.youtube.com/v/" + videoId;
-            logger.info("Requesting embed SWF: " + embedSwfUrl);
-            InputStream is = client.makeRequestForFile(client.getGetMethod(embedSwfUrl));
-            if (is == null) {
-                throw new ServiceConnectionProblemException("Error downloading embed SWF");
-            }
-            String embedSwfContent = readSwfStreamToString(is);
-
-            Matcher matcher = PlugUtils.matcher("(?:swf|ssl|WEB|=).*?(https?://.+?\\.swf)", embedSwfContent);
-            if (!matcher.find()) {
-                logger.warning(embedSwfContent);
-                throw new PluginImplementationException("SWF URL not found");
-            }
-            //swfUrl = matcher.group(1).replace("cps.swf", "watch_as3.swf");
             method = getMethodBuilder()
-                    .setReferer(embedSwfUrl)
+                    .setReferer("https://www.youtube.com/embed/" + videoId)
                     .setAction("https://www.youtube.com/get_video_info")
-                    .setParameter("asv", "3")
-                    .setParameter("hl", "en_US")
-                    .setParameter("el", "embedded")
+                    .setParameter("html5", "1")
                     .setParameter("video_id", videoId)
-                    .setParameter("width", "1366")
-                    .setParameter("sts", "16345")
-                    .setParameter("height", "239")
-                    .setAndEncodeParameter("eurl", fileURL)
+                    .setParameter("cpn", "Gbrb-xC5Q_KYOrTg")
+                    .setParameter("eurl", "")
+                    .setParameter("el", "embedded")
+                    .setParameter("hl", "en_US")
+                    .setParameter("sts", "17579")
+                    .setParameter("c", "WEB_EMBEDDED_PLAYER")
+                    .setParameter("cver", "20180222")
+                    .setParameter("cplayer", "UNIPLAYER")
+                    .setParameter("cbr", "Chrome")
+                    .setParameter("cbrver", "64.0.3282.170")
+                    .setParameter("cos", "Windows")
+                    .setParameter("cosver", "6.1")
+                    .setParameter("width", "1920")
+                    .setParameter("height", "1080")
+                    .setParameter("ei", "ZnWRWpG6EtLOyAWOs5ywBA")
+                    .setParameter("iframe", "1")
+                    .setParameter("embed_config", "%7B%7D")
                     .toGetMethod();
             setTextContentTypes("application/x-www-form-urlencoded");
             if (!makeRedirectedRequest(method)) {
@@ -1030,57 +1029,13 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
                 throw new ServiceConnectionProblemException();
             }
             checkEmbeddingProblems();
+            return true;
         } else if (getContentAsString().contains("I confirm that I am 18 years of age or older")) {
             if (!makeRedirectedRequest(getGetMethod(fileURL + "&has_verified=1"))) {
                 throw new ServiceConnectionProblemException();
             }
         }
-        if (getContentAsString().contains("Sign in to view this video")
-                || getContentAsString().contains("Sign in to confirm your age")) {  //just in case they change age verification mechanism
-            throw new PluginImplementationException("Age verification is broken");
-        }
-    }
-
-    private static String readSwfStreamToString(InputStream is) throws IOException {
-        try {
-            final byte[] bytes = new byte[2048];
-            //read the first 8 bytes :
-            //3 bytes - signature
-            //1 byte  - version
-            //4 bytes - file length
-            if (readBytes(is, bytes, 8) != 8) {
-                throw new IOException("Error reading from stream");
-            }
-            if (bytes[0] == 'C' && bytes[1] == 'W' && bytes[2] == 'S') {
-                bytes[0] = 'F';
-                is = new InflaterInputStream(is);
-            } else if (bytes[0] != 'F' || bytes[1] != 'W' || bytes[2] != 'S') {
-                throw new IOException("Invalid SWF stream");
-            }
-
-            final StringBuilder sb = new StringBuilder(8192);
-            sb.append(new String(bytes, 0, 8, "ISO-8859-1"));
-            int len;
-            while ((len = is.read(bytes)) != -1) {
-                sb.append(new String(bytes, 0, len, "ISO-8859-1"));
-            }
-            return sb.toString();
-        } finally {
-            try {
-                is.close();
-            } catch (final Exception e) {
-                LogUtils.processException(logger, e);
-            }
-        }
-    }
-
-    private static int readBytes(InputStream is, byte[] buffer, int count) throws IOException {
-        int read = 0, i;
-        while (count > 0 && (i = is.read(buffer, 0, count)) != -1) {
-            count -= i;
-            read += i;
-        }
-        return read;
+        return false;
     }
 
 }
