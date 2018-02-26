@@ -31,8 +31,8 @@ import java.util.regex.Matcher;
  */
 class BbcFileRunner extends AbstractRtmpRunner {
     private final static Logger logger = Logger.getLogger(BbcFileRunner.class.getName());
-    private final static String SWF_URL = "http://emp.bbci.co.uk/emp/SMPf/1.9.36/StandardMediaPlayerChromelessFlash.swf";
-    private final static String LIMELIGHT_SWF_URL = "http://www.bbc.co.uk/emp/releases/iplayer/revisions/617463_618125_4/617463_618125_4_emp.swf";
+    private final static String SWF_URL = "https://emp.bbci.co.uk/emp/SMPf/1.9.36/StandardMediaPlayerChromelessFlash.swf";
+    private final static String LIMELIGHT_SWF_URL = "https://www.bbc.co.uk/emp/releases/iplayer/revisions/617463_618125_4/617463_618125_4_emp.swf";
     private final static SwfVerificationHelper limelightHelper = new SwfVerificationHelper(LIMELIGHT_SWF_URL);
     private final static SwfVerificationHelper helper = new SwfVerificationHelper(SWF_URL);
     private final static String DEFAULT_EXT = ".flv";
@@ -99,7 +99,7 @@ class BbcFileRunner extends AbstractRtmpRunner {
                 mediaSelectorOk = true;
                 logger.info("Requesting media selector for VPID: " + vpid);
                 String atk = Hex.encodeHexString(DigestUtils.sha(MEDIA_SELECTOR_HASH + vpid));
-                String mediaSelector = String.format("http://open.live.bbc.co.uk/mediaselector/5/select/version/2.0/mediaset/pc/vpid/%s/atk/%s/asn/%s/", vpid, atk, MEDIA_SELECTOR_ASN);
+                String mediaSelector = String.format("https://open.live.bbc.co.uk/mediaselector/5/select/version/2.0/mediaset/pc/vpid/%s/atk/%s/asn/%s/", vpid, atk, MEDIA_SELECTOR_ASN);
                 try {
                     method = getGetMethod(mediaSelector);
                     if (config.isEnableTor()) {
@@ -226,10 +226,10 @@ class BbcFileRunner extends AbstractRtmpRunner {
 
     private void requestPlaylist(String pid) throws Exception {
         //some programmes use xml (old) style, while the rest use json style
-        GetMethod method = getGetMethod(String.format("http://www.bbc.co.uk/programmes/%s/playlist.json", pid));
+        GetMethod method = getGetMethod(String.format("https://www.bbc.co.uk/programmes/%s/playlist.json", pid));
         int httpStatus = client.makeRequest(method, false);
         if (httpStatus / 100 == 3) {
-            method = getGetMethod("http://www.bbc.co.uk/iplayer/playlist/" + pid);
+            method = getGetMethod("https://www.bbc.co.uk/iplayer/playlist/" + pid);
             if (!makeRedirectedRequest(method)) {
                 checkPlaylistProblems();
                 throw new ServiceConnectionProblemException();
