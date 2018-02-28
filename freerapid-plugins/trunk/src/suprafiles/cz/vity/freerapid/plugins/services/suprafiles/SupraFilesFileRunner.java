@@ -1,11 +1,11 @@
 package cz.vity.freerapid.plugins.services.suprafiles;
 
-import cz.vity.freerapid.plugins.exceptions.CaptchaEntryInputMismatchException;
 import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
 import cz.vity.freerapid.plugins.services.xfilesharing.captcha.CaptchaType;
+import cz.vity.freerapid.plugins.services.xfilesharing.captcha.ReCaptchaType;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandler;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.hoster.CaptchaSupport;
@@ -39,29 +39,27 @@ class SupraFilesFileRunner extends XFileSharingRunner {
     @Override
     protected List<CaptchaType> getCaptchaTypes() {
         final List<CaptchaType> captchaTypes = super.getCaptchaTypes();
-        captchaTypes.add(0, new CaptchaType() {
-
-            String getReCaptchaKeyRegex() {
-                return "data-sitekey=\"(.+?)\"";
-            }
-
-            @Override
-            public boolean canHandle(final String content) {
-                return PlugUtils.find(getReCaptchaKeyRegex(), content);
-            }
-
-            @Override
-            public void handleCaptcha(final MethodBuilder methodBuilder, final HttpDownloadClient client, final CaptchaSupport captchaSupport, final HttpFileDownloadTask downloadTask) throws Exception {
-                final String content = client.getContentAsString();
-                final Matcher reCaptchaKeyMatcher = PlugUtils.matcher(getReCaptchaKeyRegex(), content);
-                if (!reCaptchaKeyMatcher.find()) {
-                    throw new PluginImplementationException("ReCaptcha key not found");
-                }
-                final String reCaptchaKey = reCaptchaKeyMatcher.group(1).trim();
-                final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
-                r.modifyResponseMethod(methodBuilder);
-            }
-        });
+        captchaTypes.add(0, new ReCaptchaType2());
         return captchaTypes;
+    }
+
+    class ReCaptchaType2 extends ReCaptchaType {
+        @Override
+        protected String getReCaptchaKeyRegex() {
+            return "data-sitekey=\"(.+?)\"";
+        }
+
+        @Override
+        public void handleCaptcha(final MethodBuilder methodBuilder, final HttpDownloadClient client, final CaptchaSupport captchaSupport, final HttpFileDownloadTask downloadTask) throws Exception {
+            final String content = client.getContentAsString();
+            final Matcher reCaptchaKeyMatcher = PlugUtils.matcher(getReCaptchaKeyRegex(), content);
+            if (!reCaptchaKeyMatcher.find()) {
+                throw new PluginImplementationException("ReCaptcha key not found");
+            }
+            final String reCaptchaKey = reCaptchaKeyMatcher.group(1).trim();
+            final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
+            r.modifyResponseMethod(methodBuilder);
+        }
+
     }
 }
