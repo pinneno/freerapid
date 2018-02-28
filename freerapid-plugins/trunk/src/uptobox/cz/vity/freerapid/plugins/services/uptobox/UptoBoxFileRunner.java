@@ -80,12 +80,22 @@ class UptoBoxFileRunner extends XFileSharingRunner {
         if (content.contains("Vous ne pouvez pas t&eacute;l&eacute;charger des fichiers de taille sup&eacute;rieur &agrave")) {
             throw new NotRecoverableDownloadException(PlugUtils.getStringBetween(content, " class=\"err\">", "<br").replace("Vous ne pouvez pas t&eacute;l&eacute;charger des fichiers de taille sup&eacute;rieur &agrave", "You can not download file sizes greater than"));
         }
-        try {
-            super.checkDownloadProblems(content.replaceAll("you have to wait", "You have to wait").replaceAll("you can wait", "You have to wait"));
-        } catch (PluginImplementationException x) {
-            if (!x.getMessage().contains("Skipped countdown"))      // ignore error
-                throw new PluginImplementationException(x.getMessage());
+        if (content.contains("to launch a new download") || content.contains("you can wait")) {
+            final Matcher matcher = getMatcherAgainstContent("(?:(\\d+) hours?,? )?(?:(\\d+) minutes?,? )?(?:(\\d+) seconds?)");
+            int waitHours = 0, waitMinutes = 0, waitSeconds = 0;
+            if (matcher.find()) {
+                if (matcher.group(1) != null) {
+                    waitHours = Integer.parseInt(matcher.group(1));
+                }
+                if (matcher.group(2) != null) {
+                    waitMinutes = Integer.parseInt(matcher.group(2));
+                }
+                waitSeconds = Integer.parseInt(matcher.group(3));
+            }
+            final int waitTime = (waitHours * 60 * 60) + (waitMinutes * 60) + waitSeconds;
+            throw new YouHaveToWaitException("You have to wait " + matcher.group(), waitTime);
         }
+        super.checkDownloadProblems(content);
     }
 
     @Override

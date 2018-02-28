@@ -1,9 +1,10 @@
 package cz.vity.freerapid.plugins.services.shareonline;
 
 import cz.vity.freerapid.plugins.exceptions.*;
-import cz.vity.freerapid.plugins.services.recaptcha.ReCaptcha;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
+import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import cz.vity.freerapid.utilities.LogUtils;
 import cz.vity.freerapid.utilities.Utils;
@@ -92,6 +93,7 @@ class ShareonlineRunner extends AbstractRunner {
                         PlugUtils.getStringBetween(getContentAsString(), "var dl=\"", "\";")), "UTF-8");
                 final String captchaUrl = PlugUtils.getStringBetween(getContentAsString(), "var url='", "';")
                         .replace("///", "/free/captcha/");
+                final String captchaKey = PlugUtils.getStringBetween(getContentAsString(), "data-sitekey=\"", "\"");
                 method = getMethodBuilder()
                         .setReferer(downloadFreeUrl)
                         .setAction("http://www.share-online.biz/alive/")
@@ -102,7 +104,7 @@ class ShareonlineRunner extends AbstractRunner {
                     throw new ServiceConnectionProblemException();
                 }
                 if (dl.contains("chk||")) {
-                    dl = stepCaptcha(dl, wait, downloadFreeUrl, captchaUrl);
+                    dl = stepCaptcha(dl, downloadFreeUrl, captchaUrl, captchaKey);
                 }
                 method = getMethodBuilder().setAction(dl).toGetMethod();
                 downloadTask.sleep(wait);
@@ -153,28 +155,21 @@ class ShareonlineRunner extends AbstractRunner {
         }
     }
 
-    private String stepCaptcha(String dl, final int wait, final String referer, final String captchaURL) throws Exception {
-        final long startTime = System.currentTimeMillis();
+    private String stepCaptcha(String dl, final String referer, final String captchaURL, final String captchaKey) throws Exception {
         dl = dl.substring(dl.indexOf("chk||") + "chk||".length());
         String content;
         do {
-            final ReCaptcha rc = new ReCaptcha("6LdatrsSAAAAAHZrB70txiV5p-8Iv8BtVxlTtjKX", client);
-            final String captcha = getCaptchaSupport().getCaptcha(rc.getImageURL());
-            if (captcha == null) {
-                throw new CaptchaEntryInputMismatchException();
-            }
-            rc.setRecognized(captcha);
-            final HttpMethod method = rc.modifyResponseMethod(getMethodBuilder()
+            MethodBuilder captchaBuilder = getMethodBuilder()
                     .setReferer(referer)
                     .setAction(captchaURL)
                     .setParameter("dl_free", "1")
-                    .setParameter("captcha", dl))
-                    .toPostMethod();
+                    .setParameter("captcha", dl);
+            final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(captchaKey, fileURL);
+            captchaBuilder.setParameter("recaptcha_challenge_field", r.getResponse());
+            captchaBuilder.setParameter("recaptcha_response_field", r.getResponse());
+
+            final HttpMethod method = captchaBuilder.toPostMethod();
             method.addRequestHeader("X-Requested-With", "XMLHttpRequest");
-            final long toWait = startTime + (wait * 1000) - System.currentTimeMillis();
-            if (toWait > 0) {
-                downloadTask.sleep((int) Math.ceil(toWait / 1000d));
-            }
             if (!makeRedirectedRequest(method)) {
                 checkProblems();
                 throw new ServiceConnectionProblemException();
