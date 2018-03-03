@@ -20,6 +20,7 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("https://uptobox.com/9xs4v2xapnxt"));
             //httpFile.setNewURL(new URL("https://uptobox.com/cucef4s0q29p"));
             httpFile.setNewURL(new URL("https://uptobox.com/o9fln5zcs53x"));
+            httpFile.setNewURL(new URL("https://uptobox.com/siz8j1inlkn2"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8118); //eg we can use local proxy to sniff HTTP communication
             final UptoBoxServiceImpl service = new UptoBoxServiceImpl();

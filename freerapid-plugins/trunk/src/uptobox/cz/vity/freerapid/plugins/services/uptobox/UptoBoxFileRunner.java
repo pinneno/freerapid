@@ -46,6 +46,11 @@ class UptoBoxFileRunner extends XFileSharingRunner {
     }
 
     @Override
+    protected void correctURL() throws Exception {
+        fileURL = fileURL.replaceFirst("http://", "https://");
+    }
+
+    @Override
     protected MethodBuilder getXFSMethodBuilder(final String content) throws Exception {
         return getXFSMethodBuilder(content, "create-download-link");
     }
@@ -124,6 +129,7 @@ class UptoBoxFileRunner extends XFileSharingRunner {
         final List<String> downloadLinkRegexes = super.getDownloadLinkRegexes();
         downloadLinkRegexes.add(0, "product_download_url\\s*?=\\s*?(http.+?" + Pattern.quote(httpFile.getFileName()) + ")[\"']");
         downloadLinkRegexes.add(0, "<a[^<>]*?href\\s*=\\s*[\"'](?:http.+?)?(http.+?" + Pattern.quote(httpFile.getFileName()) + ")[\"']");
+        downloadLinkRegexes.add("<a[^<>]*?href\\s*=\\s*[\"'](http[^\"']+)[\"'][^<>]*>\\s*Click here");
         return downloadLinkRegexes;
     }
 

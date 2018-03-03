@@ -46,10 +46,9 @@ class YouPornFileRunner extends AbstractRunner {
         if (!matchN.find())
             throw new PluginImplementationException("File name not found");
         httpFile.setFileName(matchN.group(1).trim() + service.getVideoFormat());
-        final Matcher matchS = PlugUtils.matcher(selectedQuality + "\\s*(?:<[^>]+>\\s*)*\\((.+?)\\)\\s*<", content);
-        if (!matchS.find())
-            throw new PluginImplementationException("File size not found");
-        httpFile.setFileSize(PlugUtils.getFileSizeFromString(matchS.group(1)));
+        final Matcher matchS = PlugUtils.matcher(selectedQuality + "\\s*(?:<[^>]+>\\s*(?:\\w+\\s*)?)*\\((.+?)\\)\\s*<", content);
+        if (matchS.find())
+            httpFile.setFileSize(PlugUtils.getFileSizeFromString(matchS.group(1)));
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 
@@ -88,10 +87,10 @@ class YouPornFileRunner extends AbstractRunner {
     }
 
     private void extractVideoURLs(final String content) throws Exception {
-        final Matcher match = PlugUtils.matcher(":\\s*['\"]([^'\">]*[_/](\\d+p)[^'\">]*)['\"]", content);
+        final Matcher match = PlugUtils.matcher(":\\s*['\"]([^'\">]*[_/](\\d+[Pp])[^'\">]*)['\"]", content);
         while (match.find()) {
-            videoUrls.put(match.group(2), match.group(1).replace("\\/", "/"));
-            logger.info("Found Video : " + match.group(2) + " >> " + match.group(1).replace("\\/", "/"));
+            videoUrls.put(match.group(2).toLowerCase(), match.group(1).replace("\\/", "/"));
+            logger.info("Found Video : " + match.group(2).toLowerCase() + " >> " + match.group(1).replace("\\/", "/"));
         }
         if (videoUrls.size() <= 0)
             throw new PluginImplementationException("No videos found on this page");

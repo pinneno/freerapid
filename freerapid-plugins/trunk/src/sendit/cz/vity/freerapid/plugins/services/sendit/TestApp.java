@@ -17,6 +17,7 @@ public class TestApp extends PluginDevApplication {
         try {
             //we set file URL
             httpFile.setNewURL(new URL("https://sendit.cloud/5rz9dwfmr0ia/Big.Dreams.Small.Spaces.S03E02.WEB-DL.x264-JIVE.mp4"));
+            httpFile.setNewURL(new URL("https://sendit.cloud/rk1jkyr9t3k7"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication

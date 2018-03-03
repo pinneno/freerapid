@@ -29,6 +29,12 @@ class SendItFileRunner extends XFileSharingRunner {
                 httpFile.setFileName(match.group(1).trim());
             }
         });
+        fileNameHandlers.add(0, new FileNameHandler() {
+            @Override
+            public void checkFileName(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
+                PlugUtils.checkName(httpFile, content, "img src=\"\" border=\"0\" alt=\"", "\"");
+            }
+        });
         return fileNameHandlers;
     }
 }
