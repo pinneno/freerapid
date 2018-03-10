@@ -153,15 +153,15 @@ class PornHubFileRunner extends AbstractRunner {
     }
 
     private String deJsVideoQualityUrlsSection(String content) throws Exception {
-        final Matcher match = PlugUtils.matcher("(?s)player_mp4_seek[^;]+?;(.+?)loadScript", content);
+        final Matcher match = PlugUtils.matcher("(?s)player_mp4_seek[^;]+?;(.+?)(?:loadScript|flashvars|var player_mp4_seek)", content);
         if (match.find()) {
             String jsSection = match.group(1).trim().replaceAll("/\\*.+?\\*/", "").replaceAll("flashvars.+?\\]", "aaaa");
             ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
             String qualityStrings = "\n";
             engine.eval(jsSection);
-            Matcher matcher = PlugUtils.matcher("(quality_\\d+p)\\s*=\\s*", content);
+            Matcher matcher = PlugUtils.matcher("(player_quality_\\d+p)\\s*=\\s*", content);
             while (matcher.find()) {
-                qualityStrings += "player_" + matcher.group(0) + "'" + engine.get(matcher.group(1)).toString() + "'" + "; \n";
+                qualityStrings += matcher.group(0) + "'" + engine.get(matcher.group(1)).toString() + "'" + "; \n";
             }
             content += qualityStrings;
         }
