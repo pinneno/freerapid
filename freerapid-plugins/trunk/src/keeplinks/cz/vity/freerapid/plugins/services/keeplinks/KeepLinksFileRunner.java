@@ -52,8 +52,8 @@ class KeepLinksFileRunner extends AbstractRunner {
         super.run();
         logger.info("Starting download in TASK " + fileURL);
 
-        final String HEADER_LINK_TYPE_1 = ">Direct Link";
-        final String HEADER_LINK_TYPE_2 = ">Live Link";
+        final String HEADER_LINK_TYPE_1 = "(?i)>Direct\\s*(?:<[^>]+>)?\\s*Link";
+        final String HEADER_LINK_TYPE_2 = "(?i)>Live\\s*(?:<[^>]+>)?\\s*Link";
         final int MAX_CAPTCHA_ATTEMPTS = 5;
 
         List<URI> list = new LinkedList<URI>();
@@ -70,11 +70,11 @@ class KeepLinksFileRunner extends AbstractRunner {
             int count = 0;
             MethodBuilder builder;
             String content;
-            while (!getContentAsString().contains(HEADER_LINK_TYPE_1) &&
-                    !getContentAsString().contains(HEADER_LINK_TYPE_2) &&
+            while (!containsRegex(getContentAsString(), HEADER_LINK_TYPE_1) &&
+                    !containsRegex(getContentAsString(), HEADER_LINK_TYPE_2) &&
                     (count++ < MAX_CAPTCHA_ATTEMPTS)) {
                 builder = getMethodBuilder()
-                        .setActionFromFormWhereTagContains("Protected link", true)
+                        .setActionFromFormWhereTagContains("Protected", true)
                         .setReferer(fileURL).setAction(fileURL);
                 content = getContentAsString();
                 // check 4 & complete captcha
@@ -95,7 +95,7 @@ class KeepLinksFileRunner extends AbstractRunner {
                 }
             }
 
-            if (getContentAsString().contains(HEADER_LINK_TYPE_1) || getContentAsString().contains(HEADER_LINK_TYPE_2)) {
+            if (containsRegex(getContentAsString(), HEADER_LINK_TYPE_1) || containsRegex(getContentAsString(), HEADER_LINK_TYPE_2)) {
                 // all good
             } else if (count >= MAX_CAPTCHA_ATTEMPTS) {
                 throw new PluginImplementationException("Excessive Incorrect Captcha Entries");
@@ -146,6 +146,11 @@ class KeepLinksFileRunner extends AbstractRunner {
             checkProblems();
             throw new ServiceConnectionProblemException();
         }
+    }
+
+    protected boolean containsRegex(String content, String regex) {
+        Matcher matcher = PlugUtils.matcher(regex, content);
+        return (matcher.find());
     }
 
     protected void stepCaptcha(MethodBuilder method) throws Exception {
