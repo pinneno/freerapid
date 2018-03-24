@@ -142,22 +142,22 @@ class UptoBoxFileRunner extends XFileSharingRunner {
         return super.tryDownloadAndSaveFile(getMethodBuilder().setReferer(fileURL).setAction(downloadUrl).toGetMethod());
     }
 
+    private String loginPage = getBaseURL() + "/?op=login&referer=homepage";
     @Override
     protected void doLogin(final PremiumAccount pa) throws Exception {
         HttpMethod method = getMethodBuilder()
                 .setReferer(getBaseURL())
-                .setAction("https://login.uptobox.com/")
+                .setAction(loginPage)
                 .toGetMethod();
         if (!makeRedirectedRequest(method)) {
             throw new ServiceConnectionProblemException();
         }
         method = getMethodBuilder()
-                .setReferer("https://login.uptobox.com/")
+                .setReferer(loginPage)
                 .setActionFromFormByName("login-form", true)
-                .setAction("https://login.uptobox.com/logarithme")
+                .setAction(loginPage)
                 .setParameter("login", pa.getUsername())
                 .setParameter("password", pa.getPassword())
-                .setParameter("op", "login")
                 .toPostMethod();
         if (!makeRedirectedRequest(method)) {
             throw new ServiceConnectionProblemException();

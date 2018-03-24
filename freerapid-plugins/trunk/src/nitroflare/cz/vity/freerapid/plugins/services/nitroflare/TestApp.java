@@ -16,7 +16,7 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile();
         try {
             //httpFile.setNewURL(new URL("http://www.nitroflare.com/view/C14A2652C8115CE/9814566748quantu.pdf"));
-            httpFile.setNewURL(new URL("https://www.nitroflare.com/view/CE6BAE414D7F1D1/ItsAllAboutTreo.part1.rar"));
+            httpFile.setNewURL(new URL("http://nitroflare.com/view/2639233FB6CC34F/3319684922.epub"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             final NitroFlareServiceImpl service = new NitroFlareServiceImpl();

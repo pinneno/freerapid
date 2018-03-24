@@ -138,6 +138,9 @@ class NitroFlareFileRunner extends AbstractRunner {
         if (contentAsString.contains("Free download is currently unavailable")) {
             throw new YouHaveToWaitException("Free download is currently unavailable", 5 * 60);
         }
+        if (contentAsString.contains("file is available with Premium only")) {
+            throw new NotRecoverableDownloadException("File is available with Premium only");
+        }
         if (contentAsString.contains("You have to wait")) {
             Matcher matcher = PlugUtils.matcher("You have to wait (\\d+) minutes?", contentAsString);
             if (!matcher.find()) {
@@ -176,26 +179,38 @@ class NitroFlareFileRunner extends AbstractRunner {
     }
 
     private void stepCaptcha(String content) throws Exception {
+        HttpMethod method;
         Matcher matcher = PlugUtils.matcher("noscript\\?k=([^\"']+?)['\"]", content);
-        if (!matcher.find()) {
-            logger.warning(content);
-            throw new PluginImplementationException("ReCaptcha key not found");
-        }
-        String captchaKey = matcher.group(1);
+        if (matcher.find()) {
+            String captchaKey = matcher.group(1);
 
-        ReCaptcha reCaptcha = new ReCaptcha(captchaKey, client);
-        String captchaResponse = getCaptchaSupport().getCaptcha(reCaptcha.getImageURL());
-        if (captchaResponse == null) {
-            throw new CaptchaEntryInputMismatchException();
-        }
-        reCaptcha.setRecognized(captchaResponse);
+            ReCaptcha reCaptcha = new ReCaptcha(captchaKey, client);
+            String captchaResponse = getCaptchaSupport().getCaptcha(reCaptcha.getImageURL());
+            if (captchaResponse == null) {
+                throw new CaptchaEntryInputMismatchException();
+            }
+            reCaptcha.setRecognized(captchaResponse);
 
-        HttpMethod method = reCaptcha.modifyResponseMethod(getMethodBuilder()
-                .setReferer(fileURL)
-                .setAjax()
-                .setAction("http://nitroflare.com/ajax/freeDownload.php")
-                .setParameter("method", "fetchDownload"))
-                .toPostMethod();
+            method = reCaptcha.modifyResponseMethod(getMethodBuilder()
+                    .setReferer(fileURL)
+                    .setAjax()
+                    .setAction("http://nitroflare.com/ajax/freeDownload.php")
+                    .setParameter("method", "fetchDownload"))
+                    .toPostMethod();
+        }
+        else {
+            final String captchaSrc = getMethodBuilder(content).setActionFromImgSrcWhereTagContains("captcha").getEscapedURI();
+            logger.info("Captcha URL " + captchaSrc);
+            final String captcha = getCaptchaSupport().getCaptcha(captchaSrc);
+            if (captcha == null) throw new CaptchaEntryInputMismatchException();
+            logger.info("Manual captcha " + captcha);
+            method = getMethodBuilder(content)
+                    .setReferer(fileURL).setAjax()
+                    .setActionFromFormWhereTagContains("Download", true)
+                    .setAction("/ajax/freeDownload.php")
+                    .setParameter("captcha", captcha)
+                    .toPostMethod();
+        }
         if (!makeRedirectedRequest(method)) {
             checkProblems();
             logger.warning(getContentAsString());

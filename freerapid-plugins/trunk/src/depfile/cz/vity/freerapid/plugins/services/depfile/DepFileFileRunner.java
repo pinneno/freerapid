@@ -117,7 +117,7 @@ class DepFileFileRunner extends AbstractRunner {
     }
 
     private String stepCaptcha() throws Exception {
-        final MethodBuilder methodBuilder = getMethodBuilder().setBaseURL(getBaseURL()).setActionFromImgSrcWhereTagContains("/vvc.php");
+        final MethodBuilder methodBuilder = getMethodBuilder().setBaseURL(getBaseURL()).setActionFromImgSrcWhereTagContains("/vvc2.php");
         final String captchaURL = methodBuilder.getEscapedURI();
         logger.info("Captcha URL " + captchaURL);
         final String captcha;
