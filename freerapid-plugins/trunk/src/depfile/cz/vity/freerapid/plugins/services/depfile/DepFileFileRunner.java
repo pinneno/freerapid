@@ -135,11 +135,11 @@ class DepFileFileRunner extends AbstractRunner {
 
     private void checkNameAndSize() throws ErrorDuringDownloadingException, UnsupportedEncodingException {
         final String content = getContentAsString();
-        final String fileName = PlugUtils.getStringBetween(content, "<th>File name:</th>", "</td>").replaceAll("<[^>]*>", "").trim();
-        final String fileSize = PlugUtils.getStringBetween(content, "<th>Size:</th>", "</td>").replaceAll("<[^>]*>", "").trim();
-        final long lsize = PlugUtils.getFileSizeFromString(fileSize);
+        final String fileName = PlugUtils.getStringBetween(content, "File name:</th>", "</td>").replaceAll("<t[^>]*>", "").replaceAll("\\s+", "").trim();
+        final String fileSize = PlugUtils.getStringBetween(content, "Size:</th>", "</td>").replaceAll("<t[^>]*>", "").replaceAll("\\s+", "").trim();
+        final long size = PlugUtils.getFileSizeFromString(fileSize);
         httpFile.setFileName(URLDecoder.decode(fileName, "UTF-8"));
-        httpFile.setFileSize(lsize);
+        httpFile.setFileSize(size);
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 

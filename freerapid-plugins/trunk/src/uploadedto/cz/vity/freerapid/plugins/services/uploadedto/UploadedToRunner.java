@@ -1,7 +1,7 @@
 package cz.vity.freerapid.plugins.services.uploadedto;
 
 import cz.vity.freerapid.plugins.exceptions.*;
-import cz.vity.freerapid.plugins.services.recaptcha.ReCaptcha;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadState;
 import cz.vity.freerapid.plugins.webclient.FileState;
@@ -154,15 +154,20 @@ class UploadedToRunner extends AbstractRunner {
     }
 
     private HttpMethod stepCaptcha(final String fileId) throws Exception {
-        client.setReferer(fileURL);
-        final ReCaptcha r = new ReCaptcha("6Lcqz78SAAAAAPgsTYF3UlGf2QFQCNuPMenuyHF3", client);
-        final String captcha = getCaptchaSupport().getCaptcha(r.getImageURL());
-        if (captcha == null) {
-            throw new CaptchaEntryInputMismatchException();
-        }
-        r.setRecognized(captcha);
+        //client.setReferer(fileURL);
+        //final ReCaptcha r = new ReCaptcha("6Lcqz78SAAAAAPgsTYF3UlGf2QFQCNuPMenuyHF3", client);
+        //final String captcha = getCaptchaSupport().getCaptcha(r.getImageURL());
+        //if (captcha == null) {
+        //    throw new CaptchaEntryInputMismatchException();
+        //}
+        //r.setRecognized(captcha);
+        //return r.modifyResponseMethod(
+        //        getMethodBuilder().setReferer(fileURL).setAction("/io/ticket/captcha/" + fileId)
+        //).toPostMethod();
+        String siteKey = "6Le1WUIUAAAAAG0gEh0atRevv3TT-WP4HW8FLMoe";
+        final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(siteKey, fileURL);
         return r.modifyResponseMethod(
-                getMethodBuilder().setReferer(fileURL).setAction("http://uploaded.net/io/ticket/captcha/" + fileId)
+                getMethodBuilder().setAjax().setReferer(fileURL).setAction("http://uploaded.net/io/ticket/captcha/" + fileId)
         ).toPostMethod();
     }
 

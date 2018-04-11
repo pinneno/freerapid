@@ -149,6 +149,6 @@ class FileBoomFileRunner extends AbstractRunner {
         final String captchaTxt = getCaptchaSupport().getCaptcha(captchaSrc);
         if (captchaTxt == null)
             throw new CaptchaEntryInputMismatchException();
-        return builder.setParameter("CaptchaForm[code]", captchaTxt);
+        return builder.setParameter("CaptchaForm[verifyCode]", captchaTxt);
     }
 }
