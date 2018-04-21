@@ -51,12 +51,12 @@ class TitulkyFileRunner extends AbstractRunner {
                 while (getContentAsString().contains("roboty, opsat")) {
                     String captcha = "";
                     while ("".equals(captcha)) {
-                        captcha = getCaptchaSupport().getCaptcha("http://www.titulky.com/captcha/captcha.php");
+                        captcha = getCaptchaSupport().getCaptcha("https://www.titulky.com/captcha/captcha.php");
                         if (captcha == null) {
                             throw new CaptchaEntryInputMismatchException("Captcha entry required");
                         }
                     }
-                    final HttpMethod withCaptchaMethod = getMethodBuilder().setActionFromFormByName("downform", true).setBaseURL("http://www.titulky.com").setParameter("downkod", captcha).toPostMethod();
+                    final HttpMethod withCaptchaMethod = getMethodBuilder().setActionFromFormByName("downform", true).setBaseURL("https://www.titulky.com").setParameter("downkod", captcha).toPostMethod();
                     if (!makeRedirectedRequest(withCaptchaMethod)) {
                         throw new PluginImplementationException();//some unknown problem
                     }
@@ -74,7 +74,7 @@ class TitulkyFileRunner extends AbstractRunner {
     private void parseDownloadPage() throws Exception {
         downloadTask.sleep(PlugUtils.getNumberBetween(getContentAsString(), "CountDown(", ")"));
         final String id = PlugUtils.getStringBetween(getContentAsString(), "href=\"/idown.php?id=", "\"");
-        final HttpMethod httpMethod = getMethodBuilder().setAction("http://www.titulky.com/idown.php?id=" + id).toGetMethod();
+        final HttpMethod httpMethod = getMethodBuilder().setAction("https://www.titulky.com/idown.php?id=" + id).toGetMethod();
         //here is the download link extraction
         client.getHTTPClient().getParams().setBooleanParameter("noContentLengthAvailable", true);
         if (!tryDownloadAndSaveFile(httpMethod)) {
