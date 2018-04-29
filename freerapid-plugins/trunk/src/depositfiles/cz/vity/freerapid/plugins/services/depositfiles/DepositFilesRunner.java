@@ -151,7 +151,7 @@ class DepositFilesRunner extends AbstractRunner {
                 }
             }
 
-            matcher = getMatcherAgainstContent("\\('fastdownload'\\s*,\\s*'(.+?)'\\)");
+            matcher = getMatcherAgainstContent("SKIP\\('fastdownload'\\s*,\\s*'(.+?)'\\)");
             if (matcher.find()) {
                 logger.info("Fast download");
                 method = getMethodBuilder()
