@@ -39,12 +39,16 @@ class AdfFileRunner extends AbstractRunner {
                 return;
             }
             String url = decodeUrl(PlugUtils.getStringBetween(getContentAsString(), "var ysmm = '", "';"));
-            if (url.contains("adf.ly/go.php")) {
+            if (url.contains("adf.ly/go.php") || url.contains("/redirecting/")) {
                 if (!makeRedirectedRequest(getGetMethod(url))) {
                     throw new ServiceConnectionProblemException();
                 }
                 checkProblems();
-                url = PlugUtils.getStringBetween(getContentAsString(), " URL=", "\"");
+                try {
+                    url = PlugUtils.getStringBetween(getContentAsString(), " URL=", "\"");
+                } catch (Exception x) {
+                    url = PlugUtils.getStringBetween(getContentAsString(), "window.location = '", "'");
+                }
             }
             changeHttpFileUrl(url);
         } else {

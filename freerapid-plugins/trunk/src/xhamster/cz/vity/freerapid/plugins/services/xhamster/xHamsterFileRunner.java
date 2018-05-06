@@ -21,7 +21,7 @@ class xHamsterFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(xHamsterFileRunner.class.getName());
     private SettingsConfig config;
 
-    private final static String QualityMatcher = "\"%s\":\"([^\"]+)\"";
+    private final static String QualityMatcher = "\"%s\":\\[\"([^\"]+)\"";
     private String PreferredQuality;
 
     @Override
@@ -59,7 +59,7 @@ class xHamsterFileRunner extends AbstractRunner {
         if (makeRedirectedRequest(method)) {
             checkProblems();
             checkNameAndSize(getContentAsString());
-            Matcher match = getMatcherAgainstContent(String.format(QualityMatcher, getPreferredQuality()));
+            Matcher match = PlugUtils.matcher(String.format(QualityMatcher, getPreferredQuality()), getContentAsString().replace("\\", ""));
             if (!match.find())
                 throw new PluginImplementationException(getPreferredQuality() + " Video not found");
             final String file = match.group(1).replace("\\", "");
@@ -111,7 +111,7 @@ class xHamsterFileRunner extends AbstractRunner {
     private String getPreferredQuality() throws PluginImplementationException {
         if (PreferredQuality == null) {
             for (VideoQuality pref : config.getVideoQuality()) {
-            Matcher match = getMatcherAgainstContent(String.format(QualityMatcher, pref.toString()));
+            Matcher match = PlugUtils.matcher(String.format(QualityMatcher, pref.toString()), getContentAsString().replace("\\", ""));
             if (match.find()) {
                 PreferredQuality = pref.toString();
                 return PreferredQuality;

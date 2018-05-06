@@ -65,7 +65,7 @@ class SourceForgeFileRunner extends AbstractRunner {
     }
 
     private MethodBuilder getDownloadLinkMethodBuilder() throws BuildMethodException {
-        return getMethodBuilder().setReferer(fileURL).setActionFromTextBetween("url=", "\">");
+        return getMethodBuilder().setReferer(fileURL).setActionFromTextBetween(" url=", "\">");
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {

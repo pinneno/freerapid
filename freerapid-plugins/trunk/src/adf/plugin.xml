@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
 <plugin class="cz.vity.freerapid.plugins.services.adf.AdfServiceImpl"
-        id="adf.ly" vendor="ntoskrnl+birchie" version="1.4.5">
+        id="adf.ly" vendor="ntoskrnl+birchie" version="1.4.6">
     <attributes>
         <attribute id="urlRegex" value="https?://(www\.)?(adf\.ly|adf\.acb\.im|ay\.gy|goo\.gl|j\.gs|q\.gs|(queuecosm|restorecosm|threadsphere)\.bid|flyserve.co|(activeation|activeterium|agileurbia|atomcurve|atominik|babblecase|battleate|bitigee|bluenik|briskrange|brisktopia|casualient|coginator|cogismith|dashsphere|dataurbia|fasttory|fawright|kaitect|kializer|kibuilder|kimechanic|microify|mmoity|nimbleinity|picocurl|pintient|quainator|quamiller|rapidteria|rapidtory|riffhold|simizer|skamaker|sprysphere|swiftation|swifttopia|skamason|tinyical|tinyium|twineer|velocicosm|velociterium|viahold|vializer|viwright|yabuilder|yamechanic|yoalizer|yobuilder|yoineer|yoitect|zipansion|zipteria|zipvale)\.com)/.+"/>
         <attribute id="minver" value="0.855"/>
