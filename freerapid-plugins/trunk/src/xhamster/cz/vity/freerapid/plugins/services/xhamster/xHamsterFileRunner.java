@@ -21,7 +21,7 @@ class xHamsterFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(xHamsterFileRunner.class.getName());
     private SettingsConfig config;
 
-    private final static String QualityMatcher = "\"%s\":\\[\"([^\"]+)\"";
+    private final static String QualityMatcher = "\"%s\":\\[?\"([^\"]+?mp4[^\"]*)\"";
     private String PreferredQuality;
 
     @Override

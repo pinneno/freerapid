@@ -78,7 +78,7 @@ class MediafireRunner extends AbstractRunner {
             httpFile.setFileSize(contents);
 
         } else {
-            PlugUtils.checkName(httpFile, getContentAsString(), "<meta property=\"og:title\" content=\"", "\" />");
+            PlugUtils.checkName(httpFile, getContentAsString(), "class=\"filename\">", "<");
             final Matcher matcher = getMatcherAgainstContent("oFileSharePopup\\.ald\\('.+?','.+?','(\\d+?)'");
             if (!matcher.find()) {
                 if (getContentAsString().contains("File size:"))
@@ -167,8 +167,9 @@ class MediafireRunner extends AbstractRunner {
                 captchaState.awaitSolved();
             }
         }
-
-        final HttpMethod method = getMethodBuilder().setActionFromTextBetween("kNO = \"", "\";").toGetMethod();
+        Matcher matcher = getMatcherAgainstContent("href\\s*=\\s*['\"]([^'\"]+?)['\"][^>]*>(?:\\s*\\w\\s*)+?\\(");
+        if (!matcher.find()) throw new PluginImplementationException("Download link not found");
+        final HttpMethod method = getMethodBuilder().setAction(matcher.group(1).trim()).toGetMethod();
         setFileStreamContentTypes("text/plain");
         if (!tryDownloadAndSaveFile(method)) {
             checkProblems();

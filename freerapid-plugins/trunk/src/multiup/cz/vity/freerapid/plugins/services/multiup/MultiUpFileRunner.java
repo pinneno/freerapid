@@ -11,6 +11,8 @@ import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 import java.net.URI;
 import java.net.URL;
 import java.util.LinkedList;
@@ -29,6 +31,7 @@ class MultiUpFileRunner extends AbstractRunner {
     @Override
     public void runCheck() throws Exception { //this method validates file
         super.runCheck();
+        skipDDoSProtection();
         fileURL = fileURL.replaceFirst("https://", "http://");
         final GetMethod getMethod = getGetMethod(fileURL);//make first request
         if (makeRedirectedRequest(getMethod)) {
@@ -53,6 +56,7 @@ class MultiUpFileRunner extends AbstractRunner {
     @Override
     public void run() throws Exception {
         super.run();
+        skipDDoSProtection();
         fileURL = fileURL.replaceFirst("https://", "http://");
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL); //create GET request
@@ -151,4 +155,36 @@ class MultiUpFileRunner extends AbstractRunner {
         }
         return builder;
     }
+
+    protected void skipDDoSProtection() throws Exception {
+        HttpMethod method = getGetMethod(fileURL);
+        makeRedirectedRequest(method);
+        if (getContentAsString().contains("<title>Just a moment...</title>")) {
+            Matcher match = getMatcherAgainstContent("var (?:\\w,)* ([^;]+;)");
+            if (!match.find()) throw new PluginImplementationException("DDoS Protection bypass error 1");
+            String script = match.group(1);
+            script += "t=\"www.multiup.org\";";
+            match = getMatcherAgainstContent("  ;(.+?;) ");
+            if (!match.find()) throw new PluginImplementationException("DDoS Protection bypass error 2");
+            script += match.group(1).replace("a.value", "answer");
+
+            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+            String answer = "" + engine.eval(script).toString();
+            match = getMatcherAgainstContent("toFixed\\((\\d+)\\)");
+            if (!match.find()) throw new PluginImplementationException("DDoS Protection bypass error 3");
+            int precision = Integer.parseInt(match.group(1).trim());
+            answer = answer.substring(0, answer.lastIndexOf(".")+ 1 + precision);
+            method = getMethodBuilder().setReferer(fileURL)
+                    .setActionFromFormByName("challenge-form", true)
+                    .setParameter("jschl_answer", answer)
+                    .toGetMethod();
+            downloadTask.sleep(5);
+            if (!makeRedirectedRequest(method)) {
+                checkProblems();
+                throw new ServiceConnectionProblemException();
+            }
+        }
+    }
+
+
 }
