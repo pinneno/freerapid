@@ -47,12 +47,14 @@ class HlsPlaylist {
     }
 
 
-    private List<HlsMedia> getMediaList(final HttpDownloadClient client, final String playlistUrl, int bandwidth, int quality) throws Exception {
+    private List<HlsMedia> getMediaList(final HttpDownloadClient client, String playlistUrl, int bandwidth, int quality) throws Exception {
         logger.info("Playlist URL: " + playlistUrl);
         final HttpMethod method = client.getGetMethod(playlistUrl);
         if (client.makeRequest(method, true) != HttpStatus.SC_OK) {
             throw new ServiceConnectionProblemException();
         }
+        playlistUrl = method.getURI().toString();
+        logger.info("New playlist URL: " + playlistUrl);
 
         final String content = client.getContentAsString();
         final Scanner scanner = new Scanner(content);
