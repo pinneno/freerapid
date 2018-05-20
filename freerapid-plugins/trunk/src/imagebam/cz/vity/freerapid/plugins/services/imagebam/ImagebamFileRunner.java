@@ -25,7 +25,12 @@ class ImagebamFileRunner extends AbstractRunner {
         final GetMethod method = getGetMethod(fileURL);
         if (makeRedirectedRequest(method)) {
             checkProblems();
-            HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setActionFromAHrefWhereATagContains("cloud-download").toGetMethod();
+            HttpMethod httpMethod;
+            try {
+                httpMethod = getMethodBuilder().setReferer(fileURL).setActionFromAHrefWhereATagContains("cloud-download").toGetMethod();
+            } catch (Exception x) {
+                httpMethod = getMethodBuilder().setReferer(fileURL).setActionFromTextBetween("image\" content=\"", "\"/>").toGetMethod();
+            }
             String filename = PlugUtils.suggestFilename(httpMethod.getURI().toString());
             if (!filename.contains(".")) filename += ".jpg";
             httpFile.setFileName(filename);

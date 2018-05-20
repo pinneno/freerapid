@@ -17,6 +17,7 @@ public class TestApp extends PluginDevApplication {
         try {
             //we set file URL
             httpFile.setNewURL(new URL("http://www.pornhub.com/view_video.php?viewkey=1728190603"));
+            httpFile.setNewURL(new URL("http://www.pornhub.com/view_video.php?viewkey=ph5a405d6214321"));
             //httpFile.setNewURL(new URL("http://www.pornhub.com/embed/1728190603"));
             //httpFile.setNewURL(new URL("http://www.pornhub.com/album/449722"));
             //httpFile.setNewURL(new URL("http://www.pornhub.com/photo/4797481"));

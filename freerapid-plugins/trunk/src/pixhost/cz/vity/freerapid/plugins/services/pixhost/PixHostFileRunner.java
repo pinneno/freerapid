@@ -24,7 +24,7 @@ class PixHostFileRunner extends AbstractRunner {
     public void runCheck() throws Exception { //this method validates file
         super.runCheck();
         checkUrl();
-        if (!fileURL.contains("pixhost.org/images/")) {
+        if (!fileURL.contains("/images/")) {
             final GetMethod getMethod = getGetMethod(fileURL);//make first request
             if (makeRedirectedRequest(getMethod)) {
                 checkProblems();
@@ -49,10 +49,10 @@ class PixHostFileRunner extends AbstractRunner {
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 
-    private void checkUrl() throws PluginImplementationException {
-        if (fileURL.contains("pixhost.org/thumbs/")) {
-            fileURL = "http://www.pixhost.org/show/" + fileURL.split("pixhost.org/thumbs/")[1];
-        }
+    private void checkUrl() {
+        fileURL = fileURL.replaceFirst("https://", "http://");
+        fileURL = fileURL.replaceFirst("pixhost.org/", "pixhost.to/");
+        fileURL = fileURL.replaceFirst("/thumbs/", "/show/");
     }
 
     @Override
@@ -62,7 +62,7 @@ class PixHostFileRunner extends AbstractRunner {
         logger.info("Starting download in TASK " + fileURL);
         GetMethod method = getGetMethod(fileURL); //create GET request
 
-        if (!fileURL.contains("pixhost.org/images/")) {
+        if (!fileURL.contains("/images/")) {
             if (!makeRedirectedRequest(method)) {
                 checkProblems();
                 throw new ServiceConnectionProblemException();

@@ -155,11 +155,11 @@ class PornHubFileRunner extends AbstractRunner {
     private String deJsVideoQualityUrlsSection(String content) throws Exception {
         final Matcher match = PlugUtils.matcher("(?s)player_mp4_seek[^;]+?;(.+?)(?:loadScript|flashvars|var player_mp4_seek)", content);
         if (match.find()) {
-            String jsSection = match.group(1).trim().replaceAll("/\\*.+?\\*/", "").replaceAll("flashvars.+?\\]", "aaaa");
+            String jsSection = match.group(1).trim().replaceAll("/\\*.+?\\*/", "").replaceAll("flashvars.+?]", "aaaa");
             ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
             String qualityStrings = "\n";
             engine.eval(jsSection);
-            Matcher matcher = PlugUtils.matcher("(player_quality_\\d+p)\\s*=\\s*", content);
+            Matcher matcher = PlugUtils.matcher("((?:player_)?quality_\\d+p)\\s*=\\s*", content);
             while (matcher.find()) {
                 qualityStrings += matcher.group(0) + "'" + engine.get(matcher.group(1)).toString() + "'" + "; \n";
             }
@@ -170,8 +170,8 @@ class PornHubFileRunner extends AbstractRunner {
 
     private String deJsVideoQualityUrl(String content, String quality) throws Exception {
         if ((quality != null) && (quality.trim().length() > 0)) {
-            if (content.matches("(?s).+?player_quality_\\d+p\\s*=\\s*/\\*.+")) {
-                final Matcher match = PlugUtils.matcher("(var.+?player_quality_\\d+p\\s*=\\s*/\\*.+?)flashvar", content);
+            if (content.matches("(?s).+?(?:player_)?quality_\\d+p\\s*=\\s*/\\*.+")) {
+                final Matcher match = PlugUtils.matcher("(var.+?(?:player_)?quality_\\d+p\\s*=\\s*/\\*.+?)flashvar", content);
                 if (match.find()) {
                     String script = match.group(1);
                     if (script.contains(quality)) {

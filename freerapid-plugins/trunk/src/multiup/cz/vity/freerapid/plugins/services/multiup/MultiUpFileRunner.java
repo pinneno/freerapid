@@ -159,11 +159,15 @@ class MultiUpFileRunner extends AbstractRunner {
     protected void skipDDoSProtection() throws Exception {
         HttpMethod method = getGetMethod(fileURL);
         makeRedirectedRequest(method);
-        if (getContentAsString().contains("<title>Just a moment...</title>")) {
+        int loopCount = 0;
+        while (getContentAsString().contains("<title>Just a moment...</title>")) {
+            if (loopCount++ > 5) {
+                throw new PluginImplementationException("Unable to pass DDoS protection");
+            }
             Matcher match = getMatcherAgainstContent("var (?:\\w,)* ([^;]+;)");
             if (!match.find()) throw new PluginImplementationException("DDoS Protection bypass error 1");
             String script = match.group(1);
-            script += "t=\"www.multiup.org\";";
+            script += "t=\"" + (new URL(fileURL)).getAuthority() + "\";";
             match = getMatcherAgainstContent("  ;(.+?;) ");
             if (!match.find()) throw new PluginImplementationException("DDoS Protection bypass error 2");
             script += match.group(1).replace("a.value", "answer");

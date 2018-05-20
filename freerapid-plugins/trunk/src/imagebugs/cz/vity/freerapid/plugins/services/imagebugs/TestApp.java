@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.pixhost;
+package cz.vity.freerapid.plugins.services.imagebugs;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -16,14 +16,12 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://www.pixhost.org/show/2019/5599465_0-1020-1361282-00.jpg"));
-            httpFile.setNewURL(new URL("https://pixhost.org/show/118/52027585_joanna-001.jpg"));
-            httpFile.setNewURL(new URL("https://pixhost.to/show/104/68568h659_cheryl_01.jpg"));
+            httpFile.setNewURL(new URL("http://image-bugs.com/image/Y5jr"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
-            final PixHostServiceImpl service = new PixHostServiceImpl(); //instance of service - of our plugin
+            final ImageBugsServiceImpl service = new ImageBugsServiceImpl(); //instance of service - of our plugin
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console
