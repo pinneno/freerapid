@@ -74,7 +74,7 @@ public class ReCaptchaNoCaptcha {
                         "\"<input type='submit' value='Submit'>\"+\n" +
                         "\"</form>\"\n" +
                         ";\n" +
-                        "page.viewportSize = { width:800, height:600 };\n" +
+                        "page.viewportSize = { width:800, height:640 };\n" +
                         "page.setContent(htmlContent,\"" + referer + "\", function(status){\n" +
                         "})";
         String tempFileName = "recaptcha_" + System.currentTimeMillis() + new Random().nextInt();

@@ -111,6 +111,6 @@ class Publish2FileRunner extends AbstractRunner {
         final String captchaSrc = getMethodBuilder().setActionFromImgSrcWhereTagContains("captcha").getEscapedURI();
         final String captcha = captchaSupport.getCaptcha(captchaSrc);
         if (captcha == null) throw new CaptchaEntryInputMismatchException();
-        return builder.setParameter("CaptchaForm[code]", captcha);
+        return builder.setParameter("CaptchaForm[verifyCode]", captcha);
     }
 }
