@@ -9,13 +9,13 @@ import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadState;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.HttpUtils;
-import cz.vity.freerapid.plugins.webclient.utils.JsonMapper;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import cz.vity.freerapid.utilities.LogUtils;
 import jlibs.core.net.URLUtil;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
 import java.net.*;
@@ -333,7 +333,7 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
 
         JsonNode rootNode;
         try {
-            rootNode = new JsonMapper().getObjectMapper().readTree(getContentAsString());
+            rootNode = new ObjectMapper().readTree(getContentAsString());
         } catch (IOException e) {
             throw new PluginImplementationException("Error parsing playlist", e);
         }
