@@ -8,11 +8,11 @@ import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadState;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.net.URI;
-import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -29,6 +29,7 @@ class InstagramFileRunner extends AbstractRunner {
     @Override
     public void runCheck() throws Exception { //this method validates file
         super.runCheck();
+        fileURL = checkURL(fileURL);
         final GetMethod getMethod = getGetMethod(fileURL);//make first request
         if (makeRedirectedRequest(getMethod)) {
             checkProblems();
@@ -66,6 +67,7 @@ class InstagramFileRunner extends AbstractRunner {
     @Override
     public void run() throws Exception {
         super.run();
+        fileURL = checkURL(fileURL);
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
@@ -85,9 +87,9 @@ class InstagramFileRunner extends AbstractRunner {
                 Matcher matcher = PlugUtils.matcher("owner\"\\s*:\\s*\\{\\s*\"id\"\\s*:\\s*\"([^\"]+?)\"", content);
                 if (!matcher.find())  throw new PluginImplementationException("Owner ID not found");
                 final String userID = matcher.group(1);
-                matcher = PlugUtils.matcher("\"csrf_token\"\\s*:\\s*\"([^\"]+?)\"", content);
-                if (!matcher.find())  throw new PluginImplementationException("Csrf token not found");
-                final String csrfToken = matcher.group(1);
+                matcher = PlugUtils.matcher("\"rhx_gis\"\\s*:\\s*\"([^\"]+?)\"", content);
+                if (!matcher.find()) throw new PluginImplementationException("RHX_GIS not found");
+                final String rhxGis = matcher.group(1);
                 matcher = PlugUtils.matcher("type=\"text/javascript\"[^>]*src=\"([^\"]+?Container[^\"]+?)\"", content);
                 if (!matcher.find())  throw new PluginImplementationException("Query id not found 1");
                 if (!makeRedirectedRequest(getGetMethod(getMethodBuilder().setReferer(fileURL).setAction(matcher.group(1).trim()).getEscapedURI()))) {
@@ -108,17 +110,18 @@ class InstagramFileRunner extends AbstractRunner {
                         final Matcher lastMatch = PlugUtils.matcher("end_cursor\"\\s*:\\s*\"(.+?)\"", content);
                         if (!lastMatch.find()) throw new PluginImplementationException("Error getting next page details");
                         final String lastPost = lastMatch.group(1);
+                        final String queryUrl = "/graphql/query/";
+                        final String queryVariables = "{\"id\":\"" + userID + "\",\"first\":\"24\",\"after\":\"" + lastPost + "\"}";
+                        final String gisHeaderValue = DigestUtils.md5Hex(rhxGis + ":" + queryVariables);
                         final HttpMethod nextPageMethod = getMethodBuilder(content).setReferer(fileURL)
-                                .setAction("/graphql/query/")
+                                .setAction(queryUrl)
                                 .setParameter("query_hash", queryId)
-                                .setParameter("variables", "{\"id\":\"" + userID + "\",\"first\":\"24\",\"after\":\"" + lastPost + "\"}")
-                                .setAjax().toGetMethod();
-                        nextPageMethod.setRequestHeader("X-CSRFToken", csrfToken);
-                        nextPageMethod.setRequestHeader("X-Instagram-AJAX", "1");
+                                .setAndEncodeParameter("variables", queryVariables)
+                                .setHeader("X-Instagram-GIS", gisHeaderValue)
+                                .setAjax()
+                                .toGetMethod();
                         if (!makeRedirectedRequest(nextPageMethod)) {
                             checkProblems();
-logger.warning("##########-"+getContentAsString()+"-#######");                                      //todo     FIX
-logger.warning("$$$$$$$$$$  "+nextPageMethod.getStatusCode()+"  "+nextPageMethod.getStatusText());  //todo   Should be working  :(
                             throw new ServiceConnectionProblemException();
                         }
                         content = getContentAsString();
@@ -155,13 +158,13 @@ logger.warning("$$$$$$$$$$  "+nextPageMethod.getStatusCode()+"  "+nextPageMethod
         return match.group(1);
     }
 
+    private String checkURL(final String fileURL) {
+        return fileURL.replace("http://", "https://").replace("://instagram.", "://www.instagram.");
+    }
+
     @Override
     protected String getBaseURL() {
-        try {
-            return new URL(fileURL).getProtocol() + "://" + new URL(fileURL).getAuthority();
-        }
-        catch (Exception x) {
-            return super.getBaseURL();
-        }
+        return "https://www.instagram.com";
     }
+
 }

@@ -21,7 +21,7 @@ public class TestApp extends PluginDevApplication {
             httpFile.setNewURL(new URL("https://instagram.com/FitnessFAQs/"));    //user
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
-            //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
+            //connectionSettings.setProxy("localhost", 8888); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
             final InstagramServiceImpl service = new InstagramServiceImpl(); //instance of service - of our plugin
             //runcheck makes the validation

@@ -8,7 +8,6 @@ import cz.vity.freerapid.plugins.services.rtmp.RtmpDownloader;
 import cz.vity.freerapid.plugins.services.rtmp.RtmpSession;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
-import cz.vity.freerapid.plugins.webclient.utils.JsonMapper;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.codehaus.jackson.JsonNode;
@@ -28,13 +27,13 @@ import java.util.regex.Matcher;
  */
 class SoundcloudFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(SoundcloudFileRunner.class.getName());
-    private final static String CLIENT_ID = "2t9loNQH90kzJcsFCODdigxfp325aq4z";
-    private final static String APP_VERSION = "1491855525";
+    private final static String CLIENT_ID = "QyPi1UIiAXHektIfaZyKDQSp25ZaerWL";
+    private final static String APP_VERSION = "1528291515";
 
     @Override
     public void runCheck() throws Exception {
         super.runCheck();
-        checkNameAndSize(getTrackInfoNode(new JsonMapper().getObjectMapper(), getMediaId()));
+        checkNameAndSize(getTrackInfoNode(new ObjectMapper(), getMediaId()));
     }
 
     private void checkNameAndSize(JsonNode trackInfoNode) throws ErrorDuringDownloadingException {
@@ -42,7 +41,7 @@ class SoundcloudFileRunner extends AbstractRunner {
         if (title == null) {
             throw new PluginImplementationException("File name not found");
         }
-        httpFile.setFileName(title.trim() + ".flv");
+        httpFile.setFileName(title.trim() + ".mp3");
 
         final int contentSize = trackInfoNode.findPath("original_content_size").getIntValue();
         httpFile.setFileSize(contentSize);
@@ -55,7 +54,7 @@ class SoundcloudFileRunner extends AbstractRunner {
         logger.info("Starting download in TASK " + fileURL);
 
         String mediaId = getMediaId();
-        ObjectMapper mapper = new JsonMapper().getObjectMapper();
+        ObjectMapper mapper = new ObjectMapper();
         JsonNode trackInfoNode = getTrackInfoNode(mapper, mediaId);
         checkNameAndSize(trackInfoNode);
 
@@ -127,7 +126,7 @@ class SoundcloudFileRunner extends AbstractRunner {
         HttpMethod method = getMethodBuilder()
                 .setReferer(fileURL)
                 .setAction("https://api-v2.soundcloud.com/tracks")
-                .setParameter("urns", "soundcloud%3Atracks%3A" + mediaId)
+                .setParameter("ids", mediaId)
                 .setParameter("client_id", CLIENT_ID)
                 .setParameter("app_version", APP_VERSION)
                 .toGetMethod();
