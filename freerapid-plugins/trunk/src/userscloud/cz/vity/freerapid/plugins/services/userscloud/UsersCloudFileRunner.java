@@ -3,6 +3,7 @@ package cz.vity.freerapid.plugins.services.userscloud;
 import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
 import cz.vity.freerapid.plugins.exceptions.InvalidURLOrServiceProblemException;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
+import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileNameHandler;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandler;
@@ -73,5 +74,13 @@ class UsersCloudFileRunner extends XFileSharingRunner {
         downloadLinkRegexes.add("url\\s*[=:]\\s*[\"'](http.+?" + Pattern.quote(httpFile.getFileName()) + ")[\"']");
         downloadLinkRegexes.add(0, "<a[^<>]+?href=\"(http.+?" + Pattern.quote(httpFile.getFileName()) + ")\"[^<>]*>(?:<[^<>]*>\\s*)*.*click here");
         return downloadLinkRegexes;
+    }
+
+    @Override
+    protected void checkFileProblems(final String content) throws ErrorDuringDownloadingException {
+        if (content.contains("file you are trying to download is no longer available")) {
+            throw new URLNotAvailableAnymoreException("File not found");
+        }
+        super.checkFileProblems(content);
     }
 }

@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.pinterest;
+package cz.vity.freerapid.plugins.services.usersdrive;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -8,7 +8,7 @@ import org.jdesktop.application.Application;
 import java.net.URL;
 
 /**
- * @author bircie
+ * @author birchie
  */
 public class TestApp extends PluginDevApplication {
     @Override
@@ -16,17 +16,18 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            //httpFile.setNewURL(new URL("http://www.pinterest.com/pin/275423333434060623/"));  // pin
-            //httpFile.setNewURL(new URL("https://www.pinterest.com/carlrice/projects/"));      // board  <25
-            //httpFile.setNewURL(new URL("http://www.pinterest.com/freetattoo/lion-tattoo/"));  // board  =25
-            //httpFile.setNewURL(new URL("http://www.pinterest.com/carlrice/old/"));            // board  >25
-            //httpFile.setNewURL(new URL("http://www.pinterest.com/carlrice/bikes/"));          // board  >>25
-            httpFile.setNewURL(new URL("http://www.pinterest.com/rmkmj2/i-lift-things-up-and-put-them-down/"));  // board >>>>>25
+            httpFile.setNewURL(new URL("https://usersdrive.com/s00ianx608d0.html"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
-            //then we tries to download
-            final PinterestServiceImpl service = new PinterestServiceImpl(); //instance of service - of our plugin
+            final UsersDriveServiceImpl service = new UsersDriveServiceImpl(); //instance of service - of our plugin
+            /*
+            //we set premium account details
+            final PremiumAccount config = new PremiumAccount();
+            config.setUsername("****");
+            config.setPassword("****");
+            service.setConfig(config);
+            //*/
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console

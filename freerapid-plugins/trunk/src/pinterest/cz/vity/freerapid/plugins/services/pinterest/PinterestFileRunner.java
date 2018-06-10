@@ -12,6 +12,7 @@ import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.net.URI;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,8 +26,6 @@ import java.util.regex.Matcher;
  */
 class PinterestFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(PinterestFileRunner.class.getName());
-
-    private final static int PINSperPAGE = 25;
 
     @Override
     public void runCheck() throws Exception { //this method validates file
@@ -43,13 +42,13 @@ class PinterestFileRunner extends AbstractRunner {
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
         if (fileURL.contains("/pin/")) {
-            final Matcher match = PlugUtils.matcher("<img\\s*?src=\".+?/([^/]+?)\"\\s*?class=\"pinImage\"", content);
+            final Matcher match = PlugUtils.matcher("name=\"og:image\"\\s*content=\".+?/([^/\"]+?)\"", content);
             if (!match.find())
                 throw new PluginImplementationException("File name not found");
             httpFile.setFileName(match.group(1).trim());
         } else {
-            httpFile.setFileName("Board: " + PlugUtils.getStringBetween(content, "<h1 class=\"boardName\">", "</h1>"));
-            final Matcher match = PlugUtils.matcher("<div.+?PinCount.+?PinCount.+?>\\s+?(.+?)Pins\\s+?</div>", content);
+            httpFile.setFileName("Board: " + PlugUtils.getStringBetween(content, "name=\"og:title\" content=\"", "\""));
+            final Matcher match = PlugUtils.matcher("\"pin_count\"\\s*:\\s*(\\d+?)\\D", content);
             if (match.find())
                 httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1)));
         }
@@ -62,11 +61,12 @@ class PinterestFileRunner extends AbstractRunner {
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
+            fileURL =  method.getURI().getURI();
             checkProblems();//check problems
             final String content = getContentAsString();
             checkNameAndSize(content);//extract file name and size from the page
             if (fileURL.contains("/pin/")) {
-                final Matcher match = PlugUtils.matcher("<img\\s*?src=\"(.+?)\"\\s*?class=\"pinImage\"", content);
+                final Matcher match = PlugUtils.matcher("name=\"og:image\"\\s*content=\"(.+?)\"", content);
                 if (!match.find())
                     throw new PluginImplementationException("Download link not found");
                 final String dlLink = match.group(1).trim();
@@ -76,50 +76,50 @@ class PinterestFileRunner extends AbstractRunner {
                 }
             } else {
                 List<URI> list = new LinkedList<URI>();
-                final Matcher matchPin = PlugUtils.matcher("<a href=\"(/pin/[^\"]+?)\" class=\"pinImageWrapper", content);
+                Matcher matchBoardPath = PlugUtils.matcher("\"pathname\": \"(.+?)\"", content);
+                if (!matchBoardPath.find())
+                    throw new PluginImplementationException("Error BP1");
+                String subContent = content.substring(0, content.indexOf("bookmarks\":"));
+                final Matcher matchPin = PlugUtils.matcher("\"id\"\\s*:\\s*\"([^\"]+?)\",\\s*\"description_html\"", subContent);
                 while (matchPin.find())
-                    list.add(new URI("http://www.pinterest.com" + matchPin.group(1)));
-                int maxSize = PINSperPAGE;
+                    list.add(new URI(getBaseURL() + "/pin/" + matchPin.group(1)));
+
                 // check for more links
-                if (list.size() == maxSize) {
-                    final String source = PlugUtils.getStringBetween(content, "<link rel=\"canonical\" href=\"", "\">");
-                    final Matcher matchD1 = PlugUtils.matcher("name\": \"BoardFeedResource\", (\"options\": \\{\"board_id\":.+?)\\},", content);
-                    if (!matchD1.find()) throw new PluginImplementationException("Error D1");
-                    final Matcher matchD2 = PlugUtils.matcher("context:(.+?\\}),", content);    // {"ios_deep_link": "pinterest:\/\/board\/XXXX\/XXXX", "app_version": "XXXX", "https_exp": XXXX}
-                    if (!matchD2.find()) throw new PluginImplementationException("Error D2");
-                    final Matcher matchD3 = PlugUtils.matcher("Footer-\\d+?\"\\}\\], \"errorStrategy\": 1, \"data\": \\{\\}, (\"options\": \\{\"scrollable\": true.+?), \"uid\": \"Grid-\\d", content);
-                    if (!matchD3.find()) throw new PluginImplementationException("Error D3");
-                    String data = "{" + matchD1.group(1).replaceAll("\\s", "") + ",\"context\":" +
-                            matchD2.group(1).replaceAll("\\s", "") + ",\"module\":{\"name\":\"GridItems\"," +
-                            matchD3.group(1).replaceAll("\\s", "") + "},\"append\":true,\"error_strategy\":1}";
-                    long time = System.currentTimeMillis();
+                final String source = PlugUtils.getStringBetween(content, "<link rel=\"canonical\" href=\"", "\">");
+                final Matcher matchD1 = PlugUtils.matcher("name\"\\s*:\\s*\"ReactBoardFeedResource\", (\"options\": \\{\"board_id\":.+?)[\\},]", content);
+                if (!matchD1.find()) throw new PluginImplementationException("Error D1");
+                final Matcher matchD2 = PlugUtils.matcher("\"bookmarks\"\\s*:\\s*\"(.+?)\",", content);
+                if (!matchD2.find()) throw new PluginImplementationException("Error D2");
+                String data = "{" + matchD1.group(1).replaceAll("\\s", "") + ",\"board_url\":\"" +
+                        matchBoardPath.group(1).replaceAll("\\s", "") + "\",\"bookmarks\":[\"" +
+                        matchD2.group(1).replaceAll("\\s", "") + "\"],\"field_set_key\":\"react_grid_pin\",\"filter_section_pins\":true,\"layout\":\"default\",\"page_size\":25,\"redux_normalize_feed\":true},\"context\":{}}";
+                long time = System.currentTimeMillis();
 
-                    while (list.size() == maxSize) {
-                        maxSize += PINSperPAGE;
-                        time += 1;
-                        final HttpMethod httpMethod = getMethodBuilder()
-                                .setReferer(fileURL)
-                                .setAction("http://www.pinterest.com/resource/BoardFeedResource/get/")
-                                .setParameter("source_url", URLEncoder.encode(source, "UTF-8"))
-                                .setParameter("data", URLEncoder.encode(data, "UTF-8"))
-                                .setParameter("_", "" + time)
-                                .toGetMethod();
-                        httpMethod.addRequestHeader("X-Requested-With", "XMLHttpRequest");
-                        if (!makeRedirectedRequest(httpMethod)) {
-                            checkProblems();
-                            throw new ServiceConnectionProblemException();
-                        }
-                        final Matcher matchP2 = PlugUtils.matcher("<a href=\\\\\"(/pin/[^\"]+?)\\\\\" class=\\\\\"pinImageWrapper", getContentAsString());
-                        while (matchP2.find())
-                            list.add(new URI("http://www.pinterest.com" + matchP2.group(1)));
-                        final Matcher matchB = PlugUtils.matcher("bookmarks\": \\[\"(.+?)\"\\]", getContentAsString());
-                        if (!matchB.find()) throw new PluginImplementationException("Error B");
-
-                        final String d1 = data.substring(0, data.indexOf("bookmarks\":[\"") + ("bookmarks\":[\"").length());
-                        final String d2 = data.substring(data.indexOf("\"]"));
-                        data = d1 + matchB.group(1) + d2;
+                do {
+                    httpFile.setDownloaded(list.size());  //links found
+                    time += 1;
+                    final HttpMethod httpMethod = getMethodBuilder()
+                            .setReferer(fileURL).setAjax()
+                            .setAction("/resource/BoardFeedResource/get/")
+                            .setParameter("source_url", URLEncoder.encode(source, "UTF-8"))
+                            .setParameter("data", URLEncoder.encode(data, "UTF-8"))
+                            .setParameter("_", "" + time)
+                        .toGetMethod();
+                    if (!makeRedirectedRequest(httpMethod)) {
+                        checkProblems();
+                        throw new ServiceConnectionProblemException();
                     }
-                }
+                    subContent = getContentAsString().substring(0, getContentAsString().indexOf("bookmarks\":"));
+                    final Matcher matchP2 = PlugUtils.matcher("}},\"id\":\"([^\"]+?)\",\"", subContent);
+                    while (matchP2.find())
+                        list.add(new URI(getBaseURL() + "/pin/" + matchP2.group(1)));
+                    final Matcher matchB = PlugUtils.matcher("bookmarks\"\\s*:\\s*\\[\"(.+?)\"\\]", getContentAsString());
+                    if (!matchB.find()) throw new PluginImplementationException("Error B");
+
+                    final String d1 = data.substring(0, data.indexOf("bookmarks\":[\"") + ("bookmarks\":[\"").length());
+                    final String d2 = data.substring(data.indexOf("\"]"));
+                    data = d1 + matchB.group(1) + d2;
+                } while (!getContentAsString().contains("\"bookmarks\":[\"-end-\"]"));
 
                 if (list.isEmpty()) throw new PluginImplementationException("No links found");
                 getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, list);
@@ -136,7 +136,7 @@ class PinterestFileRunner extends AbstractRunner {
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
-        if (contentAsString.contains("We couldn't find that page")) {
+        if (contentAsString.contains("We couldn't find that page") || contentAsString.contains("/?redirected=1")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
         if (contentAsString.contains("Something went wrong!") ||
@@ -145,4 +145,13 @@ class PinterestFileRunner extends AbstractRunner {
         }
     }
 
+    @Override
+    protected String getBaseURL() {
+        try {
+            return new URL(fileURL).getProtocol() + "://" + new URL(fileURL).getAuthority();
+        }
+        catch (Exception x) {
+            return super.getBaseURL();
+        }
+    }
 }

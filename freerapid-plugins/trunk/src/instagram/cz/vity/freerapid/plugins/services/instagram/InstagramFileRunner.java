@@ -12,6 +12,7 @@ import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.net.URI;
+import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -54,7 +55,7 @@ class InstagramFileRunner extends AbstractRunner {
             if (!match.find())
                 throw new PluginImplementationException("User's name not found");
             httpFile.setFileName("User: " + match.group(1));
-            match = PlugUtils.matcher("\"count\"\\s*:\\s*(\\d+),\\s*\"page_info\"\\s*:\\s*\\{", content);
+            match = PlugUtils.matcher("timeline_media\"\\s*:\\s*\\{\"count\"\\s*:\\s*(\\d+),\\s*\"page_info\"\\s*:\\s*\\{", content);
             if (!match.find())
                 throw new PluginImplementationException("Media count not found");
             httpFile.setFileSize(Long.parseLong(match.group(1)));
@@ -87,7 +88,7 @@ class InstagramFileRunner extends AbstractRunner {
                 matcher = PlugUtils.matcher("\"csrf_token\"\\s*:\\s*\"([^\"]+?)\"", content);
                 if (!matcher.find())  throw new PluginImplementationException("Csrf token not found");
                 final String csrfToken = matcher.group(1);
-                matcher = PlugUtils.matcher("type=\"text/javascript\"[^>]*src=\"([^\"]+?Commons[^\"]+?)\"", content);
+                matcher = PlugUtils.matcher("type=\"text/javascript\"[^>]*src=\"([^\"]+?Container[^\"]+?)\"", content);
                 if (!matcher.find())  throw new PluginImplementationException("Query id not found 1");
                 if (!makeRedirectedRequest(getGetMethod(getMethodBuilder().setReferer(fileURL).setAction(matcher.group(1).trim()).getEscapedURI()))) {
                     throw new ServiceConnectionProblemException();
@@ -100,7 +101,7 @@ class InstagramFileRunner extends AbstractRunner {
                     nextPage = false;
                     final Matcher match = PlugUtils.matcher("\"(?:short)?code\"\\s*:\\s*\"(.+?)\"", content);
                     while (match.find()) {
-                        list.add(new URI("https://instagram.com/p/" + match.group(1)));
+                        list.add(new URI(getBaseURL() + "/p/" + match.group(1)));
                     }
                     if (content.contains("\"has_next_page\":true") || content.contains("\"has_next_page\": true")) {
                         nextPage = true;
@@ -108,7 +109,7 @@ class InstagramFileRunner extends AbstractRunner {
                         if (!lastMatch.find()) throw new PluginImplementationException("Error getting next page details");
                         final String lastPost = lastMatch.group(1);
                         final HttpMethod nextPageMethod = getMethodBuilder(content).setReferer(fileURL)
-                                .setAction("https://www.instagram.com/graphql/query/")
+                                .setAction("/graphql/query/")
                                 .setParameter("query_hash", queryId)
                                 .setParameter("variables", "{\"id\":\"" + userID + "\",\"first\":\"24\",\"after\":\"" + lastPost + "\"}")
                                 .setAjax().toGetMethod();
@@ -116,6 +117,8 @@ class InstagramFileRunner extends AbstractRunner {
                         nextPageMethod.setRequestHeader("X-Instagram-AJAX", "1");
                         if (!makeRedirectedRequest(nextPageMethod)) {
                             checkProblems();
+logger.warning("##########-"+getContentAsString()+"-#######");                                      //todo     FIX
+logger.warning("$$$$$$$$$$  "+nextPageMethod.getStatusCode()+"  "+nextPageMethod.getStatusText());  //todo   Should be working  :(
                             throw new ServiceConnectionProblemException();
                         }
                         content = getContentAsString();
@@ -152,4 +155,13 @@ class InstagramFileRunner extends AbstractRunner {
         return match.group(1);
     }
 
+    @Override
+    protected String getBaseURL() {
+        try {
+            return new URL(fileURL).getProtocol() + "://" + new URL(fileURL).getAuthority();
+        }
+        catch (Exception x) {
+            return super.getBaseURL();
+        }
+    }
 }
