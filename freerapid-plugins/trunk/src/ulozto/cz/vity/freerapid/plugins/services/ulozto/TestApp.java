@@ -15,6 +15,7 @@ import java.util.logging.Logger;
  * @author Ladislav Vitasek & Tomáš Procházka <to.m.p@atomsoft.cz>
  */
 public class TestApp extends PluginDevApplication {
+
     protected void startup() {
 
         final HttpFile httpFile = getHttpFile();

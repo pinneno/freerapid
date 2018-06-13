@@ -2,7 +2,7 @@ package cz.vity.freerapid.plugins.services.ulozto;
 
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
-import cz.vity.freerapid.plugins.services.ulozto_captcha.SoundReader;
+//import cz.vity.freerapid.plugins.services.ulozto_captcha.SoundReader;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadClientConsts;
 import cz.vity.freerapid.plugins.webclient.FileState;
@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
  * @author tong2shot
  */
 class UlozToRunner extends AbstractRunner {
+
     private final static Logger logger = Logger.getLogger(UlozToRunner.class.getName());
     public static final String USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:46.0) Gecko/20100101 Firefox/46.0";
     private int captchaCount = 0;
@@ -120,8 +121,9 @@ class UlozToRunner extends AbstractRunner {
             }
         } else {
             checkProblems();
-            if (getMethod.getStatusCode() != 401)
+            if (getMethod.getStatusCode() != 401) {
                 throw new ServiceConnectionProblemException();
+            }
         }
     }
 
@@ -160,8 +162,7 @@ class UlozToRunner extends AbstractRunner {
                         break;
                     }
                     checkProblems();
-                }
-                while (getContentAsString().contains("captchaContainer") || getContentAsString().contains("?captcha=no"));
+                } while (getContentAsString().contains("captchaContainer") || getContentAsString().contains("?captcha=no"));
                 setFileStreamContentTypes("text/plain", "text/texmacs");
                 if (!tryDownloadAndSaveFile(method)) {
                     checkProblems();
@@ -179,8 +180,9 @@ class UlozToRunner extends AbstractRunner {
     }
 
     private void checkURL() {
-        if (isPornFile())
+        if (isPornFile()) {
             fileURL = fileURL.replaceFirst("http:", "https:");
+        }
         fileURL = fileURL.replaceFirst("(ulozto\\.net|ulozto\\.cz|ulozto\\.sk)", "uloz.to").replaceFirst("://(m|www)\\.uloz\\.to", "://uloz.to");
     }
 
@@ -232,7 +234,7 @@ class UlozToRunner extends AbstractRunner {
                 .setReferer(fileURL)
                 .setActionFromFormWhereTagContains("freeDownloadForm", true);
 
-        if (getContentAsString().contains("reloadXapca.php")) {
+        if (getContentAsString().contains("captchaContainer")) {
             HttpMethod method = getMethodBuilder()
                     .setReferer(fileURL)
                     .setAjax()
@@ -275,9 +277,10 @@ class UlozToRunner extends AbstractRunner {
                     .setParameter("hash", hash)
                     .setParameter("salt", salt);
 
-            final String captchaSnd = captchaImg.replace("image.gif", "sound.wav");
+            //final String captchaSnd = captchaImg.replace("image.gif", "sound.wav");
             final CaptchaSupport captchaSupport = getCaptchaSupport();
-            String captchaTxt;
+            String captchaTxt = captchaSupport.getCaptcha(captchaImg);
+            /*
             //captchaCount = 9; //for test purpose
             if (captchaCount++ < 8) {
                 logger.info("captcha url: " + captchaImg);
@@ -306,7 +309,7 @@ class UlozToRunner extends AbstractRunner {
             }
             if (captchaTxt == null) {
                 throw new CaptchaEntryInputMismatchException();
-            }
+            }*/
             sendForm.setParameter("captcha_value", captchaTxt);
         }
         return sendForm.toPostMethod();
@@ -398,7 +401,6 @@ class UlozToRunner extends AbstractRunner {
         logger.info(uriList.size() + " links added");
     }
 
-
     private ScriptEngine initScriptEngine() throws Exception {
         final ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
         if (engine == null) {
@@ -415,7 +417,9 @@ class UlozToRunner extends AbstractRunner {
 
     private MethodBuilder stepReCaptcha(MethodBuilder builder) throws Exception {
         final Matcher m = getMatcherAgainstContent("['\"]?sitekey['\"]?\\s*[:=]\\s*['\"]([^\"]+)['\"]");
-        if (!m.find()) throw new PluginImplementationException("ReCaptcha key not found");
+        if (!m.find()) {
+            throw new PluginImplementationException("ReCaptcha key not found");
+        }
         final String reCaptchaKey = m.group(1);
         final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
         return r.modifyResponseMethod(builder);
