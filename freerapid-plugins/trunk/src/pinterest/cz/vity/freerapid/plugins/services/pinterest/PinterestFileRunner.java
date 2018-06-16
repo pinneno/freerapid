@@ -46,6 +46,11 @@ class PinterestFileRunner extends AbstractRunner {
             if (!match.find())
                 throw new PluginImplementationException("File name not found");
             httpFile.setFileName(match.group(1).trim());
+        } else if (isUser()){
+            httpFile.setFileName("USER: " + PlugUtils.getStringBetween(content, "name=\"og:title\" content=\"", "\""));
+            final Matcher match = PlugUtils.matcher("\"pinterestapp:boards\"\\s*:\\s*\"(\\d+?)\"", content);
+            if (match.find())
+                httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1)));
         } else {
             httpFile.setFileName("Board: " + PlugUtils.getStringBetween(content, "name=\"og:title\" content=\"", "\""));
             final Matcher match = PlugUtils.matcher("\"pin_count\"\\s*:\\s*(\\d+?)\\D", content);
@@ -53,6 +58,10 @@ class PinterestFileRunner extends AbstractRunner {
                 httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1)));
         }
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
+    }
+
+    private boolean isUser() {
+        return getContentAsString().contains("\"pinterestapp:boards\"");
     }
 
     @Override
@@ -65,6 +74,7 @@ class PinterestFileRunner extends AbstractRunner {
             checkProblems();//check problems
             final String content = getContentAsString();
             checkNameAndSize(content);//extract file name and size from the page
+            List<URI> list = new LinkedList<URI>();
             if (fileURL.contains("/pin/")) {
                 final Matcher match = PlugUtils.matcher("name=\"og:image\"\\s*content=\"(.+?)\"", content);
                 if (!match.find())
@@ -74,8 +84,13 @@ class PinterestFileRunner extends AbstractRunner {
                     checkProblems();//if downloading failed
                     throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
                 }
+                return;
+            } else if (isUser()){
+                String subContent = content.substring(content.lastIndexOf("bookmarks\":"));
+                final Matcher matchBoard = PlugUtils.matcher("\"privacy\"\\s*:\\s*\"public\",\\s*\"url\"\\s*:\\s*\"(.+?)\",", subContent);
+                while (matchBoard.find())
+                    list.add(new URI(getBaseURL() + matchBoard.group(1)));
             } else {
-                List<URI> list = new LinkedList<URI>();
                 Matcher matchBoardPath = PlugUtils.matcher("\"pathname\": \"(.+?)\"", content);
                 if (!matchBoardPath.find())
                     throw new PluginImplementationException("Error BP1");
@@ -120,14 +135,13 @@ class PinterestFileRunner extends AbstractRunner {
                     final String d2 = data.substring(data.indexOf("\"]"));
                     data = d1 + matchB.group(1) + d2;
                 } while (!getContentAsString().contains("\"bookmarks\":[\"-end-\"]"));
-
-                if (list.isEmpty()) throw new PluginImplementationException("No links found");
-                getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, list);
-                logger.info("Added " + list.size() + " links");
-                httpFile.setFileName("Link(s) Extracted !");
-                httpFile.setState(DownloadState.COMPLETED);
-                httpFile.getProperties().put("removeCompleted", true);
             }
+            if (list.isEmpty()) throw new PluginImplementationException("No links found");
+            getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, list);
+            logger.info("Added " + list.size() + " links");
+            httpFile.setFileName("Link(s) Extracted !");
+            httpFile.setState(DownloadState.COMPLETED);
+            httpFile.getProperties().put("removeCompleted", true);
         } else {
             checkProblems();
             throw new ServiceConnectionProblemException();

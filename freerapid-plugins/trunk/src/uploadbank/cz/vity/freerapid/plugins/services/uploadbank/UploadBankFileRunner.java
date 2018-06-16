@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.douploads;
+package cz.vity.freerapid.plugins.services.uploadbank;
 
 import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
@@ -11,14 +11,14 @@ import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 
 import java.util.List;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Class which contains main code
  *
  * @author birchie
  */
-class DoUploadsFileRunner extends XFileSharingRunner {
+class UploadBankFileRunner extends XFileSharingRunner {
+
 
     @Override
     protected List<FileNameHandler> getFileNameHandlers() {
@@ -52,17 +52,14 @@ class DoUploadsFileRunner extends XFileSharingRunner {
     }
 
     @Override
-    protected MethodBuilder getXFSMethodBuilder() throws Exception {
-        MethodBuilder builder = getXFSMethodBuilder(getContentAsString());
-        builder.removeParameter("chkIsAdd");
-        return builder;
+    protected void stepPassword(final MethodBuilder methodBuilder) throws Exception {
+        //confused login password with file password
     }
 
     @Override
-    protected List<String> getDownloadLinkRegexes() {
-        final List<String> downloadLinkRegexes = super.getDownloadLinkRegexes();
-        downloadLinkRegexes.clear();
-        downloadLinkRegexes.add("<a href\\s*=\\s*[\"'](http.+?" + Pattern.quote(httpFile.getFileName()) + ")[\"'].+?Download Now.+?</a");
-        return downloadLinkRegexes;
+    protected List<String> getDownloadPageMarkers() {
+        final List<String> downloadPageMarkers = super.getDownloadPageMarkers();
+        downloadPageMarkers.add("images/downloadbutton");
+        return downloadPageMarkers;
     }
 }

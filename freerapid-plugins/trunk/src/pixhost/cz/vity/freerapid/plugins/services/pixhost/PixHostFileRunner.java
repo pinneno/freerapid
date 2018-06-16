@@ -51,7 +51,7 @@ class PixHostFileRunner extends AbstractRunner {
 
     private void checkUrl() {
         fileURL = fileURL.replaceFirst("https://", "http://");
-        fileURL = fileURL.replaceFirst("pixhost.org/", "pixhost.to/");
+        fileURL = fileURL.replaceFirst("//((www|\\w{1,5})\\.)?pixhost.org/", "//pixhost.to/");
         fileURL = fileURL.replaceFirst("/thumbs/", "/show/");
     }
 

@@ -21,7 +21,7 @@ class GettFileRunner extends AbstractRunner {
     public void runCheck() throws Exception {
         checkUrl();
         super.runCheck();
-        final HttpMethod method = getGetMethod(fileURL);
+        final HttpMethod method = getGetMethod(getApiUrl(fileURL));
         if (makeRedirectedRequest(method)) {
             checkProblems();
             checkNameAndSize();
@@ -40,9 +40,16 @@ class GettFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize() throws ErrorDuringDownloadingException {
-        PlugUtils.checkName(httpFile, getContentAsString(), "<title>", "</title>");
-        PlugUtils.checkFileSize(httpFile, getContentAsString(), "title='size'>", "</");
+        PlugUtils.checkName(httpFile, getContentAsString(), "filename\":\"", "\",");
+        PlugUtils.checkFileSize(httpFile, getContentAsString(), "size\":", ",");
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
+    }
+
+    private String getApiUrl(String url) throws PluginImplementationException {
+        Matcher matcher = PlugUtils.matcher("ge.tt/(\\w+)", url);
+        if (!matcher.find())
+            throw new PluginImplementationException("File id not found");
+        return "http://api.ge.tt/1/shares/" + matcher.group(1).trim();
     }
 
     @Override
@@ -50,16 +57,16 @@ class GettFileRunner extends AbstractRunner {
         checkUrl();
         super.run();
         logger.info("Starting download in TASK " + fileURL);
-        HttpMethod method = getGetMethod(fileURL);
+        HttpMethod method = getGetMethod(getApiUrl(fileURL));
         if (makeRedirectedRequest(method)) {
             checkProblems();
             checkNameAndSize();
-            final Matcher matcher = getMatcherAgainstContent("href='(.+?)' target='hidden-frame'");
-            if (!matcher.find()) {
-                throw new PluginImplementationException("Download link not found");
-            }
+            Matcher matcher = PlugUtils.matcher("ge.tt/(\\w+)", fileURL);
+            if (!matcher.find())
+                throw new PluginImplementationException("File id not found");
+            String link = "http://api.ge.tt/1/files/" + matcher.group(1).trim() + "/0/blob?download";
             setFileStreamContentTypes("text/plain");
-            method = getMethodBuilder().setReferer(fileURL).setAction(matcher.group(1)).toGetMethod();
+            method = getMethodBuilder().setReferer(fileURL).setAction(link).toGetMethod();
             if (!tryDownloadAndSaveFile(method)) {
                 checkProblems();
                 throw new ServiceConnectionProblemException("Error starting download");

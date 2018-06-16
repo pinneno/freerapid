@@ -7,6 +7,7 @@ import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileNameHandler;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandler;
+import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.interfaces.HttpFile;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 
@@ -56,6 +57,15 @@ class UsersCloudFileRunner extends XFileSharingRunner {
                 httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1).trim()));
             }
         });
+        fileSizeHandlers.add(new FileSizeHandler() {
+            @Override
+            public void checkFileSize(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
+                final Matcher match = PlugUtils.matcher("size\\s*:\\s*(?:<[^>]+>\\s*)*(\\d[\\d.,]*?\\s*\\w*?B(ytes)?)<", content);
+                if (!match.find())
+                    throw  new PluginImplementationException("File size not found");
+                httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1).trim()));
+            }
+        });
         return fileSizeHandlers;
     }
 
@@ -82,5 +92,13 @@ class UsersCloudFileRunner extends XFileSharingRunner {
             throw new URLNotAvailableAnymoreException("File not found");
         }
         super.checkFileProblems(content);
+    }
+
+    @Override
+    protected MethodBuilder getXFSMethodBuilder() throws Exception {
+        MethodBuilder builder = getXFSMethodBuilder(getContentAsString());
+        if (!((UsersCloudServiceImpl) getPluginService()).getConfig().isSet())
+            builder.setParameter("method_free", "Free Download");
+        return builder;
     }
 }
