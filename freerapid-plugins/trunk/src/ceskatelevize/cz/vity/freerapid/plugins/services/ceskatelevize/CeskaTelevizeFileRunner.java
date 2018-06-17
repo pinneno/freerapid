@@ -239,10 +239,13 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
                     String urlContent;
                     try {
                         urlContent = PlugUtils.getStringBetween(getContentAsString(), "og:url\" content=\"", "\"");
+                        if (!urlContent.startsWith("http")) { // plugin api bug - doesn't resolve relative protocol urls properly
+                            urlContent = "http:" + urlContent;
+                        }
                     } catch (PluginImplementationException e) {
                         throw new PluginImplementationException("Error getting playlist URL(1)");
                     }
-                    if (!makeRedirectedRequest(getGetMethod(urlContent))) {
+                    if (!makeRedirectedRequest(getMethodBuilder().setAction(urlContent).toGetMethod())) {
                         checkProblems();
                         throw new ServiceConnectionProblemException();
                     }
@@ -250,6 +253,9 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
 
                     try {
                         action = URLDecoder.decode(PlugUtils.replaceEntities(PlugUtils.getStringBetween(getContentAsString(), "data-url=\"", "\"")), "UTF-8");
+                        if (!action.startsWith("http")) { // plugin api bug - doesn't resolve relative protocol urls properly
+                            action = "http:" + action;
+                        }
                     } catch (PluginImplementationException e) {
                         throw new PluginImplementationException("Error getting playlist URL(2)");
                     }

@@ -148,24 +148,27 @@ class PornHubFileRunner extends AbstractRunner {
             ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
             return engine.eval(aes_js + function).toString();
         } catch (Exception e) {
-            throw new PluginImplementationException("JS evaluation error " + e.getLocalizedMessage());
+            throw new PluginImplementationException("JS 3 evaluation error " + e.getLocalizedMessage(), e);
         }
     }
 
     private String deJsVideoQualityUrlsSection(String content) throws Exception {
+        final StringBuilder qualityStrings = new StringBuilder(content).append("\n");
         final Matcher match = PlugUtils.matcher("(?s)player_mp4_seek[^;]+?;(.+?)(?:loadScript|flashvars|var player_mp4_seek)", content);
         if (match.find()) {
-            String jsSection = match.group(1).trim().replaceAll("/\\*.+?\\*/", "").replaceAll("flashvars.+?]", "aaaa");
-            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
-            String qualityStrings = "\n";
-            engine.eval(jsSection);
-            Matcher matcher = PlugUtils.matcher("((?:player_)?quality_\\d+p)\\s*=\\s*", content);
-            while (matcher.find()) {
-                qualityStrings += matcher.group(0) + "'" + engine.get(matcher.group(1)).toString() + "'" + "; \n";
+            try {
+                String jsSection = match.group(1).trim().replaceAll("/\\*.+?\\*/", "").replaceAll("flashvars.+?]", "aaaa");
+                ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+                engine.eval(jsSection);
+                Matcher matcher = PlugUtils.matcher("((?:player_)?quality_\\d+p)\\s*=\\s*", content);
+                while (matcher.find()) {
+                    qualityStrings.append(matcher.group(0)).append("'").append(engine.get(matcher.group(1)).toString()).append("'").append("; \n");
+                }
+            } catch (Exception e) {
+                throw new PluginImplementationException("JS 1 evaluation error " + e.getLocalizedMessage(), e);
             }
-            content += qualityStrings;
         }
-        return content;
+        return qualityStrings.toString();
     }
 
     private String deJsVideoQualityUrl(String content, String quality) throws Exception {
@@ -180,7 +183,7 @@ class PornHubFileRunner extends AbstractRunner {
                             ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
                             return engine.eval(script + function).toString();
                         } catch (Exception e) {
-                            throw new PluginImplementationException("JS 2 evaluation error " + e.getLocalizedMessage());
+                            throw new PluginImplementationException("JS 2 evaluation error " + e.getLocalizedMessage(), e);
                         }
                     }
                 }
@@ -220,7 +223,7 @@ class PornHubFileRunner extends AbstractRunner {
         return videos;
     }
 
-    private class PornHubVideoPattern {
+    private static class PornHubVideoPattern {
         private final String pattern;
         private final VideoQuality videoQuality;
 

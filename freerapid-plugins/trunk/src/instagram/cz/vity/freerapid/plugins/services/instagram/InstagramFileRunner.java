@@ -84,7 +84,7 @@ class InstagramFileRunner extends AbstractRunner {
                 checkNameAndSize(fileURL);
                 List<URI> list = new LinkedList<URI>();
                 String content = getContentAsString();
-                Matcher matcher = PlugUtils.matcher("owner\"\\s*:\\s*\\{\\s*\"id\"\\s*:\\s*\"([^\"]+?)\"", content);
+                Matcher matcher = PlugUtils.matcher("\"id\"\\s*:\\s*\"([^\"]+?)\"", content);
                 if (!matcher.find())  throw new PluginImplementationException("Owner ID not found");
                 final String userID = matcher.group(1);
                 matcher = PlugUtils.matcher("\"rhx_gis\"\\s*:\\s*\"([^\"]+?)\"", content);
@@ -105,13 +105,14 @@ class InstagramFileRunner extends AbstractRunner {
                     while (match.find()) {
                         list.add(new URI(getBaseURL() + "/p/" + match.group(1)));
                     }
+                    httpFile.setDownloaded(list.size());  //links found
                     if (content.contains("\"has_next_page\":true") || content.contains("\"has_next_page\": true")) {
                         nextPage = true;
                         final Matcher lastMatch = PlugUtils.matcher("end_cursor\"\\s*:\\s*\"(.+?)\"", content);
                         if (!lastMatch.find()) throw new PluginImplementationException("Error getting next page details");
                         final String lastPost = lastMatch.group(1);
                         final String queryUrl = "/graphql/query/";
-                        final String queryVariables = "{\"id\":\"" + userID + "\",\"first\":\"24\",\"after\":\"" + lastPost + "\"}";
+                        final String queryVariables = "{\"id\":\"" + userID + "\",\"first\":\"50\",\"after\":\"" + lastPost + "\"}";
                         final String gisHeaderValue = DigestUtils.md5Hex(rhxGis + ":" + queryVariables);
                         final HttpMethod nextPageMethod = getMethodBuilder(content).setReferer(fileURL)
                                 .setAction(queryUrl)
@@ -126,7 +127,6 @@ class InstagramFileRunner extends AbstractRunner {
                         }
                         content = getContentAsString();
                     }
-                    httpFile.setDownloaded(list.size());  //links found
                 } while (nextPage);
                 if (list.isEmpty()) throw new PluginImplementationException("No posts found");
                 getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, list);
@@ -143,7 +143,7 @@ class InstagramFileRunner extends AbstractRunner {
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
         if (contentAsString.contains("Page Not Found")) {
-            throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
+            throw new URLNotAvailableAnymoreException("File not found");
         }
     }
 
