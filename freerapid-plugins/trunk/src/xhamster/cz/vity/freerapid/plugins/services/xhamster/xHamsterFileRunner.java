@@ -3,12 +3,16 @@ package cz.vity.freerapid.plugins.services.xhamster;
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadClientConsts;
+import cz.vity.freerapid.plugins.webclient.DownloadState;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
+import java.net.URI;
 import java.net.URLDecoder;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
@@ -40,12 +44,23 @@ class xHamsterFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        Matcher matcher = PlugUtils.matcher("<h1[^<>]*>(.+?)</h1>", content);
+        Matcher matcher = PlugUtils.matcher("<h1[^<>]*>(?:\\s*<[^>]+>)*(.+?)(?:<[^>]+>\\s*)*</h1>", content);
         if (!matcher.find()) {
             throw new PluginImplementationException("File name not found");
         }
-        httpFile.setFileName(matcher.group(1).replace("- xHamster", "").trim() + ".mp4");
-        PlugUtils.checkFileSize(httpFile, content, getPreferredQuality() + " quality (", ")");
+        String name = matcher.group(1).replace("- xHamster", "").trim();
+        if (fileURL.contains("/photos/gallery/")) {
+            if (content.contains("currentPhotoId")) {
+                String photoId = PlugUtils.getStringBetween(content, "\"currentPhotoId\":", ",");
+                httpFile.setFileName(name + "_" + photoId + ".jpg");
+            } else { //Photo Gallery
+                httpFile.setFileName("Photo Gallery: " + name);
+                PlugUtils.checkFileSize(httpFile, content, "\"quantity\":", ",");
+            }
+        } else {
+            httpFile.setFileName(name + ".mp4");
+            PlugUtils.checkFileSize(httpFile, content, getPreferredQuality() + " quality (", ")");
+        }
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 
@@ -59,22 +74,63 @@ class xHamsterFileRunner extends AbstractRunner {
         if (makeRedirectedRequest(method)) {
             checkProblems();
             checkNameAndSize(getContentAsString());
-            Matcher match = PlugUtils.matcher(String.format(QualityMatcher, getPreferredQuality()), getContentAsString().replace("\\", ""));
-            if (!match.find())
-                throw new PluginImplementationException(getPreferredQuality() + " Video not found");
-            final String file = match.group(1).replace("\\", "");
-            String videoURL;
-            if (file.startsWith("http")) {
-                videoURL = URLDecoder.decode(file, "UTF-8");
+            HttpMethod httpMethod;
+            if (fileURL.contains("/photos/gallery/")) {
+                if (getContentAsString().contains("currentPhotoId")) {
+                    String photoId = PlugUtils.getStringBetween(getContentAsString(), "\"currentPhotoId\":", ",");
+                    Matcher match = PlugUtils.matcher("\"id\"\\s*:\\s*" + photoId + ",\\s*\"galleryId\"\\s*:\\s*\\w+,\\s*\"imageURL\"\\s*:\\s*\"(.+?)\",\\s*\"thumbURL\"", getContentAsString().replace("\\", ""));
+                    if (!match.find())
+                        throw new PluginImplementationException(getPreferredQuality() + " Photo not found");
+                    httpMethod = getGetMethod(match.group(1).replace("\\", ""));
+                } else { //Photo Gallery
+                    int page = 1;
+                    boolean anotherPage;
+                    List<URI> list = new LinkedList<URI>();
+                    Matcher maxMatch = PlugUtils.matcher("\"pagination\"[^}]+?\"maxPages\"\\s*:\\s*(.+?),", getContentAsString());
+                    if (!maxMatch.find())
+                        throw new PluginImplementationException("Max page count not found");
+                    int maxPages = Integer.parseInt(maxMatch.group(1).trim());
+                    do {
+                        anotherPage = false;
+                        final Matcher match = PlugUtils.matcher("\"icon\"\\s*:\\s*null,\\s*\"pageURL\"\\s*:\\s*\"(.+?)\",", getContentAsString().replace("\\", ""));
+                        while (match.find())
+                            list.add(new URI(match.group(1).replace("\\", "")));
+                        //next page
+                        if (page++ <= maxPages) {
+                            anotherPage = true;
+                            final GetMethod getMethod = getGetMethod(fileURL + "/" + page);
+                            if (!makeRedirectedRequest(getMethod)) {
+                                checkProblems();
+                                throw new ServiceConnectionProblemException();
+                            }
+                        }
+                    } while (anotherPage);
+                    if (list.isEmpty()) throw new PluginImplementationException("No links found");
+                    getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, list);
+                    logger.info("Added " + list.size() + " links");
+                    httpFile.setFileName("Link(s) Extracted !");
+                    httpFile.setState(DownloadState.COMPLETED);
+                    httpFile.getProperties().put("removeCompleted", true);
+                    return;
+                }
             } else {
-                final String srv = PlugUtils.getStringBetween(getContentAsString(), "&srv=", "&");
-                videoURL = URLDecoder.decode(srv + "/key=" + file, "UTF-8");
+                Matcher match = PlugUtils.matcher(String.format(QualityMatcher, getPreferredQuality()), getContentAsString().replace("\\", ""));
+                if (!match.find())
+                    throw new PluginImplementationException(getPreferredQuality() + " Video not found");
+                final String file = match.group(1).replace("\\", "");
+                String videoURL;
+                if (file.startsWith("http")) {
+                    videoURL = URLDecoder.decode(file, "UTF-8");
+                } else {
+                    final String srv = PlugUtils.getStringBetween(getContentAsString(), "&srv=", "&");
+                    videoURL = URLDecoder.decode(srv + "/key=" + file, "UTF-8");
+                }
+                videoURL = videoURL.replaceAll("\\s", "+");
+                httpMethod = getMethodBuilder()
+                        .setReferer(fileURL.replace("88.208.24.43", "xhamster.com"))
+                        .setAction(videoURL)
+                        .toGetMethod();
             }
-            videoURL = videoURL.replaceAll("\\s", "+");
-            final HttpMethod httpMethod = getMethodBuilder()
-                    .setReferer(fileURL.replace("88.208.24.43", "xhamster.com"))
-                    .setAction(videoURL)
-                    .toGetMethod();
             setClientParameter(DownloadClientConsts.DONT_USE_HEADER_FILENAME, true);
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();
@@ -101,6 +157,8 @@ class xHamsterFileRunner extends AbstractRunner {
         fileURL = fileURL.replaceFirst("https", "http");
         fileURL = fileURL.replaceFirst("//\\w+\\.xhamster", "//xhamster");
         fileURL = fileURL.replaceFirst("//88\\.208\\.24\\.43", "//xhamster.com");
+        if (fileURL.contains("/photos/gallery/"))
+            fileURL = fileURL.replaceFirst("/\\d{1,5}$", "");
     }
 
     private void loadConfig() throws Exception {

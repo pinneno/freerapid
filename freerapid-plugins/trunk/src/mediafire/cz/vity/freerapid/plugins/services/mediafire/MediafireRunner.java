@@ -78,7 +78,7 @@ class MediafireRunner extends AbstractRunner {
             httpFile.setFileSize(contents);
 
         } else {
-            PlugUtils.checkName(httpFile, getContentAsString(), "class=\"filename\">", "<");
+            PlugUtils.checkName(httpFile, getContentAsString(), "class=\"fileName\">", "<");
             final Matcher matcher = getMatcherAgainstContent("oFileSharePopup\\.ald\\('.+?','.+?','(\\d+?)'");
             if (!matcher.find()) {
                 if (getContentAsString().contains("File size:"))
@@ -109,7 +109,7 @@ class MediafireRunner extends AbstractRunner {
         super.run();
         checkUrl();
         while (true) {
-            /**
+            /*
              * Grab the current captcha state for use after the initial request.
              *
              * Getting the state and loading initial page should actually be an
@@ -148,7 +148,7 @@ class MediafireRunner extends AbstractRunner {
                 break;
             }
             if (captchaState.setSolved()) {
-                /**
+                /*
                  * We were the first to notice the captcha.
                  * Solve it and signal others that we did so.
                  */
@@ -160,16 +160,14 @@ class MediafireRunner extends AbstractRunner {
                     captchaState.signalSolved();
                 }
             } else {
-                /**
+                /*
                  * Somebody else is already solving the captcha.
                  * Wait for that and reload the page.
                  */
                 captchaState.awaitSolved();
             }
         }
-        Matcher matcher = getMatcherAgainstContent("href\\s*=\\s*['\"]([^'\"]+?)['\"][^>]*>(?:\\s*\\w\\s*)+?\\(");
-        if (!matcher.find()) throw new PluginImplementationException("Download link not found");
-        final HttpMethod method = getMethodBuilder().setAction(matcher.group(1).trim()).toGetMethod();
+        final HttpMethod method = getMethodBuilder().setActionFromAHrefWhereATagContains("dlFileSize").toGetMethod();
         setFileStreamContentTypes("text/plain");
         if (!tryDownloadAndSaveFile(method)) {
             checkProblems();
