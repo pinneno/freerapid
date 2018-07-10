@@ -426,7 +426,9 @@ public abstract class XFileSharingRunner extends AbstractRunner {
         if (content.contains("till next download") || content.contains("You have to wait")) {
             final Matcher matcher = getMatcherAgainstContent("(?:(\\d+) hours?, )?(?:(\\d+) minutes?, )?(?:(\\d+) seconds?)");
             int waitHours = 0, waitMinutes = 0, waitSeconds = 0;
+            String waitStr = "";
             if (matcher.find()) {
+                waitStr = matcher.group();
                 if (matcher.group(1) != null) {
                     waitHours = Integer.parseInt(matcher.group(1));
                 }
@@ -436,7 +438,7 @@ public abstract class XFileSharingRunner extends AbstractRunner {
                 waitSeconds = Integer.parseInt(matcher.group(3));
             }
             final int waitTime = (waitHours * 60 * 60) + (waitMinutes * 60) + waitSeconds;
-            throw new YouHaveToWaitException("You have to wait " + matcher.group(), waitTime);
+            throw new YouHaveToWaitException("You have to wait " + waitStr, waitTime);
         }
         if (content.contains("Undefined subroutine")) {
             throw new PluginImplementationException("Plugin is broken - Undefined subroutine");

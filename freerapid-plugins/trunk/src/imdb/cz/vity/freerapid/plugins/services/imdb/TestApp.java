@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.cloudyfiles;
+package cz.vity.freerapid.plugins.services.imdb;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -16,18 +16,16 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("http://cloudyfiles.com/lwdzsmkjo62z"));
+            httpFile.setNewURL(new URL("https://www.imdb.com/videoplayer/vi2984490521"));
+            httpFile.setNewURL(new URL("https://www.imdb.com/list/ls053181649/videoplayer/vi2598681369"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
-            final CloudyFilesServiceImpl service = new CloudyFilesServiceImpl(); //instance of service - of our plugin
-            /*
-            //we set premium account details
-            final PremiumAccount config = new PremiumAccount();
-            config.setUsername("****");
-            config.setPassword("****");
+            //then we tries to download
+            final ImdbServiceImpl service = new ImdbServiceImpl(); //instance of service - of our plugin
+            SettingsConfig config = new SettingsConfig();
+            config.setVideoQuality(VideoQuality._480);
             service.setConfig(config);
-            //*/
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner
             //all output goes to the console

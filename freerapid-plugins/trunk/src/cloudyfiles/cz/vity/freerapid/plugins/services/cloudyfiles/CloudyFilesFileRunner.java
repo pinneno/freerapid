@@ -30,4 +30,11 @@ class CloudyFilesFileRunner extends XFileSharingRunner {
         });
         return fileSizeHandlers;
     }
+
+    @Override
+    protected List<String> getFalseProblemRegexes() {
+        final List<String> falseProblemRegexes = super.getFalseProblemRegexes();
+        falseProblemRegexes.add("<font[^<>]+?font-size:1p.+?</font>");
+        return falseProblemRegexes;
+    }
 }

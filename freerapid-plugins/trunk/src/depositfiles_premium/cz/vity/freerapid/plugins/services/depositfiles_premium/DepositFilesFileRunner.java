@@ -79,6 +79,16 @@ class DepositFilesFileRunner extends AbstractRunner {
             if (getContentAsString().contains("Advantages of the Gold account"))
                 throw new BadLoginException("Problem logging in, account not premium?");
 
+            while (getContentAsString().contains("password_check")) {
+                final String password = getDialogSupport().askForPassword("Enter Password:");
+                if (password == null) throw new NotRecoverableDownloadException("File is password protected");
+                HttpMethod hMethod = getMethodBuilder().setReferer(fileURL).setAction(fileURL).setParameter("file_password", password).toPostMethod();
+                if (!makeRedirectedRequest(hMethod)) {
+                    throw new ServiceConnectionProblemException();
+                }
+                checkProblems();
+            }
+
             final Matcher matcher = getMatcherAgainstContent("=\"download_url\">\\s*<a href=\"(.+?)\"");
             if (!matcher.find()) {
                 throw new PluginImplementationException("Download link not found");
@@ -121,7 +131,7 @@ class DepositFilesFileRunner extends AbstractRunner {
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String content = getContentAsString();
         if (content.contains("file does not exist") || content.contains("<h1>404 Not Found</h1>")) {
-            throw new URLNotAvailableAnymoreException(String.format("File not found"));
+            throw new URLNotAvailableAnymoreException("File not found");
         }
         if (content.contains("File is checked")) {
             throw new YouHaveToWaitException("File is checked, please try again in a minute", 60);

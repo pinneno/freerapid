@@ -23,15 +23,6 @@ class SendItFileRunner extends XFileSharingRunner {
         fileNameHandlers.add(0, new FileNameHandler() {
             @Override
             public void checkFileName(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
-                Matcher match = PlugUtils.matcher("<header[^>]*>(?:\\s*<[^>]+>)*(.+?)</header>", content);
-                if (!match.find())
-                    throw new PluginImplementationException("File name not found");
-                httpFile.setFileName(match.group(1).trim());
-            }
-        });
-        fileNameHandlers.add(0, new FileNameHandler() {
-            @Override
-            public void checkFileName(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
                 PlugUtils.checkName(httpFile, content, "img src=\"\" border=\"0\" alt=\"", "\"");
             }
         });

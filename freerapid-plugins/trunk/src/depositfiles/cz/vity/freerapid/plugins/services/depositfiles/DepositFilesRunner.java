@@ -74,6 +74,15 @@ class DepositFilesRunner extends AbstractRunner {
             }
             checkProblems();
 
+            while (getContentAsString().contains("password_check")) {
+                final String password = getDialogSupport().askForPassword("Enter Password:");
+                if (password == null) throw new NotRecoverableDownloadException("File is password protected");
+                method = getMethodBuilder().setReferer(fileURL).setAction(fileURL).setParameter("file_password", password).toPostMethod();
+                if (!makeRedirectedRequest(method)) {
+                    throw new ServiceConnectionProblemException();
+                }
+                checkProblems();
+            }
             Matcher matcher = getMatcherAgainstContent("setTimeout\\s*\\(\\s*'load_form.*?'\\s*,\\s*(\\d+)[^\\d]");
             if (!matcher.find()) {
                 throw new PluginImplementationException("Cannot find wait time");
