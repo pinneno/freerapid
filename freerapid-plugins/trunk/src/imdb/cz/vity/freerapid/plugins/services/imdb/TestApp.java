@@ -18,13 +18,13 @@ public class TestApp extends PluginDevApplication {
             //we set file URL
             httpFile.setNewURL(new URL("https://www.imdb.com/videoplayer/vi2984490521"));
             httpFile.setNewURL(new URL("https://www.imdb.com/list/ls053181649/videoplayer/vi2598681369"));
+            httpFile.setNewURL(new URL("https://www.imdb.com/videoplayer/vi2527771417"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             //then we tries to download
             final ImdbServiceImpl service = new ImdbServiceImpl(); //instance of service - of our plugin
             SettingsConfig config = new SettingsConfig();
-            config.setVideoQuality(VideoQuality._480);
             service.setConfig(config);
             //runcheck makes the validation
             testRun(service, httpFile, connectionSettings);//download file with service and its Runner

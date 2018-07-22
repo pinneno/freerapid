@@ -35,8 +35,16 @@ class FileHippoFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        PlugUtils.checkName(httpFile, content, "title\" content=\"", "\" />");
-        PlugUtils.checkFileSize(httpFile, content, "<span class=\"normal\">(", ")</span>");
+        Matcher match = PlugUtils.matcher("File\\s*name\\s*:\\s*(?:<[^>]+>\\s*)*([^<>]+?)<", content);
+        if (match.find())
+            httpFile.setFileName(match.group(1).trim());
+        else
+            PlugUtils.checkName(httpFile, content, "title\" content=\"", "\" />");
+        match = PlugUtils.matcher("File\\s*size\\s*:\\s*(?:<[^>]+>\\s*)*([^<>]+?)<", content);
+        if (match.find())
+            httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(1).trim()));
+        else
+            PlugUtils.checkFileSize(httpFile, content, "<span class=\"normal\">(", ")</span>");
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 
@@ -58,13 +66,7 @@ class FileHippoFileRunner extends AbstractRunner {
                 checkProblems();
                 throw new ServiceConnectionProblemException();
             }
-            final HttpMethod dlMethod = getMethodBuilder()
-                    .setActionFromAHrefWhereATagContains("downloading-icon").toHttpMethod();
-            final int status = client.makeRequest(dlMethod, false);
-            if (status / 100 == 3) {
-                final String dlUrl = dlMethod.getResponseHeader("Location").getValue();
-                httpFile.setFileName(dlUrl.substring(dlUrl.lastIndexOf("/") + 1));
-            }
+            HttpMethod dlMethod = getMethodBuilder().setActionFromAHrefWhereATagContains("downloading-icon").toGetMethod();
             if (!tryDownloadAndSaveFile(dlMethod)) {
                 checkProblems();//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem

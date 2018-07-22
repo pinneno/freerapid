@@ -30,10 +30,10 @@ class NitroFlare_PremiumFileRunner extends AbstractRunner {
         super.runCheck();
         final GetMethod getMethod = getGetMethod(fileURL);//make first request
         if (makeRedirectedRequest(getMethod)) {
-            checkProblems();
+            checkProblems(getMethod);
             checkNameAndSize(getContentAsString());//ok let's extract file name and size from the page
         } else {
-            checkProblems();
+            checkProblems(getMethod);
             throw new ServiceConnectionProblemException();
         }
     }
@@ -61,23 +61,23 @@ class NitroFlare_PremiumFileRunner extends AbstractRunner {
         login();
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
-            checkProblems();
+            checkProblems(method);
             checkNameAndSize(getContentAsString());
             fileURL = method.getURI().toString(); //http redirected to https
             final HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setActionFromAHrefWhereATagContains("Click here to download").toGetMethod();
             if (!tryDownloadAndSaveFile(httpMethod)) {
-                checkProblems();//if downloading failed
+                checkProblems(httpMethod);//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
             }
         } else {
-            checkProblems();
+            checkProblems(method);
             throw new ServiceConnectionProblemException();
         }
     }
 
-    private void checkProblems() throws ErrorDuringDownloadingException {
+    private void checkProblems(HttpMethod method) throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
-        if (contentAsString.contains("File doesn't exist")) {
+        if (contentAsString.contains("File doesn't exist") || (method.getStatusCode() == 404)) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
         if (contentAsString.contains("You have to wait")) {
@@ -165,11 +165,11 @@ class NitroFlare_PremiumFileRunner extends AbstractRunner {
         }
     }
 
-    private static String recognizeCaptcha(final BufferedImage image) throws Exception {
+    private static String recognizeCaptcha(final BufferedImage image) {
         return PlugUtils.recognize(prepareCaptcha(image), "-d -1 -C a-z-0-9");
     }
 
-    private static BufferedImage prepareCaptcha(final BufferedImage image) throws Exception {
+    private static BufferedImage prepareCaptcha(final BufferedImage image) {
         final int w = image.getWidth();
         final int h = image.getHeight();
         final BufferedImage i = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_BINARY);

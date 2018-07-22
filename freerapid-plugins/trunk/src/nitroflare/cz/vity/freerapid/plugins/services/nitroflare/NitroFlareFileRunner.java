@@ -32,10 +32,10 @@ class NitroFlareFileRunner extends AbstractRunner {
         checkURL();
         final GetMethod getMethod = getGetMethod(fileURL);
         if (makeRedirectedRequest(getMethod)) {
-            checkProblems();
+            checkProblems(getMethod);
             checkNameAndSize(getContentAsString());
         } else {
-            checkProblems();
+            checkProblems(getMethod);
             throw new ServiceConnectionProblemException();
         }
     }
@@ -60,7 +60,7 @@ class NitroFlareFileRunner extends AbstractRunner {
         logger.info("Starting download in TASK " + fileURL);
         HttpMethod method = getGetMethod(fileURL);
         if (makeRedirectedRequest(method)) {
-            checkProblems();
+            checkProblems(method);
             checkNameAndSize(getContentAsString());
             fileURL = method.getURI().toString(); //http://www.nitroflare redirected to http://nitroflare
 
@@ -75,11 +75,11 @@ class NitroFlareFileRunner extends AbstractRunner {
                         .setParameter("goToFreePage", "")
                         .toPostMethod();
                 if (!makeRedirectedRequest(method)) {
-                    checkProblems();
+                    checkProblems(method);
                     logger.warning(getContentAsString()); //sometimes httpcode >= 500, probably cloudflare thingy
                     throw new ServiceConnectionProblemException();
                 }
-                checkProblems();
+                checkProblems(method);
                 freePageContent = getContentAsString();
             }
             if ((freePageContent == null) || (i >= MAX_FREE_PAGE_ATTEMPT)) {
@@ -102,11 +102,11 @@ class NitroFlareFileRunner extends AbstractRunner {
                     .setAjax()
                     .toPostMethod();
             if (!makeRedirectedRequest(method)) {
-                checkProblems();
+                checkProblems(method);
                 logger.warning(getContentAsString());
                 throw new ServiceConnectionProblemException();
             }
-            checkProblems();
+            checkProblems(method);
 
             downloadTask.sleep(waitTime);
             do {
@@ -120,19 +120,19 @@ class NitroFlareFileRunner extends AbstractRunner {
                 throw new PluginImplementationException("Download URL not found", e);
             }
             if (!tryDownloadAndSaveFile(method)) {
-                checkProblems();
+                checkProblems(method);
                 logger.warning(getContentAsString());
                 throw new ServiceConnectionProblemException("Error starting download");
             }
         } else {
-            checkProblems();
+            checkProblems(method);
             throw new ServiceConnectionProblemException();
         }
     }
 
-    private void checkProblems() throws ErrorDuringDownloadingException {
+    private void checkProblems(HttpMethod method) throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
-        if (contentAsString.contains("File doesn't exist")) {
+        if (contentAsString.contains("File doesn't exist") || (method.getStatusCode() == 404)) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
         if (contentAsString.contains("Free download is currently unavailable")) {
@@ -172,10 +172,10 @@ class NitroFlareFileRunner extends AbstractRunner {
                 .setAjax()
                 .toPostMethod();
         if (!makeRedirectedRequest(method)) {
-            checkProblems();
+            checkProblems(method);
             throw new ServiceConnectionProblemException();
         }
-        checkProblems();
+        checkProblems(method);
     }
 
     private void stepCaptcha(String content) throws Exception {
@@ -212,11 +212,11 @@ class NitroFlareFileRunner extends AbstractRunner {
                     .toPostMethod();
         }
         if (!makeRedirectedRequest(method)) {
-            checkProblems();
+            checkProblems(method);
             logger.warning(getContentAsString());
             throw new ServiceConnectionProblemException();
         }
-        checkProblems();
+        checkProblems(method);
     }
 
 }

@@ -10,6 +10,7 @@ import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
+import javax.xml.ws.Service;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
@@ -22,7 +23,7 @@ class ImdbFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(ImdbFileRunner.class.getName());
     private SettingsConfig config;
 
-    private void setConfig() throws Exception {
+    private void loadConfig() throws Exception {
         ImdbServiceImpl service = (ImdbServiceImpl) getPluginService();
         config = service.getConfig();
     }
@@ -54,17 +55,9 @@ class ImdbFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);//extract file name and size from the page
-
-            setConfig();
-            final String quality = config.toString();
-            logger.info("Preferred Quality : " + quality);
-            final Matcher match = PlugUtils.matcher("definition\":\""+quality+"\"[^{}]*Url\":\"(.+?)\"", contentAsString);
-            if (!match.find())
-                throw new PluginImplementationException("Video not found");
-
-            final HttpMethod httpMethod = getGetMethod(match.group(1).trim());
-
-            //here is the download link extraction
+            loadConfig();
+            final String videoUrl = getPreferredQualityURL();
+            final HttpMethod httpMethod = getGetMethod(videoUrl);
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
@@ -83,4 +76,14 @@ class ImdbFileRunner extends AbstractRunner {
         }
     }
 
+    private String getPreferredQualityURL() throws PluginImplementationException {
+        String QualityMatcher = "definition\":\"%s\"[^{}]*Url\":\"(.+?)\"";
+        for (VideoQuality pref : config.getVideoQuality()) {
+            Matcher match = PlugUtils.matcher(String.format(QualityMatcher, pref.toString()), getContentAsString().replace("\\", ""));
+            if (match.find()) {
+                return match.group(1).trim();
+            }
+        }
+        throw new PluginImplementationException("No videos found");
+    }
 }
