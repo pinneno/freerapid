@@ -86,8 +86,12 @@ class FaceBookFileRunner extends AbstractRunner {
                 }
 
                 List<FacebookVideoPattern> videoPatternList = new ArrayList<FacebookVideoPattern>();
-                videoPatternList.add(new FacebookVideoPattern("\"?hd_src\"?\\s*?:\\s*?\"(http[^\"]+)\"", VideoQuality.HD));
-                videoPatternList.add(new FacebookVideoPattern("\"?sd_src\"?\\s*?:\\s*?\"(http[^\"]+)\"", VideoQuality.SD));
+                // If the no_ratelimit version is not present, then that quality is very likely not available at all.
+                // For example, if there is no hd_src_no_ratelimit and you download the hd_src, it will be 480p without audio.
+                videoPatternList.add(new FacebookVideoPattern("\"?hd_src_no_ratelimit\"?\\s*?:\\s*?\"(http[^\"]+)\"", VideoQuality.HD));
+                //videoPatternList.add(new FacebookVideoPattern("\"?hd_src\"?\\s*?:\\s*?\"(http[^\"]+)\"", VideoQuality.HD));
+                videoPatternList.add(new FacebookVideoPattern("\"?sd_src_no_ratelimit\"?\\s*?:\\s*?\"(http[^\"]+)\"", VideoQuality.SD));
+                //videoPatternList.add(new FacebookVideoPattern("\"?sd_src\"?\\s*?:\\s*?\"(http[^\"]+)\"", VideoQuality.SD));
                 List<FacebookVideo> facebookVideos = new ArrayList<FacebookVideo>();
                 for (FacebookVideoPattern facebookVideoPattern : videoPatternList) {
                     matcher = PlugUtils.matcher(facebookVideoPattern.pattern, videoDataContent);
