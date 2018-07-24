@@ -240,7 +240,7 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
                     try {
                         urlContent = PlugUtils.getStringBetween(getContentAsString(), "og:url\" content=\"", "\"");
                         if (!urlContent.startsWith("http")) { // plugin api bug - doesn't resolve relative protocol urls properly
-                            urlContent = "http:" + urlContent;
+                            urlContent = "https:" + urlContent;
                         }
                     } catch (PluginImplementationException e) {
                         throw new PluginImplementationException("Error getting playlist URL(1)");
@@ -254,7 +254,7 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
                     try {
                         action = URLDecoder.decode(PlugUtils.replaceEntities(PlugUtils.getStringBetween(getContentAsString(), "data-url=\"", "\"")), "UTF-8");
                         if (!action.startsWith("http")) { // plugin api bug - doesn't resolve relative protocol urls properly
-                            action = "http:" + action;
+                            action = "https:" + action;
                         }
                     } catch (PluginImplementationException e) {
                         throw new PluginImplementationException("Error getting playlist URL(2)");
@@ -307,7 +307,7 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
         httpMethod = getMethodBuilder()
                 .setReferer(referer)
                 .setAjax()
-                .setAction("http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist")
+                .setAction("https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/")
                 .setParameter("playlist[0][id]", videoId)
                 .setParameter("playlist[0][startTime]", "")
                 .setParameter("playlist[0][stopTime]", "")
@@ -367,8 +367,9 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
         final String contentAsString = getContentAsString();
         if (contentAsString.contains("Stránka nenalezena")
                 || contentAsString.contains("Video není k dispozici")
+                || contentAsString.contains("Video není k&nbsp;dispozici")
                 || contentAsString.contains("Stránka nebyla nalezena")) {
-            throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
+            throw new URLNotAvailableAnymoreException("File not found");
         }
         if (contentAsString.contains("content is not available at")
                 || contentAsString.contains("\"url\":\"error_region\"")) {
@@ -435,7 +436,7 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
     }
 
     private boolean isArchiveEpisode(String fileUrl) {
-        return fileUrl.matches("http://decko\\.ceskatelevize\\.cz/player\\?.+");
+        return fileUrl.matches("https?://decko\\.ceskatelevize\\.cz/player\\?.+");
     }
 
     private void processArchiveEpisode() throws Exception {
@@ -461,7 +462,7 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
     }
 
     private boolean isArchiveProgramme(String fileUrl) {
-        return fileUrl.matches("http://decko\\.ceskatelevize\\.cz/.+");
+        return fileUrl.matches("https?://decko\\.ceskatelevize\\.cz/.+");
     }
 
     private void parseArchiveProgramme(String content) throws Exception {
@@ -473,7 +474,7 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
         HttpMethod method = getMethodBuilder()
                 .setReferer(fileURL)
                 .setAjax()
-                .setAction("http://decko.ceskatelevize.cz/rest/Programme/relatedVideosForEpisode")
+                .setAction("https://decko.ceskatelevize.cz/rest/Programme/relatedVideosForEpisode")
                 .setAndEncodeParameter("IDEC", idec)
                 .toGetMethod();
         if (!makeRedirectedRequest(method)) {
@@ -489,7 +490,7 @@ class CeskaTelevizeFileRunner extends AbstractRunner {
             String programmeTitle = matcher.group(2).trim();
             idec = matcher.group(3).trim();
             String fname = programmeTitle + " - " + episodeTitle;
-            String episodeUrl = String.format("http://decko.ceskatelevize.cz/player?width=560&IDEC=%s&%s=%s", URLEncoder.encode(idec, "UTF-8"), FNAME, URLEncoder.encode(fname, "UTF-8"));
+            String episodeUrl = String.format("https://decko.ceskatelevize.cz/player?width=560&IDEC=%s&%s=%s", URLEncoder.encode(idec, "UTF-8"), FNAME, URLEncoder.encode(fname, "UTF-8"));
             try {
                 list.add(new URI(episodeUrl));
             } catch (final URISyntaxException e) {
