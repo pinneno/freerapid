@@ -162,7 +162,7 @@ class PornHubFileRunner extends AbstractRunner {
                 engine.eval(jsSection);
                 Matcher matcher = PlugUtils.matcher("((?:player_)?quality_\\d+p)\\s*=\\s*", content);
                 while (matcher.find()) {
-                    qualityStrings.append(matcher.group(0)).append("'").append(engine.get(matcher.group(1)).toString()).append("'").append("; \n");
+                    qualityStrings.append(matcher.group(0)).append("'").append(engine.get(matcher.group(1))).append("'").append("; \n");
                 }
             } catch (Exception e) {
                 throw new PluginImplementationException("JS 1 evaluation error " + e.getLocalizedMessage(), e);

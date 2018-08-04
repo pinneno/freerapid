@@ -46,7 +46,7 @@ class SupraFilesFileRunner extends XFileSharingRunner {
     class ReCaptchaType2 extends ReCaptchaType {
         @Override
         protected String getReCaptchaKeyRegex() {
-            return "data-sitekey=\"(.+?)\"";
+            return "<div class.+?data-sitekey=\"(.+?)\"";
         }
 
         @Override
@@ -60,6 +60,12 @@ class SupraFilesFileRunner extends XFileSharingRunner {
             final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
             r.modifyResponseMethod(methodBuilder);
         }
+    }
 
+    @Override
+    protected List<String> getFalseProblemRegexes() {
+        final List<String> falseProblemRegexes = super.getFalseProblemRegexes();
+        falseProblemRegexes.add("<font[^<>]+?font-size:1.+?</font>");
+        return falseProblemRegexes;
     }
 }
