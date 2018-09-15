@@ -37,6 +37,11 @@ class SupraFilesFileRunner extends XFileSharingRunner {
     }
 
     @Override
+    protected void correctURL() throws Exception {
+        fileURL = fileURL.replaceFirst("suprafiles\\.(net|org)/", "suprafiles.me/");
+    }
+
+    @Override
     protected List<CaptchaType> getCaptchaTypes() {
         final List<CaptchaType> captchaTypes = super.getCaptchaTypes();
         captchaTypes.add(0, new ReCaptchaType2());

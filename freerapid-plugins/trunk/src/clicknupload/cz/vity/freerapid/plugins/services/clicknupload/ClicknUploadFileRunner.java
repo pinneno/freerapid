@@ -54,6 +54,7 @@ class ClicknUploadFileRunner extends XFileSharingRunner {
     protected List<String> getDownloadLinkRegexes() {
         final List<String> downloadLinkRegexes = super.getDownloadLinkRegexes();
         downloadLinkRegexes.add("window.open\\([\"'](http.+?" + Pattern.quote(httpFile.getFileName()) + ")[\"']\\)");
+        downloadLinkRegexes.add("window.open\\([\"'](http.+?)[\"']\\)");
         return downloadLinkRegexes;
     }
 }
