@@ -1,6 +1,7 @@
 package cz.vity.freerapid.plugins.services.fileboom;
 
 import cz.vity.freerapid.plugins.exceptions.*;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
@@ -8,6 +9,7 @@ import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
+import java.net.URL;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
@@ -25,21 +27,64 @@ class FileBoomFileRunner extends AbstractRunner {
         checkUrl();
         final GetMethod getMethod = getGetMethod(fileURL);//make first request
         if (makeRedirectedRequest(getMethod)) {
+            loadTokens();
             checkProblems();
-            checkNameAndSize(getContentAsString());//ok let's extract file name and size from the page
+            checkNameAndSize();//ok let's extract file name and size from the page
         } else {
             checkProblems();
             throw new ServiceConnectionProblemException();
         }
     }
 
-    private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        final Matcher match = PlugUtils.matcher("Download file:</div>\\s*?<[^<>]*?>\\s*?<i[^<>]*?></i>\\s*?(.+?)\\s*?</div>", content);
+    private void checkNameAndSize() throws Exception {
+        HttpMethod infoMethod = getMethodBuilder().setReferer(fileURL).setAjax()
+                .setAction(baseApiUrl + "/files/" + fileId + "?referer=").toGetMethod();
+        if (!makeRedirectedRequest(infoMethod)) {
+            checkProblems();
+            throw new ServiceConnectionProblemException();
+        }
+        checkProblems();
+        Matcher match = getMatcherAgainstContent("\"name\"\\:\"([^\"]+?)\".+?false,\"size\"\\:\"?(\\d+)");
         if (!match.find())
-            throw new PluginImplementationException("File name not found");
+            throw new PluginImplementationException("File name/size not found");
         httpFile.setFileName(match.group(1).trim());
-        PlugUtils.checkFileSize(httpFile, content, "File size:", "<");
+        httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(2).trim()));
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
+    }
+
+    String fileId;
+    String baseApiUrl;
+    String reCaptchaKey;
+    private void loadTokens() throws Exception {
+        Matcher matcher = PlugUtils.matcher("file/(\\w+)", fileURL);
+        if (!matcher.find()) throw new PluginImplementationException("File ID not found");
+        fileId = matcher.group(1).trim();
+        matcher = getMatcherAgainstContent("src=\"([^\"]+?spa[^\"]+?\\.js)\"");
+        if (!matcher.find()) throw new PluginImplementationException("Jscript not found");
+        if (!makeRedirectedRequest(getMethodBuilder().setAction(matcher.group(1).trim()).setReferer(fileURL).toGetMethod())) {
+            checkProblems();
+            throw new ServiceConnectionProblemException();
+        }
+        matcher = getMatcherAgainstContent("['\"]?sitekey['\"]?\\s*[:=]\\s*['\"]([^\"]+)['\"]");
+        if (!matcher.find()) throw new PluginImplementationException("captcha key not found");
+        reCaptchaKey = matcher.group(1);
+        matcher = getMatcherAgainstContent("d=\"([^\"]+?api\\.[^\"]+?)\",m=\"([^\"]+?)\",f=\"([^\"]+?)\",");
+        if (!matcher.find()) throw new PluginImplementationException("token keys not found");
+        baseApiUrl = matcher.group(1);
+        String c_id = matcher.group(2);
+        String c_secret = matcher.group(3);
+        String tokenUrl = baseApiUrl + "/auth/token";
+
+        HttpMethod tokenMethod = getMethodBuilder().setReferer(fileURL).setAjax()
+                .setAction(tokenUrl)
+                .setParameter("grant_type", "client_credentials")
+                .setParameter("client_id", c_id)
+                .setParameter("client_secret", c_secret)
+                .toPostMethod();
+        if (!makeRedirectedRequest(tokenMethod)) {
+            checkProblems();
+            throw new ServiceConnectionProblemException();
+        }
     }
 
     @Override
@@ -49,56 +94,33 @@ class FileBoomFileRunner extends AbstractRunner {
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
-            final String content = getContentAsString();//check for response
             checkProblems();//check problems
-            checkNameAndSize(content);//extract file name and size from the page
-            final HttpMethod aMethod = getMethodBuilder()
-                    .setReferer(fileURL).setAction(fileURL)
-                    .setParameter("slow_id", PlugUtils.getStringBetween(content, "data-slow-id=\"", "\""))
-                    .toPostMethod();
-            if (!makeRedirectedRequest(aMethod)) {
-                checkProblems();
-                throw new ServiceConnectionProblemException();
+            loadTokens();
+            checkNameAndSize();//extract file name and size from the page
+            HttpMethod downloadMethod = getMethodBuilder().setReferer(fileURL).setAjax()
+                    .setAction(baseApiUrl + "/files/" + fileId + "/download?referer=").toGetMethod();
+            makeRedirectedRequest(downloadMethod);
+            checkProblems();
+            while (getContentAsString().contains("errors\":{\"captcha")) {
+                downloadMethod = doCaptcha(getMethodBuilder().setReferer(fileURL).setAjax()
+                        .setAction(baseApiUrl + "/files/" + fileId + "/download")
+                ).setParameter("?referer=", "").toGetMethod();
+                makeRedirectedRequest(downloadMethod);
             }
             checkProblems();
-
-            String dlLink;
-            if (getContentAsString().contains("window.location.href")) {
-                dlLink = getMethodBuilder().setReferer(fileURL).setActionFromTextBetween("window.location.href = '", "'").getEscapedURI();
-            } else if (getContentAsString().contains("id=\"yw0\" href=")) {
-                dlLink = getMethodBuilder().setReferer(fileURL).setActionFromTextBetween("id=\"yw0\" href=\"", "\"").getEscapedURI();
-            } else {
-                final String uniqueId = PlugUtils.getStringBetween(getContentAsString(), "uniqueId\" value=\"", "\"");
-                do {
-                    final HttpMethod bMethod = doCaptcha(getMethodBuilder()
-                            .setReferer(fileURL).setAction(fileURL)
-                            .setParameter("free", "1")
-                            .setParameter("freeDownloadRequest", "1")
-                            .setParameter("uniqueId", uniqueId)
-                    ).toPostMethod();
-                    if (!makeRedirectedRequest(bMethod)) {
-                        checkProblems();
-                        throw new ServiceConnectionProblemException();
-                    }
-                    checkProblems();
-                } while (getContentAsString().contains("The verification code is incorrect"));
-
-                downloadTask.sleep(1 + PlugUtils.getNumberBetween(getContentAsString(), "tik-tak\">", "</"));
-                final HttpMethod cMethod = getMethodBuilder()
-                        .setReferer(fileURL).setAction(fileURL)
-                        .setParameter("free", "1")
-                        .setParameter("uniqueId", uniqueId)
-                        .toPostMethod();
-                if (!makeRedirectedRequest(cMethod)) {
-                    checkProblems();
-                    throw new ServiceConnectionProblemException();
-                }
-                checkProblems();
-
-                dlLink = getMethodBuilder().setReferer(fileURL).setActionFromAHrefWhereATagContains("this").getEscapedURI();
+            if (getContentAsString().contains("need_to_wait")) {
+                Matcher matcher = getMatcherAgainstContent("['\"]?timeRemain['\"]?\\s*[:=]\\s*['\"]?(\\d+)['\"]?");
+                if (matcher.find())
+                    downloadTask.sleep(1 + Integer.parseInt(matcher.group(1).trim()));
+                downloadMethod = getMethodBuilder().setReferer(fileURL).setAjax()
+                        .setAction(baseApiUrl + "/files/" + fileId + "/download?referer=").toGetMethod();
+                makeRedirectedRequest(downloadMethod);
             }
-            final HttpMethod httpMethod = getGetMethod(dlLink);
-
+            checkProblems();
+            Matcher matcher = getMatcherAgainstContent("['\"]?downloadUrl['\"]?\\s*[:=]\\s*['\"]?([^'\"]+)['\"]?");
+            if (!matcher.find())
+                throw new PluginImplementationException("Download url not found");
+            final HttpMethod httpMethod = getGetMethod(matcher.group(1).trim());
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
@@ -110,19 +132,22 @@ class FileBoomFileRunner extends AbstractRunner {
     }
 
     private void checkUrl() {
-        if (fileURL.contains("fileboom.me/")) {
-            fileURL = fileURL.replace("fileboom.me/", "fboom.me/");
-        }
+        fileURL = fileURL.replace("fboom.me/", "fileboom.me/");
     }
 
     @Override
     protected String getBaseURL() {
-        return httpFile.getFileUrl().getProtocol() + "://" + "fboom.me";
+        try {
+            return new URL(fileURL).getProtocol() + "://" + new URL(fileURL).getAuthority();
+        }
+        catch (Exception x) {
+            return super.getBaseURL();
+        }
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String content = getContentAsString();
-        if (content.contains("File Not Found") || content.contains("File not found")
+        if (content.contains("File Not Found") || content.contains("File not found")  || content.contains("isDeleted\":true")
                 || content.contains("This file is no longer available")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
@@ -141,14 +166,7 @@ class FileBoomFileRunner extends AbstractRunner {
     }
 
     private MethodBuilder doCaptcha(final MethodBuilder builder) throws Exception {
-        final HttpMethod newCaptcha = getMethodBuilder().setReferer(fileURL).setAction("/file/captcha.html?refresh=1").setAjax().toGetMethod();
-        if (!makeRedirectedRequest(newCaptcha)) {
-            throw new ServiceConnectionProblemException();
-        }
-        final String captchaSrc = getMethodBuilder().setReferer(fileURL).setAction(PlugUtils.getStringBetween(getContentAsString(), "url\":\"", "\"").replace("\\", "")).getEscapedURI();
-        final String captchaTxt = getCaptchaSupport().getCaptcha(captchaSrc);
-        if (captchaTxt == null)
-            throw new CaptchaEntryInputMismatchException();
-        return builder.setParameter("CaptchaForm[verifyCode]", captchaTxt);
+        final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
+        return builder.setParameter("captchaType", "recaptcha").setParameter("captchaValue", r.getResponse());
     }
 }

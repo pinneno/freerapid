@@ -68,7 +68,7 @@ public class ReCaptchaNoCaptcha {
                         "    slimer.exit();\n" +
                         "}\n" +
                         "\n" +
-                        "var htmlContent = \"<script src='https://www.google.com/recaptcha/api.js'></script>\"+\n" +
+                        "var htmlContent = \"<script src='https://www.google.com/recaptcha/api.js?fallback=true'></script>\"+\n" +
                         "\"<form action='javascript:window.alert(grecaptcha.getResponse())'>\"+\n" +
                         "\"<div class='g-recaptcha' data-sitekey='" + publicKey + "'></div>\"+\n" +
                         "\"<input type='submit' value='Submit'>\"+\n" +

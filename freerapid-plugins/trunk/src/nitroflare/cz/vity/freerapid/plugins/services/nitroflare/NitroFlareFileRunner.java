@@ -2,9 +2,11 @@ package cz.vity.freerapid.plugins.services.nitroflare;
 
 import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.services.recaptcha.ReCaptcha;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadClientConsts;
 import cz.vity.freerapid.plugins.webclient.FileState;
+import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import cz.vity.freerapid.utilities.LogUtils;
 import org.apache.commons.httpclient.HttpMethod;
@@ -199,17 +201,19 @@ class NitroFlareFileRunner extends AbstractRunner {
                     .toPostMethod();
         }
         else {
-            final String captchaSrc = getMethodBuilder(content).setActionFromImgSrcWhereTagContains("captcha").getEscapedURI();
-            logger.info("Captcha URL " + captchaSrc);
-            final String captcha = getCaptchaSupport().getCaptcha(captchaSrc);
-            if (captcha == null) throw new CaptchaEntryInputMismatchException();
-            logger.info("Manual captcha " + captcha);
-            method = getMethodBuilder(content)
+            final Matcher reCaptchaKeyMatcher = PlugUtils.matcher("<div class.+?data-sitekey=\"(.+?)\"", content);
+            if (!reCaptchaKeyMatcher.find()) {
+                throw new PluginImplementationException("ReCaptcha key not found");
+            }
+            final String reCaptchaKey = reCaptchaKeyMatcher.group(1).trim();
+            final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
+
+            MethodBuilder builder = getMethodBuilder(content)
                     .setReferer(fileURL).setAjax()
-                    .setActionFromFormWhereTagContains("Download", true)
-                    .setAction("/ajax/freeDownload.php")
-                    .setParameter("captcha", captcha)
-                    .toPostMethod();
+                    .setActionFromFormWhereTagContains("fetchDownload", true)
+                    .setAction(fileURL);
+            r.modifyResponseMethod(builder);
+            method = builder.toPostMethod();
         }
         if (!makeRedirectedRequest(method)) {
             checkProblems(method);

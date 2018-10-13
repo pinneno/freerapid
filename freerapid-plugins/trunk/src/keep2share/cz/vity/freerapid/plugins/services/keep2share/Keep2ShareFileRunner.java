@@ -20,7 +20,6 @@ import java.util.regex.Matcher;
  */
 class Keep2ShareFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(Keep2ShareFileRunner.class.getName());
-    private String baseUrl = "http://keep2share.cc";
 
     @Override
     public void runCheck() throws Exception { //this method validates file
@@ -28,30 +27,64 @@ class Keep2ShareFileRunner extends AbstractRunner {
         addCookie(new Cookie(".keep2share.cc", "lang", "en", "/", 86400, false));
         final GetMethod getMethod = getGetMethod(fileURL);//make first request
         if (makeRedirectedRequest(getMethod)) {
+            loadTokens();
             checkProblems();
-            checkNameAndSize(getContentAsString());//ok let's extract file name and size from the page
+            checkNameAndSize();//ok let's extract file name and size from the page
         } else {
             checkProblems();
             throw new ServiceConnectionProblemException();
         }
     }
 
-    private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        Matcher match = PlugUtils.matcher("<span class=\"title-file\">\\s*(.+?)\\s*<em>\\s*(.+?)\\s*</em>", content);
-        if (match.find()) {
-            httpFile.setFileName(match.group(1).trim());
-            httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(2).trim()));
-        } else {
-            match = PlugUtils.matcher("(?s)class=\"(?:name|title)-file\">\\s*([^<]+?)\\s*<.+?Size\\s*:\\s*(?:<[^>]+>)?([^<]+?)<", content);
-            if (match.find()) {
-                httpFile.setFileName(match.group(1).trim());
-                httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(2).trim()));
-            } else {
-                PlugUtils.checkName(httpFile, content, "File: <span>", "<");
-                PlugUtils.checkFileSize(httpFile, content, "Size:", "<");
-            }
+    private void checkNameAndSize() throws Exception {
+        HttpMethod infoMethod = getMethodBuilder().setReferer(fileURL).setAjax()
+                .setAction(baseApiUrl + "/files/" + fileId + "?referer=").toGetMethod();
+        if (!makeRedirectedRequest(infoMethod)) {
+            checkProblems();
+            throw new ServiceConnectionProblemException();
         }
+        checkProblems();
+        Matcher match = getMatcherAgainstContent("\"name\"\\:\"([^\"]+?)\".+?false,\"size\"\\:\"?(\\d+)");
+        if (!match.find())
+            throw new PluginImplementationException("File name/size not found");
+        httpFile.setFileName(match.group(1).trim());
+        httpFile.setFileSize(PlugUtils.getFileSizeFromString(match.group(2).trim()));
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
+    }
+
+    String fileId;
+    String baseApiUrl;
+    String reCaptchaKey;
+    private void loadTokens() throws Exception {
+        Matcher matcher = PlugUtils.matcher("file/(\\w+)", fileURL);
+        if (!matcher.find()) throw new PluginImplementationException("File ID not found");
+        fileId = matcher.group(1).trim();
+        matcher = getMatcherAgainstContent("src=\"([^\"]+?spa[^\"]+?\\.js)\"");
+        if (!matcher.find()) throw new PluginImplementationException("Jscript not found");
+        if (!makeRedirectedRequest(getMethodBuilder().setAction(matcher.group(1).trim()).setReferer(fileURL).toGetMethod())) {
+            checkProblems();
+            throw new ServiceConnectionProblemException();
+        }
+        matcher = getMatcherAgainstContent("['\"]?sitekey['\"]?\\s*[:=]\\s*['\"]([^\"]+)['\"]");
+        if (!matcher.find()) throw new PluginImplementationException("captcha key not found");
+        reCaptchaKey = matcher.group(1);
+        matcher = getMatcherAgainstContent("d=\"([^\"]+?api\\.[^\"]+?)\",m=\"([^\"]+?)\",f=\"([^\"]+?)\",");
+        if (!matcher.find()) throw new PluginImplementationException("token keys not found");
+        baseApiUrl = matcher.group(1);
+        String c_id = matcher.group(2);
+        String c_secret = matcher.group(3);
+        String tokenUrl = baseApiUrl + "/auth/token";
+
+        HttpMethod tokenMethod = getMethodBuilder().setReferer(fileURL).setAjax()
+                .setAction(tokenUrl)
+                .setParameter("grant_type", "client_credentials")
+                .setParameter("client_id", c_id)
+                .setParameter("client_secret", c_secret)
+                .toPostMethod();
+        if (!makeRedirectedRequest(tokenMethod)) {
+            checkProblems();
+            throw new ServiceConnectionProblemException();
+        }
     }
 
     @Override
@@ -61,71 +94,34 @@ class Keep2ShareFileRunner extends AbstractRunner {
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(method)) { //we make the main request
-            final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
-            checkNameAndSize(contentAsString);//extract file name and size from the page
-            fileURL = method.getURI().getURI();
-            baseUrl = method.getURI().getURI().split("/file/")[0];
-            if (!contentAsString.contains("This link will be available for")) {
-                final MethodBuilder aMethod = getMethodBuilder()
-                        .setBaseURL(baseUrl).setReferer(fileURL)
-                        .setActionFromFormWhereTagContains("slow_id", true);
-                makeRedirectedRequest(aMethod.toPostMethod());  // is good, but returned code 500-server error
-                checkProblems();
-                if (getContentAsString().contains("window.location.href")) {
-                    HttpMethod hMethod = getMethodBuilder()
-                            .setAction(PlugUtils.getStringBetween(getContentAsString(), "window.location.href = '", "';"))
-                            .toGetMethod();
-                    if (!tryDownloadAndSaveFile(hMethod)) {
-                        checkProblems();//if downloading failed
-                        throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
-                    }
-                    return;
-                }
-                if (!getContentAsString().replaceAll("\\s", "").contains(">Downloadnow<")) {
-                    do {
-                        MethodBuilder captchaMethod;
-                        try {
-                            captchaMethod = getMethodBuilder()
-                                .setBaseURL(baseUrl)
-                                .setActionFromFormWhereTagContains("Slow download", true);
-                        } catch (Exception x) {
-                            captchaMethod = getMethodBuilder()
-                                    .setBaseURL(baseUrl)
-                                    .setActionFromFormByName("captcha-form", true);
-                        }
-                        if (!makeRedirectedRequest(doCaptcha(captchaMethod).toPostMethod())) {
-                            checkProblems();
-                            throw new ServiceConnectionProblemException();
-                        }
-                        checkProblems();
-                    } while (getContentAsString().contains("The verification code is incorrect"));
+            loadTokens();
+            checkNameAndSize();//extract file name and size from the page
 
-                    final Matcher match = PlugUtils.matcher("download-wait-timer\"[^<>]*>\\s*(.+?)\\s*</", contentAsString+getContentAsString());
-                    int time = 30;
-                    if (match.find())
-                        time = Integer.parseInt(match.group(1).trim());
-                    downloadTask.sleep(1 + time);
-                    final MethodBuilder dlBuilder = getMethodBuilder()
-                            .setBaseURL(baseUrl)
-                            .setAjax()
-                            .setAction(PlugUtils.getStringBetween(getContentAsString(), "url: '", "',"));
-                    final String[] params = PlugUtils.getStringBetween(getContentAsString(), "data: {", "},").split(",");
-                    for (String p : params) {
-                        final String[] param = p.split(":");
-                        dlBuilder.setParameter(param[0].replaceAll("'", "").trim(), param[1].replaceAll("'", "").trim());
-                    }
-                    if (!makeRedirectedRequest(dlBuilder.toPostMethod())) {
-                        checkProblems();
-                        throw new ServiceConnectionProblemException();
-                    }
-                    checkProblems();
-                }
+            HttpMethod downloadMethod = getMethodBuilder().setReferer(fileURL).setAjax()
+                    .setAction(baseApiUrl + "/files/" + fileId + "/download?referer=").toGetMethod();
+            makeRedirectedRequest(downloadMethod);
+            checkProblems();
+            while (getContentAsString().contains("errors\":{\"captcha")) {
+                downloadMethod = doCaptcha(getMethodBuilder().setReferer(fileURL).setAjax()
+                        .setAction(baseApiUrl + "/files/" + fileId + "/download")
+                ).setParameter("?referer=", "").toGetMethod();
+                makeRedirectedRequest(downloadMethod);
             }
-            final Matcher match = PlugUtils.matcher("<a[^<>]+?href=\"(.+?)\"[^<>]*>\\s*(?:this\\s+?link|Download now\\s*<)", getContentAsString());
-            if (!match.find())
-                throw new PluginImplementationException("download link url not found");
-            final HttpMethod httpMethod = getGetMethod(baseUrl + match.group(1));
+            checkProblems();
+            if (getContentAsString().contains("need_to_wait")) {
+                Matcher matcher = getMatcherAgainstContent("['\"]?timeRemain['\"]?\\s*[:=]\\s*['\"]?(\\d+)['\"]?");
+                if (matcher.find())
+                    downloadTask.sleep(1 + Integer.parseInt(matcher.group(1).trim()));
+                downloadMethod = getMethodBuilder().setReferer(fileURL).setAjax()
+                        .setAction(baseApiUrl + "/files/" + fileId + "/download?referer=").toGetMethod();
+                makeRedirectedRequest(downloadMethod);
+            }
+            checkProblems();
+            Matcher matcher = getMatcherAgainstContent("['\"]?downloadUrl['\"]?\\s*[:=]\\s*['\"]?([^'\"]+)['\"]?");
+            if (!matcher.find())
+                throw new PluginImplementationException("Download url not found");
+            final HttpMethod httpMethod = getGetMethod(matcher.group(1).trim());
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
@@ -138,7 +134,7 @@ class Keep2ShareFileRunner extends AbstractRunner {
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String content = getContentAsString();
-        if (content.contains("File not found") || content.contains("<title>Error 404</title>")) {
+        if (content.contains("File not found") || content.contains("<title>Error 404</title>") || content.contains("isDeleted\":true")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
         if (content.contains("File size to large") ||
@@ -156,23 +152,8 @@ class Keep2ShareFileRunner extends AbstractRunner {
     }
 
     private MethodBuilder doCaptcha(final MethodBuilder builder) throws Exception {
-        final Matcher m = getMatcherAgainstContent("['\"]?sitekey['\"]?\\s*[:=]\\s*['\"]([^\"]+)['\"]");
-        if (m.find()) {
-            final String reCaptchaKey = m.group(1);
-            final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
-            Matcher match = getMatcherAgainstContent(" name=\"([^\"\\[\\]]+)\\[verifyCode\\]\"");
-            if (!match.find()) throw new PluginImplementationException("Captcha response parameter not found");
-            return builder.setParameter(match.group(1).trim() + "[verifyCode]", r.getResponse());
-        }
-        final HttpMethod newCaptcha = getMethodBuilder().setBaseURL(baseUrl).setAction("/file/captcha.html?refresh=1").setAjax().toGetMethod();
-        if (!makeRedirectedRequest(newCaptcha)) {
-            throw new ServiceConnectionProblemException();
-        }
-        final String captchaSrc = getMethodBuilder().setBaseURL(baseUrl).setAction(PlugUtils.getStringBetween(getContentAsString(), "url\":\"", "\"").replace("\\", "")).getEscapedURI();
-        final String captchaTxt = getCaptchaSupport().getCaptcha(captchaSrc);
-        if (captchaTxt == null)
-            throw new CaptchaEntryInputMismatchException();
-        return builder.setParameter("CaptchaForm[code]", captchaTxt);
+        final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
+        return builder.setParameter("captchaType", "recaptcha").setParameter("captchaValue", r.getResponse());
     }
 
 }

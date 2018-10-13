@@ -39,6 +39,7 @@ class SupraFilesFileRunner extends XFileSharingRunner {
     @Override
     protected void correctURL() throws Exception {
         fileURL = fileURL.replaceFirst("suprafiles\\.(net|org)/", "suprafiles.me/");
+        fileURL = fileURL.replaceFirst("suprafiles\\.me/", "sfiles.org/");
     }
 
     @Override

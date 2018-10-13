@@ -53,7 +53,7 @@ class CloudyFilesFileRunner extends XFileSharingRunner {
 
         @Override
         public void handleCaptcha(final MethodBuilder methodBuilder, final HttpDownloadClient client, final CaptchaSupport captchaSupport, final HttpFileDownloadTask downloadTask) throws Exception {
-            final String content = client.getContentAsString().replaceAll("(?s)<!--.+?-->", "");
+            final String content = client.getContentAsString().replaceAll("(?s)<!--.+?-->", "").replaceAll("(?s)<div.+?visibility:hidden.+?</div>", "");
             final Matcher reCaptchaKeyMatcher = PlugUtils.matcher(getReCaptchaKeyRegex(), content);
             if (!reCaptchaKeyMatcher.find()) {
                 throw new PluginImplementationException("ReCaptcha key not found");

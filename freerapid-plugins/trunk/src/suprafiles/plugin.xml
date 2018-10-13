@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
 <plugin class="cz.vity.freerapid.plugins.services.suprafiles.SupraFilesServiceImpl"
-        id="suprafiles.net" vendor="birchie" version="1.0.5">
+        id="suprafiles.net" vendor="birchie" version="1.0.6">
     <attributes>
-        <attribute id="urlRegex" value="https?://(www\.)?suprafiles\.(me|net|org)/.+"/>
+        <attribute id="urlRegex" value="https?://(www\.)?(suprafiles\.(me|net|org)|sfiles\.org)/.+"/>
         <attribute id="minver" value="0.855"/>
         <attribute id="maxver" value="0.899"/>
-        <attribute id="services" value="suprafiles.net .me .org"/>
+        <attribute id="services" value="suprafiles.net .me .org sfiles.org"/>
         <attribute id="maxDownloads" value="100"/>
         <attribute id="defaultDownloads" value="1"/>
         <attribute id="premium" value="false"/>

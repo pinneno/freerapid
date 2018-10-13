@@ -19,6 +19,7 @@ public class TestApp extends PluginDevApplication {
             httpFile.setNewURL(new URL("http://suprafiles.net/9700rl443fns"));
             httpFile.setNewURL(new URL("http://suprafiles.net/pikru5zblrr6"));
             httpFile.setNewURL(new URL("http://suprafiles.me/btnpt6bbz30c"));
+            httpFile.setNewURL(new URL("https://sfiles.org/tfkynzn82929"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
