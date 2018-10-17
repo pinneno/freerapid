@@ -33,6 +33,7 @@ class RapidGatorFileRunner extends AbstractRunner {
     @Override
     public void runCheck() throws Exception {
         super.runCheck();
+        fileURL = fileURL.replaceFirst("^http://", "https://");
         addCookie(new Cookie(".rapidgator.net", "lang", "en", "/", 86400, false));
         final GetMethod getMethod = getGetMethod(fileURL);
         if (makeRedirectedRequest(getMethod)) {
@@ -71,6 +72,7 @@ class RapidGatorFileRunner extends AbstractRunner {
     public void run() throws Exception {
         super.run();
         addCookie(new Cookie(".rapidgator.net", "lang", "en", "/", 86400, false));
+        fileURL = fileURL.replaceFirst("^http://", "https://");
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL);
         if (makeRedirectedRequest(method)) {
@@ -81,7 +83,7 @@ class RapidGatorFileRunner extends AbstractRunner {
                 List<URI> list = new LinkedList<URI>();
                 final Matcher m = PlugUtils.matcher("class=\"(?:odd|even)\"><td><a href=\"(.+?)\"", getContentAsString());
                 while (m.find()) {
-                    try{
+                    try {
                         list.add(new URI("http://rapidgator.net" + m.group(1).trim()));
                     } catch (Exception x) {/*ignore invalid url*/}
                 }
@@ -198,7 +200,7 @@ class RapidGatorFileRunner extends AbstractRunner {
             if (!captchaKeyMatcher.find()) throw new PluginImplementationException("Captcha key not found");
             final String captchaKey = captchaKeyMatcher.group(1);
             final long captchaStartTime = System.currentTimeMillis();
-            SolveMediaCaptcha solveMediaCaptcha = new SolveMediaCaptcha(captchaKey, client, getCaptchaSupport(), downloadTask);
+            SolveMediaCaptcha solveMediaCaptcha = new SolveMediaCaptcha(captchaKey, client, getCaptchaSupport(), downloadTask, true, "white");
             solveMediaCaptcha.askForCaptcha();
             if (((System.currentTimeMillis() - captchaStartTime) / 1000) > CAPTCHA_TIMEOUT)
                 throw new YouHaveToWaitException("Retry request to avoid captcha expired", 5);
