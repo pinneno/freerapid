@@ -35,13 +35,13 @@ class CzshareRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize() throws Exception {
-        final Matcher filenameMatcher = getMatcherAgainstContent("Celý název:.+?>(.+?)<");
+        final Matcher filenameMatcher = getMatcherAgainstContent("<h1[^>]*>(.+?)<");
         if (!filenameMatcher.find()) {
             throw new PluginImplementationException("File name not found");
         }
         httpFile.setFileName(filenameMatcher.group(1));
 
-        final Matcher filesizeMatcher = getMatcherAgainstContent("Velikost:\\s*(.+?)\\s*</div>");
+        final Matcher filesizeMatcher = getMatcherAgainstContent("Velikost\\s*:\\s*(?:<[^>]+>\\s*)(.+?)\\s*<");
         if (!filesizeMatcher.find()) {
             throw new PluginImplementationException("File size not found");
         }
@@ -59,14 +59,11 @@ class CzshareRunner extends AbstractRunner {
         if (makeRedirectedRequest(method)) {
             checkProblems();
             checkNameAndSize();
-            method = getMethodBuilder().setActionFromFormWhereActionContains("profi_down", true)
-                    .setBaseURL(BASE_URL)
-                    .toPostMethod();
-            final int status = client.makeRequest(method, false);
-            if (status / 100 == 3) {
-                final String dlLink = method.getResponseHeader("Location").getValue();
-                method = getMethodBuilder().setAction(dlLink.replaceFirst("https:", "http:")).toGetMethod();
-            }
+            Matcher matcher = PlugUtils.matcher("\\.cz/([^\\?]*)", fileURL);
+            if (!matcher.find()) throw new PluginImplementationException("error getting file id");
+            method = getMethodBuilder().setAction("http://data.sdilej.cz/sdilej_profi.php")
+                    .setParameter("id", matcher.group(1).trim().replace("/", "&"))
+                    .toGetMethod();
             if (!tryDownloadAndSaveFile(method)) {
                 checkProblems();
                 throw new ServiceConnectionProblemException("Error starting download");
@@ -88,17 +85,16 @@ class CzshareRunner extends AbstractRunner {
                 }
             }
             final HttpMethod method = getMethodBuilder()
-                    .setReferer(BASE_URL)
-                    .setAction("http://sdilej.cz/index.php")
-                    .setParameter("login-name", pa.getUsername())
-                    .setParameter("login-password", pa.getPassword())
-                    .setParameter("trvale", "on")
-                    .setParameter("Prihlasit", "Přihlásit SSL")
-                    .setBaseURL(BASE_URL)
+                    .setReferer("https://sdilej.cz/prihlasit")
+                    .setAction("https://sdilej.cz/sql.php")
+                    .setParameter("login", pa.getUsername())
+                    .setParameter("heslo", pa.getPassword())
                     .toPostMethod();
             final int status = client.makeRequest(method, false);
-            if (status/100 == 3)
-                return;
+            if (status/100 == 3) {
+                if (method.getResponseHeader("Location").getValue().contains("error"))
+                    throw new PluginImplementationException("Login Error");
+            }
             else if (status != 200){
                 throw new ServiceConnectionProblemException("Unknown login error");
             }
@@ -113,6 +109,12 @@ class CzshareRunner extends AbstractRunner {
         matcher = getMatcherAgainstContent("Soubor nenalezen");
         if (matcher.find()) {
             throw new URLNotAvailableAnymoreException("<b>Soubor nenalezen</b><br>");
+        }
+        if (getContentAsString().contains("Tento soubor byl smazán")) {
+            throw new URLNotAvailableAnymoreException("Tento soubor byl smazán");
+        }
+        if (getContentAsString().contains("Chyba 404 Nenalezeno")) {
+            throw new URLNotAvailableAnymoreException("Chyba 404 Nenalezeno");
         }
         matcher = getMatcherAgainstContent("Soubor expiroval");
         if (matcher.find()) {

@@ -23,6 +23,7 @@ public class TestApp extends PluginDevApplication {
             //we set file URL
             //httpFile.setNewURL(new URL("http://czshare.com/5324840/logovq.zip"));
             httpFile.setNewURL(new URL("http://sdilej.cz/6046504/Nikita.314.TVRIP.XviD_cz.avi"));
+            httpFile.setNewURL(new URL("https://sdilej.cz/10186153/alien-covenant-2017-1080p-5.1-cz-dabing.mkv"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication

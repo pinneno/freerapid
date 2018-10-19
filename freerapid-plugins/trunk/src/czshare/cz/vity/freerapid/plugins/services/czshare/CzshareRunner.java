@@ -4,9 +4,7 @@ import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
-import cz.vity.freerapid.plugins.webclient.hoster.CaptchaSupport;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
-import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
@@ -36,13 +34,13 @@ class CzshareRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize() throws Exception {
-        final Matcher filenameMatcher = getMatcherAgainstContent("Celý název:.+?>(.+?)<");
+        final Matcher filenameMatcher = getMatcherAgainstContent("<h1[^>]*>(.+?)<");
         if (!filenameMatcher.find()) {
             throw new PluginImplementationException("File name not found");
         }
         httpFile.setFileName(filenameMatcher.group(1));
 
-        final Matcher filesizeMatcher = getMatcherAgainstContent("Velikost:\\s*(.+?)\\s*</div>");
+        final Matcher filesizeMatcher = getMatcherAgainstContent("Velikost\\s*:\\s*(?:<[^>]+>\\s*)(.+?)\\s*<");
         if (!filesizeMatcher.find()) {
             throw new PluginImplementationException("File size not found");
         }
@@ -72,42 +70,6 @@ class CzshareRunner extends AbstractRunner {
                 .setActionFromAHrefWhereATagContains("Stáhnout FREE");
         methodBuilder.setAction(PlugUtils.unescapeHtml(methodBuilder.getAction()));
         HttpMethod httpMethod = methodBuilder.toGetMethod();
-        if (!makeRedirectedRequest(httpMethod)) {
-            checkProblems();
-            throw new ServiceConnectionProblemException();
-        }
-        checkProblems();
-
-        while (getContentAsString().contains("captchastring2")) {
-            httpMethod = getMethodBuilder()
-                    .setBaseURL(BASE_URL)
-                    .setActionFromFormWhereTagContains("freedown", true)
-                    .setParameter("captchastring2", stepCaptcha())
-                    .toPostMethod();
-            final int httpStatus = client.makeRequest(httpMethod, false);
-            if (httpStatus / 100 == 3) { //redirect to download file location
-                final Header locationHeader = httpMethod.getResponseHeader("Location");
-                if (locationHeader == null)
-                    throw new ServiceConnectionProblemException("Could not find download file location");
-                httpMethod = getMethodBuilder()
-                        .setBaseURL(BASE_URL)
-                        .setAction(locationHeader.getValue())
-                        .toGetMethod();
-                break;
-            }
-            checkProblems();
-        }
-        if (!makeRedirectedRequest(httpMethod)) {
-            checkProblems();
-            throw new ServiceConnectionProblemException();
-        }
-        checkProblems();
-        //final int waitTime = PlugUtils.getNumberBetween(getContentAsString(),"countdown_number =",";");
-        //downloadTask.sleep(waitTime);
-        httpMethod = getMethodBuilder()
-                .setActionFromAHrefWhereATagContains("Stáhnout free omezenou rychlostí")          //Ověřit a stáhnout
-                .setBaseURL(BASE_URL)
-                .toGetMethod();
 
         if (!tryDownloadAndSaveFile(httpMethod)) {
             checkProblems();
@@ -115,24 +77,19 @@ class CzshareRunner extends AbstractRunner {
         }
     }
 
-    private String stepCaptcha() throws Exception {
-        CaptchaSupport captchaSupport = getCaptchaSupport();
-        String captchaURL = BASE_URL + "/captcha.php";
-        String captcha = captchaSupport.getCaptcha(captchaURL);
-        if (captcha == null) {
-            throw new CaptchaEntryInputMismatchException();
-        }
-        return captcha;
-    }
-
-
-    private void checkProblems() throws ServiceConnectionProblemException, YouHaveToWaitException, URLNotAvailableAnymoreException {
+    private void checkProblems() throws Exception {
         final String contentAsString = getContentAsString();
         if (contentAsString.contains("Soubor nenalezen")) {
             throw new URLNotAvailableAnymoreException("<b>Soubor nenalezen</b><br>");
         }
         if (contentAsString.contains("Soubor expiroval")) {
             throw new URLNotAvailableAnymoreException("<b>Soubor expiroval</b><br>");
+        }
+        if (contentAsString.contains("Tento soubor byl smazán")) {
+            throw new URLNotAvailableAnymoreException("Tento soubor byl smazán");
+        }
+        if (getContentAsString().contains("Chyba 404 Nenalezeno")) {
+            throw new URLNotAvailableAnymoreException("Chyba 404 Nenalezeno");
         }
         if (contentAsString.contains("Soubor byl smaz.n jeho odesilatelem</strong>") || contentAsString.contains("Soubor byl smazán jeho odesilatelem")) {
             throw new URLNotAvailableAnymoreException("<b>Soubor byl smazán jeho odesilatelem</b><br>");
