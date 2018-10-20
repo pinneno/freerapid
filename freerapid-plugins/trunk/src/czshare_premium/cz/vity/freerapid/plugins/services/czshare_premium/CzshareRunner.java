@@ -59,11 +59,7 @@ class CzshareRunner extends AbstractRunner {
         if (makeRedirectedRequest(method)) {
             checkProblems();
             checkNameAndSize();
-            Matcher matcher = PlugUtils.matcher("\\.cz/([^\\?]*)", fileURL);
-            if (!matcher.find()) throw new PluginImplementationException("error getting file id");
-            method = getMethodBuilder().setAction("http://data.sdilej.cz/sdilej_profi.php")
-                    .setParameter("id", matcher.group(1).trim().replace("/", "&"))
-                    .toGetMethod();
+            method = getMethodBuilder().setActionFromAHrefWhereATagContains("Stáhnout").setReferer(fileURL).toGetMethod();
             if (!tryDownloadAndSaveFile(method)) {
                 checkProblems();
                 throw new ServiceConnectionProblemException("Error starting download");
@@ -133,9 +129,6 @@ class CzshareRunner extends AbstractRunner {
         matcher = getMatcherAgainstContent("Bohu.el je vy.erp.na maxim.ln. kapacita FREE download.");
         if (matcher.find()) {
             throw new YouHaveToWaitException("Bohužel je vyčerpána maximální kapacita FREE downloadů", WAIT_TIME);
-        }
-        if (getContentAsString().equals("")) {
-            throw new NotRecoverableDownloadException("Bad CZShare/Sdilej profi account login information!");
         }
     }
 
