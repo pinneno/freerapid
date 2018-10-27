@@ -1,11 +1,17 @@
 package cz.vity.freerapid.plugins.services.filejoker;
 
 import cz.vity.freerapid.plugins.exceptions.*;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
+import cz.vity.freerapid.plugins.services.xfilesharing.captcha.CaptchaType;
+import cz.vity.freerapid.plugins.services.xfilesharing.captcha.ReCaptchaType;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileNameHandler;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
+import cz.vity.freerapid.plugins.webclient.hoster.CaptchaSupport;
 import cz.vity.freerapid.plugins.webclient.hoster.PremiumAccount;
+import cz.vity.freerapid.plugins.webclient.interfaces.HttpDownloadClient;
 import cz.vity.freerapid.plugins.webclient.interfaces.HttpFile;
+import cz.vity.freerapid.plugins.webclient.interfaces.HttpFileDownloadTask;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
 
@@ -87,7 +93,36 @@ class FileJokerFileRunner extends XFileSharingRunner {
 
     @Override
     protected boolean stepCaptcha(final MethodBuilder methodBuilder) throws Exception {
-        super.stepCaptcha(methodBuilder);
+        try {
+            boolean hasCaptcha = false;
+            for (final CaptchaType captchaType : getCaptchaTypes()) {
+                if (captchaType.canHandle(getContentAsString())) {
+                    hasCaptcha = true;
+                }
+            }
+            if (hasCaptcha) {
+                Matcher matcher = getMatcherAgainstContent("\\$\\.post\\(\\s*[\"']([^\"']+?)[\"']");
+                if (matcher.find()) {//throw new PluginImplementationException("Not found - action");
+                    MethodBuilder builder = getMethodBuilder().setReferer(fileURL).setAjax()
+                            .setAction(matcher.group(1).trim());
+                    matcher = getMatcherAgainstContent("(?s)\\$\\.post\\(.+?\\{(.+?)\\}");
+                    if (!matcher.find()) throw new PluginImplementationException("Not found - parameters");
+                    String params = matcher.group(1);
+                    matcher = PlugUtils.matcher("[\"']?(\\w+)[\"']?\\s*:\\s*[\"']?(\\w+)[\"']?", params);
+                    while (matcher.find()) {
+                        builder.setParameter(matcher.group(1).trim(), matcher.group(2).trim());
+                    }
+                    super.stepCaptcha(builder);
+                    HttpMethod method = builder.toPostMethod();
+                    client.makeRequest(method, false);
+                    return false;
+                }
+            }
+            super.stepCaptcha(methodBuilder);
+
+        } catch (Exception x) {
+            super.stepCaptcha(methodBuilder);
+        }
         return false;
     }
 
@@ -118,6 +153,32 @@ class FileJokerFileRunner extends XFileSharingRunner {
         }
         if (getContentAsString().contains("Incorrect Login or Password")) {
             throw new BadLoginException("Invalid account login information");
+        }
+    }
+
+    @Override
+    protected List<CaptchaType> getCaptchaTypes() {
+        final List<CaptchaType> captchaTypes = super.getCaptchaTypes();
+        captchaTypes.add(0, new ReCaptchaType2());
+        return captchaTypes;
+    }
+
+    class ReCaptchaType2 extends ReCaptchaType {
+        @Override
+        protected String getReCaptchaKeyRegex() {
+            return "<div class.+?data-sitekey=\"(.+?)\"";
+        }
+
+        @Override
+        public void handleCaptcha(final MethodBuilder methodBuilder, final HttpDownloadClient client, final CaptchaSupport captchaSupport, final HttpFileDownloadTask downloadTask) throws Exception {
+            final String content = client.getContentAsString();
+            final Matcher reCaptchaKeyMatcher = PlugUtils.matcher(getReCaptchaKeyRegex(), content);
+            if (!reCaptchaKeyMatcher.find()) {
+                throw new PluginImplementationException("ReCaptcha key not found");
+            }
+            final String reCaptchaKey = reCaptchaKeyMatcher.group(1).trim();
+            final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
+            r.modifyResponseMethod(methodBuilder);
         }
     }
 }

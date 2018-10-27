@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
 <plugin class="cz.vity.freerapid.plugins.services.cloudyfiles.CloudyFilesServiceImpl"
-        id="cloudyfiles.org" vendor="birchie" version="1.0.4">
+        id="cloudyfiles.org" vendor="birchie" version="1.0.5">
     <attributes>
-        <attribute id="urlRegex" value="https?://(www\.)?cloudyfiles\.(me|org|com)/.+"/>
+        <attribute id="urlRegex" value="https?://(www\.)?(cloudyfiles\.(me|org|com)|cfiles\.net)/.+"/>
         <attribute id="minver" value="0.855"/>
         <attribute id="maxver" value="0.899"/>
-        <attribute id="services" value="cloudyfiles.org .me .com"/>
+        <attribute id="services" value="cloudyfiles.org me com cfiles.net"/>
         <attribute id="maxDownloads" value="100"/>
         <attribute id="defaultDownloads" value="1"/>
         <attribute id="premium" value="false"/>
