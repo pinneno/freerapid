@@ -585,6 +585,7 @@ public abstract class XFileSharingRunner extends AbstractRunner {
         Cookie[] cookies = getCookies();
         String downloadLink = null;
         DownloadLinkData downloadLinkData = null;
+        downloadFromCache = false;
         try {
             String downloadLinkDataStr = (String) httpFile.getProperties().get(DOWNLOAD_LINK_DATA);
             if (downloadLinkDataStr != null) {
@@ -610,7 +611,7 @@ public abstract class XFileSharingRunner extends AbstractRunner {
                 HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setAction(downloadLinkData.getDownloadLink()).toGetMethod();
                 downloadFromCache = true;
                 doDownload(httpMethod);
-                return true;
+                return downloadFromCache;
             } catch (Exception e) {
                 logger.warning("Downloading using download link cache failed");
                 handleDownloadFromCacheFailure(e);
@@ -618,12 +619,12 @@ public abstract class XFileSharingRunner extends AbstractRunner {
         }
         client.getHTTPClient().getState().clearCookies();
         client.getHTTPClient().getState().addCookies(cookies);
-        downloadFromCache = false;
-        return false;
+        return downloadFromCache;
     }
 
     protected void handleDownloadFromCacheFailure(Exception e) throws Exception {
         if (e.getMessage().equals("Error starting download")) {
+            downloadFromCache = false;
             if (isErrorWithLongTimeAvailableLink()) {
                 logger.warning("Download link cache - wrong IP address");
                 logger.info("Removing download link cache");
