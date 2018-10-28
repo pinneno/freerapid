@@ -634,6 +634,7 @@ public abstract class XFileSharingRunner extends AbstractRunner {
             }
         } else {
             LogUtils.processException(logger, e);
+            throw new Exception(e.getMessage());
         }
     }
 
