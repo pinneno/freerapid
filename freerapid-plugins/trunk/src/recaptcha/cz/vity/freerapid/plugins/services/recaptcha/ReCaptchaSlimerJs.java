@@ -32,32 +32,6 @@ public class ReCaptchaSlimerJs {
     private final HttpDownloadClient client;
 
 
-    static {
-        //For lightweight nightly version (0.10.0pre).
-        //Bump maxversion from 4x to 6x, we're safe for another week :)
-        String appIni;
-        if (Utils.isWindows()) {
-            appIni = Utils.addFileSeparator(Utils.getAppPath()) + PATH_APP_INI_WINDOWS;
-        } else {
-            appIni = Utils.addFileSeparator(Utils.getAppPath()) + PATH_APP_INI_LINUX;
-        }
-        File appIniFile = new File(appIni);
-        if (appIniFile.exists()) {
-            String appIniContent = Utils.loadFile(appIniFile, "UTF-8");
-            Matcher matcher = PlugUtils.matcher("MaxVersion\\s*?=\\s*?4", appIniContent);
-            if (matcher.find()) {
-                appIniContent = appIniContent.replaceFirst("MaxVersion\\s*?=\\s*?4", "MaxVersion=6");
-                try {
-                    BufferedWriter bw = new BufferedWriter(new FileWriter(appIniFile));
-                    bw.write(appIniContent);
-                    bw.close();
-                } catch (IOException e) {
-                    LogUtils.processException(logger, e);
-                }
-            }
-        }
-    }
-
     public ReCaptchaSlimerJs(String publicKey, HttpDownloadClient c) {
         this.publicKey = publicKey;
         this.client = c;

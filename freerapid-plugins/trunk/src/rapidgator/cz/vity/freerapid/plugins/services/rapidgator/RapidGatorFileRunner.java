@@ -1,7 +1,7 @@
 package cz.vity.freerapid.plugins.services.rapidgator;
 
 import cz.vity.freerapid.plugins.exceptions.*;
-import cz.vity.freerapid.plugins.services.recaptcha.ReCaptcha;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.services.solvemediacaptcha.SolveMediaCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadState;
@@ -28,7 +28,7 @@ import java.util.regex.Matcher;
  */
 class RapidGatorFileRunner extends AbstractRunner {
     private final static Logger logger = Logger.getLogger(RapidGatorFileRunner.class.getName());
-    private final static long CAPTCHA_TIMEOUT = 45;
+    private final static long CAPTCHA_TIMEOUT = 120;
 
     @Override
     public void runCheck() throws Exception {
@@ -209,23 +209,19 @@ class RapidGatorFileRunner extends AbstractRunner {
                     .setAction("/download/captcha")
                     .setParameter("DownloadCaptchaForm[captcha]", "");
             return solveMediaCaptcha.modifyResponseMethod(methodBuilder).toPostMethod();
-        } else if (getContentAsString().contains("api.recaptcha.net/challenge")) {
+        } else if (getContentAsString().contains("recaptchaCallback")) {
             logger.info("Captcha Type: Recaptcha");
-            final Matcher captchaKeyMatcher = getMatcherAgainstContent("api\\.recaptcha\\.net/challenge\\?k=(.*?)\"");
+            final Matcher captchaKeyMatcher = getMatcherAgainstContent("data-sitekey\\s*=\\s*\"(.*?)\"");
             if (!captchaKeyMatcher.find()) {
                 throw new PluginImplementationException("Captcha key not found");
             }
             final String captchaKey = captchaKeyMatcher.group(1);
-            final ReCaptcha r = new ReCaptcha(captchaKey, client);
-            final String captcha = getCaptchaSupport().getCaptcha(r.getImageURL());
-            if (captcha == null) {
-                throw new CaptchaEntryInputMismatchException();
-            }
-            r.setRecognized(captcha);
+            final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(captchaKey, fileURL);
             final MethodBuilder methodBuilder = getMethodBuilder()
                     .setReferer(fileURL)
                     .setAction("/download/captcha")
-                    .setParameter("DownloadCaptchaForm[captcha]", "");
+                    //.setParameter("DownloadCaptchaForm[captcha]", "")
+                    .setParameter("DownloadCaptchaForm[verifyCode]", r.getResponse());
             return r.modifyResponseMethod(methodBuilder).toPostMethod();
         } else {
             logger.info("Captcha Error");
