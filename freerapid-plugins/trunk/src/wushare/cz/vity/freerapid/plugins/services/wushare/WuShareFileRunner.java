@@ -71,7 +71,10 @@ class WuShareFileRunner extends AbstractRunner {
                 }
                 checkProblems();
             }
-            httpMethod = getMethodBuilder().setReferer(fileURL).setActionFromTextBetween("\"link\": \"", "\"").toHttpMethod();
+            Matcher matcher = PlugUtils.matcher("['\"]link['\"]\\s*:\\s*['\"]([^'\"]+)['\"]", getContentAsString());
+            if (!matcher.find())
+                throw new PluginImplementationException("Download link not found");
+            httpMethod = getMethodBuilder().setReferer(fileURL).setAction(matcher.group(1)).toHttpMethod();
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
@@ -87,10 +90,10 @@ class WuShareFileRunner extends AbstractRunner {
         if (content.contains("Error 404")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
-        if (content.contains("\"status\": \"oversize\"")) {
+        if (content.contains("\"status\": \"oversize\"") || content.contains("\"status\":\"oversize\"")) {
             throw new NotRecoverableDownloadException("File exceeds free download file size limit");
         }
-        if (content.contains("\"status\": \"waiting\"")) {
+        if (content.contains("\"status\": \"waiting\"") || content.contains("\"status\":\"waiting\"")) {
             int wait = PlugUtils.getNumberBetween(content.replaceAll("\\s", ""), "\"time\":", "}");
             throw new YouHaveToWaitException("You need to wait ("+wait+")", wait);
         }

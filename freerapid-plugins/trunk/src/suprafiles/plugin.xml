@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
 <plugin class="cz.vity.freerapid.plugins.services.suprafiles.SupraFilesServiceImpl"
-        id="suprafiles.net" vendor="birchie" version="1.0.6">
+        id="suprafiles.net" vendor="birchie" version="1.0.7">
     <attributes>
-        <attribute id="urlRegex" value="https?://(www\.)?(suprafiles\.(me|net|org)|sfiles\.org)/.+"/>
+        <attribute id="urlRegex" value="https?://(www\.)?(suprafiles\.(me|net|org)|sfiles\.org|businessnewstoday(world|usa)\.online)/.+"/>
         <attribute id="minver" value="0.855"/>
         <attribute id="maxver" value="0.899"/>
         <attribute id="services" value="suprafiles.net .me .org sfiles.org"/>

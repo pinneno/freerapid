@@ -7,6 +7,7 @@ import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
 import cz.vity.freerapid.plugins.services.xfilesharing.captcha.CaptchaType;
 import cz.vity.freerapid.plugins.services.xfilesharing.captcha.ReCaptchaType;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandler;
+import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandlerNoSize;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.hoster.CaptchaSupport;
 import cz.vity.freerapid.plugins.webclient.interfaces.HttpDownloadClient;
@@ -33,6 +34,7 @@ class SupraFilesFileRunner extends XFileSharingRunner {
                 PlugUtils.checkFileSize(httpFile, content, "<span><b>", "</b></span>");
             }
         });
+        fileSizeHandlers.add(new FileSizeHandlerNoSize());
         return fileSizeHandlers;
     }
 

@@ -120,7 +120,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
             }
 
             Matcher matcher;
-            matcher = getMatcherAgainstContent("<script src=\"(.+?)\"\\s*?name=\"player/base\"");
+            matcher = getMatcherAgainstContent("<script src=\"(.+?)\"\\s*?name=\"player[^/\"]*/base\"");
             if (!matcher.find()) {
                 throw new PluginImplementationException("Player js url not found");
             }

@@ -59,7 +59,16 @@ class MediafireRunner extends AbstractRunner {
 
     private void checkNameAndSize() throws Exception {
         if (isFolder()) {
-            final String id = fileURL.substring(fileURL.indexOf('?') + 1);
+            final String id;
+            if (fileURL.contains("/folder/")) {
+                Matcher matcher = PlugUtils.matcher("/folder/(\\w+)", fileURL);
+                if (!matcher.find())
+                    throw new PluginImplementationException("Invalid folder url provided");
+                id = matcher.group(1).trim();
+            }
+            else {
+                id = fileURL.substring(fileURL.indexOf('?') + 1);
+            }
             final HttpMethod method = getMethodBuilder()
                     .setAction("http://www.mediafire.com/api/folder/get_info.php")
                     .setParameter("folder_key", id)
@@ -78,7 +87,7 @@ class MediafireRunner extends AbstractRunner {
             httpFile.setFileSize(contents);
 
         } else {
-            PlugUtils.checkName(httpFile, getContentAsString(), "class=\"fileName\">", "<");
+            PlugUtils.checkName(httpFile, getContentAsString(), "class=\"filename\">", "<");
             final Matcher matcher = getMatcherAgainstContent("oFileSharePopup\\.ald\\('.+?','.+?','(\\d+?)'");
             if (!matcher.find()) {
                 if (getContentAsString().contains("File size:"))
@@ -142,7 +151,8 @@ class MediafireRunner extends AbstractRunner {
             }
             checkNameAndSize();
 
-            stepPassword();
+            if (stepPassword())
+                return;
 
             if (!isCaptcha()) {
                 break;
@@ -167,7 +177,11 @@ class MediafireRunner extends AbstractRunner {
                 captchaState.awaitSolved();
             }
         }
-        final HttpMethod method = getMethodBuilder().setActionFromAHrefWhereATagContains("dlFileSize").toGetMethod();
+        final HttpMethod method = getMethodBuilder().setActionFromAHrefWhereATagContains("Download (").toGetMethod();
+        doDownload(method);
+    }
+
+    private void doDownload(HttpMethod method) throws Exception {
         setFileStreamContentTypes("text/plain");
         if (!tryDownloadAndSaveFile(method)) {
             checkProblems();
@@ -230,7 +244,16 @@ class MediafireRunner extends AbstractRunner {
     }
 
     private void parseFolder() throws Exception {
-        final String id = fileURL.substring(fileURL.indexOf('?') + 1);
+        final String id;
+        if (fileURL.contains("/folder/")) {
+            Matcher matcher = PlugUtils.matcher("/folder/(\\w+)", fileURL);
+            if (!matcher.find())
+                throw new PluginImplementationException("Invalid folder url provided");
+            id = matcher.group(1).trim();
+        }
+        else {
+            id = fileURL.substring(fileURL.indexOf('?') + 1);
+        }
         final List<FolderItem> list = new LinkedList<FolderItem>();
         if (id.contains(",")) {
             for (final String s : id.split(",")) {
@@ -354,20 +377,27 @@ class MediafireRunner extends AbstractRunner {
     }
 
     private boolean isPassworded() {
-        return getContentAsString().contains("\"form_password\"");
+        return getContentAsString().contains("class=\"passwordPrompt\"");
     }
 
-    private void stepPassword() throws Exception {
+    private boolean stepPassword() throws Exception {
+        HttpMethod method;
         while (isPassworded()) {
-            final HttpMethod method = getMethodBuilder()
+            method = getMethodBuilder()
                     .setReferer(fileURL)
-                    .setActionFromFormByName("form_password", true)
+                    .setActionFromFormWhereTagContains("passwordPrompt", true)
                     .setParameter("downloadp", getPassword())
-                    .toPostMethod();
-            if (!makeRedirectedRequest(method)) {
+                    .setAction(fileURL).toPostMethod();
+            int status = client.makeRequest(method, false);
+            if (status/100 == 3) {
+                doDownload(method);
+                return true;
+            }
+            else if (status != 200) {
                 throw new ServiceConnectionProblemException();
             }
         }
+        return false;
     }
 
     private String getPassword() throws Exception {

@@ -56,7 +56,7 @@ class LinkShrinkFileRunner extends AbstractRunner {
     }
 
     private String decodeNextLink() throws Exception {
-        Matcher match = getMatcherAgainstContent("<script>(function.+?)</script><script>.+?window\\.open\\((.+?)[,;].+?</script>");
+        Matcher match = getMatcherAgainstContent("<script>(function.+?)</script><script>.+?location\\.href\\s*=\\s*(.+?)[,;].+?</script>");
         if (!match.find()) throw new PluginImplementationException("Script not found");
         try {
             ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");

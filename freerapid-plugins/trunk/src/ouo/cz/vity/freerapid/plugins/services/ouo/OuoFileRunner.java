@@ -36,12 +36,13 @@ class OuoFileRunner extends AbstractRunner {
                 }
             } while (getContentAsString().contains("form-captcha"));
             httpMethod = getMethodBuilder().setActionFromFormWhereTagContains("Get Link", true).toPostMethod();
-            if (!makeRedirectedRequest(httpMethod)) {
-                checkProblems(httpMethod);
-                throw new ServiceConnectionProblemException();
-            }
-
-            this.httpFile.setNewURL(new URL(httpMethod.getResponseHeader("Location").getValue()));
+            int status = client.makeRequest(httpMethod, false);
+            if (status == 200)
+                this.httpFile.setNewURL(new URL(httpMethod.getURI().getURI()));
+            else if (status/100 == 3)
+                this.httpFile.setNewURL(new URL(httpMethod.getResponseHeader("Location").getValue()));
+            else
+                throw new PluginImplementationException("Error getting redirected link");
             this.httpFile.setPluginID("");
             this.httpFile.setState(DownloadState.QUEUED);
         } else {

@@ -42,11 +42,11 @@ class YouPornFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws Exception {
-        final Matcher matchN = PlugUtils.matcher("<h1.*?>(.+?)</h1>", content);
+        final Matcher matchN = PlugUtils.matcher("title\"\\s*content\\s*=\\s*['\"](.+?)['\"]", content);
         if (!matchN.find())
             throw new PluginImplementationException("File name not found");
         httpFile.setFileName(matchN.group(1).trim() + service.getVideoFormat());
-        final Matcher matchS = PlugUtils.matcher(selectedQuality + "\\s*(?:<[^>]+>\\s*(?:\\w+\\s*)?)*\\((.+?)\\)\\s*<", content);
+        final Matcher matchS = PlugUtils.matcher(">\\s*" + selectedQuality + "\\s*(?:<[^>]+>\\s*(?:\\D+\\s*)?)*(\\d.+?)\\s*<", content);
         if (matchS.find())
             httpFile.setFileSize(PlugUtils.getFileSizeFromString(matchS.group(1)));
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
