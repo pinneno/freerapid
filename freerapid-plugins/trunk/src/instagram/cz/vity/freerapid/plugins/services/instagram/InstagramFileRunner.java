@@ -106,7 +106,7 @@ class InstagramFileRunner extends AbstractRunner {
                         list.add(new URI(getBaseURL() + "/p/" + match.group(1)));
                     }
                     httpFile.setDownloaded(list.size());  //links found
-                    if (content.contains("\"has_next_page\":true") || content.contains("\"has_next_page\": true")) {
+                    if (content.replaceAll("\\s+", "").contains("timeline_media\":{\"count\":" + httpFile.getFileSize() + ",\"page_info\":{\"has_next_page\":true")) {
                         nextPage = true;
                         final Matcher lastMatch = PlugUtils.matcher("end_cursor\"\\s*:\\s*\"(.+?)\"", content);
                         if (!lastMatch.find()) throw new PluginImplementationException("Error getting next page details");
@@ -130,7 +130,7 @@ class InstagramFileRunner extends AbstractRunner {
                 } while (nextPage);
                 if (list.isEmpty()) throw new PluginImplementationException("No posts found");
                 getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, list);
-                httpFile.setFileName("Post(s) Extracted !");
+                httpFile.setFileName(list.size() + " Post(s) Extracted !");
                 httpFile.setState(DownloadState.COMPLETED);
                 httpFile.getProperties().put("removeCompleted", true);
             }

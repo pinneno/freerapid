@@ -34,7 +34,7 @@ class RedTubeFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        PlugUtils.checkName(httpFile, content, "<title>", " | Redtube");
+        PlugUtils.checkName(httpFile, content, "title\" content=\"", "\" ");
         Matcher match = PlugUtils.matcher("<source[^<>]+type=\"video/(.+?)\"", content);
         if (match.find())
             httpFile.setFileName(httpFile.getFileName() + "." + match.group(1));
@@ -50,8 +50,8 @@ class RedTubeFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);
-            String downloadUrl = PlugUtils.getStringBetween(contentAsString, "<source src=\"", "\" type").replaceFirst("^//", "http://");
-            downloadUrl = (downloadUrl.startsWith("http://") ? "" : "http://") + downloadUrl;
+            String downloadUrl = PlugUtils.getStringBetween(contentAsString, "videoUrl\":\"", "\"}").replace("\\", "").replaceFirst("^//", "https://");
+            downloadUrl = (downloadUrl.startsWith("https://") ? "" : "https://") + downloadUrl;
             HttpMethod httpMethod = getMethodBuilder().setReferer(fileURL).setAction(downloadUrl).toGetMethod();
             if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed

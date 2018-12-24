@@ -35,6 +35,10 @@ class OneFichierFileRunner extends AbstractRunner {
         if (status / 100 == 3) {
             getAltTempFileName();
         } else if (status == 200) {
+            if (isPassword()) {
+                httpFile.setFileName("File is password protected");
+                httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
+            }
             checkProblems();
             try {
                 checkNameAndSize(getContentAsString());
@@ -108,6 +112,10 @@ class OneFichierFileRunner extends AbstractRunner {
                 httpFile.setState(DownloadState.COMPLETED);
                 httpFile.getProperties().put("removeCompleted", true);
             } else {
+                if (isPassword()) {
+                    doDownload(stepPassword());
+                    return;
+                }
                 checkDownloadProblems();//check problems
                 checkNameAndSize(getContentAsString());//extract file name and size from the page
 
@@ -124,15 +132,44 @@ class OneFichierFileRunner extends AbstractRunner {
                     checkProblems();
                 }
                 hMethod = getMethodBuilder().setActionFromAHrefWhereATagContains("Click here to download").toGetMethod();
-                if (!tryDownloadAndSaveFile(hMethod)) {
-                    checkDownloadProblems();//if downloading failed
-                    throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
-                }
+                doDownload(hMethod);
             }
         } else {
             checkDownloadProblems();
             throw new ServiceConnectionProblemException();
         }
+    }
+
+    private void doDownload(HttpMethod httpMethod) throws Exception {
+        if (!tryDownloadAndSaveFile(httpMethod)) {
+            checkDownloadProblems();//if downloading failed
+            throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
+        }
+    }
+
+    private boolean isPassword() {
+        return getContentAsString().contains("file is password protected");
+    }
+
+    private HttpMethod stepPassword() throws Exception {
+        HttpMethod httpMethod;
+        do {
+            final String password = getDialogSupport().askForPassword("1Fichier.com");
+            if (password == null)
+                throw new NotRecoverableDownloadException("This file is secured with a password");
+            httpMethod = getMethodBuilder().setReferer(fileURL)
+                    .setActionFromFormWhereTagContains("password", true)
+                    .setParameter("pass", password)
+                    .toPostMethod();
+            int status = client.makeRequest(httpMethod, false);
+            if (status/100 == 3) {
+                httpMethod = getGetMethod(httpMethod.getResponseHeader("Location").getValue());
+                break;
+            }
+            else if (status != 200)
+                throw new PluginImplementationException("Error removing passowrd protection");
+        } while (true);
+        return httpMethod;
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {

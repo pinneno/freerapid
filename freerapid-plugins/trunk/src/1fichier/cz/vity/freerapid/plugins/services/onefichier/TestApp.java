@@ -17,6 +17,7 @@ public class TestApp extends PluginDevApplication {
         try {
             //we set file URL
             httpFile.setNewURL(new URL("https://1fichier.com/?j2o232uid3&af=62851"));
+            httpFile.setNewURL(new URL("https://1fichier.com/?8i762su9rnjepm4atxoi"));   //pass=testing
             //httpFile.setNewURL(new URL("http://jiqrn4nr9e.1fichier.com/%22")); //direct download
             //httpFile.setNewURL(new URL("https://1fichier.com/dir/vFx5uE46"));  // folder
             //the way we connect to the internet
