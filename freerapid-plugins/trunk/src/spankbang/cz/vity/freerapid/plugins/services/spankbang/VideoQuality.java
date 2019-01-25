@@ -10,8 +10,11 @@ import java.util.Collections;
 enum VideoQuality {
     Lowest(1, "Lowest quality"),
     _240(240),
+    _320(320),
     _480(480),
     _720(720),
+    _1080(1080),
+    _4K(4000),
     Highest(10000, "Highest quality");
 
     private final int quality;

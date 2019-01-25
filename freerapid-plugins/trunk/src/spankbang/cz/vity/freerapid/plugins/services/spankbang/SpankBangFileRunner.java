@@ -66,32 +66,48 @@ class SpankBangFileRunner extends AbstractRunner {
             checkProblems();
             checkNameAndSize(getContentAsString());
 
-            String streamKey;
-            String streamId;
-            try {
-                streamKey = PlugUtils.getStringBetween(getContentAsString(), "stream_key  = '", "'");
-                streamId = PlugUtils.getStringBetween(getContentAsString(), "stream_id  = '", "'");
-            } catch (PluginImplementationException e) {
-                throw new PluginImplementationException("Error getting video params", e);
-            }
-
-            int streamHd = 0, streamSd = 0;
-            try {
-                streamHd = PlugUtils.getNumberBetween(getContentAsString(), "stream_hd  = ", ";");
-                streamSd = PlugUtils.getNumberBetween(getContentAsString(), "stream_sd  = ", ";");
-            } catch (PluginImplementationException e) {
-                //
-            }
+            //String streamKey;
+            //String streamId;
+            //try {
+            //    streamKey = PlugUtils.getStringBetween(getContentAsString(), "stream_key  = '", "'");
+            //    streamId = PlugUtils.getStringBetween(getContentAsString(), "stream_id  = '", "'");
+            //} catch (PluginImplementationException e) {
+            //    throw new PluginImplementationException("Error getting video params", e);
+            //}
+            //
+            //int streamHd = 0, streamSd = 0;
+            //try {
+            //    streamHd = PlugUtils.getNumberBetween(getContentAsString(), "stream_hd  = ", ";");
+            //    streamSd = PlugUtils.getNumberBetween(getContentAsString(), "stream_sd  = ", ";");
+            //} catch (PluginImplementationException e) {
+            //    //
+            //}
 
             setConfig();
             List<SpankBangVideo> videoList = new LinkedList<SpankBangVideo>();
-            if (streamHd == 1) {
-                videoList.add(new SpankBangVideo(VideoQuality._720, getVideoUrl(streamKey, streamId, VideoQuality._720.getName())));
+            Matcher matcher = getMatcherAgainstContent("stream_url_([^\\s=:]+)\\s*[=:]\\s*[\"']([^\"']+)[\"']");
+            while (matcher.find()) {
+                String qual = matcher.group(1).trim();
+                if (qual.equals("240p"))
+                    videoList.add(new SpankBangVideo(VideoQuality._240, matcher.group(2).trim()));
+                else if (qual.equals("320p"))
+                    videoList.add(new SpankBangVideo(VideoQuality._320, matcher.group(2).trim()));
+                else if (qual.equals("480p"))
+                    videoList.add(new SpankBangVideo(VideoQuality._480, matcher.group(2).trim()));
+                else if (qual.equals("720"))
+                    videoList.add(new SpankBangVideo(VideoQuality._720, matcher.group(2).trim()));
+                else if (qual.equals("1080p"))
+                    videoList.add(new SpankBangVideo(VideoQuality._1080, matcher.group(2).trim()));
+                else if (qual.equals("4k"))
+                    videoList.add(new SpankBangVideo(VideoQuality._4K, matcher.group(2).trim()));
             }
-            if (streamSd == 1) {
-                videoList.add(new SpankBangVideo(VideoQuality._240, getVideoUrl(streamKey, streamId, VideoQuality._240.getName())));
-            }
-            videoList.add(new SpankBangVideo(VideoQuality._480, getVideoUrl(streamKey, streamId, VideoQuality._480.getName())));
+            //if (streamHd == 1) {
+            //    videoList.add(new SpankBangVideo(VideoQuality._720, getVideoUrl(streamKey, streamId, VideoQuality._720.getName())));
+            //}
+            //if (streamSd == 1) {
+            //    videoList.add(new SpankBangVideo(VideoQuality._240, getVideoUrl(streamKey, streamId, VideoQuality._240.getName())));
+            //}
+            //videoList.add(new SpankBangVideo(VideoQuality._480, getVideoUrl(streamKey, streamId, VideoQuality._480.getName())));
 
             SpankBangVideo selectedVideo = Collections.min(videoList);
             logger.info("Config settings: " + config);

@@ -7,6 +7,7 @@ import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.services.xfilesharing.XFileSharingRunner;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileNameHandler;
 import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandler;
+import cz.vity.freerapid.plugins.services.xfilesharing.nameandsize.FileSizeHandlerNoSize;
 import cz.vity.freerapid.plugins.webclient.interfaces.HttpFile;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.HttpMethod;
@@ -89,6 +90,7 @@ class UploadOceanFileRunner extends XFileSharingRunner {
                 httpFile.setFileSize(PlugUtils.getFileSizeFromString(matcher.group(1)));
             }
         });
+        fileSizeHandlers.add(new FileSizeHandlerNoSize());
         return fileSizeHandlers;
     }
 

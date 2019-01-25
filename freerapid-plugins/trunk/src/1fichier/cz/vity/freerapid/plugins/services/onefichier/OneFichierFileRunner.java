@@ -148,7 +148,8 @@ class OneFichierFileRunner extends AbstractRunner {
     }
 
     private boolean isPassword() {
-        return getContentAsString().contains("file is password protected");
+        return (getContentAsString().contains("file is password protected") ||
+                getContentAsString().contains("owner of this file has chosen to protect access with a password"));
     }
 
     private HttpMethod stepPassword() throws Exception {
@@ -167,7 +168,13 @@ class OneFichierFileRunner extends AbstractRunner {
                 break;
             }
             else if (status != 200)
-                throw new PluginImplementationException("Error removing passowrd protection");
+                throw new PluginImplementationException("Error removing password protection");
+            else {
+                if (getContentAsString().contains("Click here to download the file")) {
+                    httpMethod = getMethodBuilder().setActionFromAHrefWhereATagContains("download").toGetMethod();
+                    break;
+                }
+            }
         } while (true);
         return httpMethod;
     }
