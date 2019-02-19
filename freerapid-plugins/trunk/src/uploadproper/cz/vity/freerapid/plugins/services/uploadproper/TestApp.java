@@ -1,4 +1,4 @@
-package cz.vity.freerapid.plugins.services.up4ever;
+package cz.vity.freerapid.plugins.services.uploadproper;
 
 import cz.vity.freerapid.plugins.dev.PluginDevApplication;
 import cz.vity.freerapid.plugins.webclient.ConnectionSettings;
@@ -16,12 +16,11 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile(); //creates new test instance of HttpFile
         try {
             //we set file URL
-            httpFile.setNewURL(new URL("https://www.up-4ever.com/3pv5d8n25fec"));
-            httpFile.setNewURL(new URL("https://www.up-4.net/5dry5i8an3cw"));
+            httpFile.setNewURL(new URL("https://uploadproper.com/2cwgbktwn4l1"));
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
-            final Up4EverServiceImpl service = new Up4EverServiceImpl(); //instance of service - of our plugin
+            final UploadProperServiceImpl service = new UploadProperServiceImpl(); //instance of service - of our plugin
             /*
             //we set premium account details
             final PremiumAccount config = new PremiumAccount();

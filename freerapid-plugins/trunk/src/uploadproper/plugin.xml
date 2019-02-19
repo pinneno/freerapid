@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE plugin PUBLIC "-//JPF//Java Plug-in Manifest 1.0" "http://jpf.sourceforge.net/plugin_1_0.dtd">
-<plugin class="cz.vity.freerapid.plugins.services.up4ever.Up4EverServiceImpl"
-        id="up-4ever.com" vendor="birchie" version="1.0.1">
+<plugin class="cz.vity.freerapid.plugins.services.uploadproper.UploadProperServiceImpl"
+        id="uploadproper.com" vendor="birchie" version="1.0.0">
     <attributes>
-        <attribute id="urlRegex" value="https?://(www\.)?up-4(ever\.com|\.net)/.+"/>
+        <attribute id="urlRegex" value="https?://(www\.)?uploadproper\.com/.+"/>
         <attribute id="minver" value="0.855"/>
         <attribute id="maxver" value="0.899"/>
-        <attribute id="services" value="up-4ever.com up-4.net"/>
+        <attribute id="services" value="uploadproper.com"/>
         <attribute id="maxDownloads" value="100"/>
         <attribute id="defaultDownloads" value="1"/>
         <attribute id="premium" value="false"/>
@@ -18,6 +18,6 @@
                 plugin-version="1.1.1" reverse-lookup="false"/>
     </requires>
     <runtime>
-        <library id="up-4ever.com" path="/" type="code"/>
+        <library id="uploadproper.com" path="/" type="code"/>
     </runtime>
 </plugin>

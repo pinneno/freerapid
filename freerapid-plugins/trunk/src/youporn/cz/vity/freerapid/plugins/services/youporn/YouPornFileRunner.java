@@ -81,7 +81,7 @@ class YouPornFileRunner extends AbstractRunner {
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
-        if (contentAsString.contains("Page Not Found")) {
+        if (contentAsString.contains("Page Not Found") || contentAsString.contains("This video has been removed")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
     }

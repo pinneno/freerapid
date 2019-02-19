@@ -65,9 +65,9 @@ class FileBoomFileRunner extends AbstractRunner {
             checkProblems();
             throw new ServiceConnectionProblemException();
         }
-        matcher = getMatcherAgainstContent("['\"]?sitekey['\"]?\\s*[:=]\\s*['\"]([^\"]+)['\"]");
+        matcher = getMatcherAgainstContent("['\"]?(?:sitekey|RECAPTCHA_PUBLIC_KEY)['\"]?\\s*[:=]\\s*['\"]([^\"]+)['\"]");
         if (!matcher.find()) throw new PluginImplementationException("captcha key not found");
-        reCaptchaKey = matcher.group(1);
+        reCaptchaKey = matcher.group(1).trim();
         matcher = getMatcherAgainstContent("d=\"([^\"]+?api\\.[^\"]+?)\",m=\"([^\"]+?)\",f=\"([^\"]+?)\",");
         if (!matcher.find()) throw new PluginImplementationException("token keys not found");
         baseApiUrl = matcher.group(1);
@@ -132,7 +132,7 @@ class FileBoomFileRunner extends AbstractRunner {
     }
 
     private void checkUrl() {
-        fileURL = fileURL.replace("fboom.me/", "fileboom.me/");
+//        fileURL = fileURL.replace("fboom.me/", "fileboom.me/");
     }
 
     @Override

@@ -47,8 +47,10 @@ class GoogleDocsFileRunner extends AbstractRunner {
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
         if (fileURL.contains("/folder")) {
-            PlugUtils.checkName(httpFile, content, "<title>", " - Google");
-            httpFile.setFileName("Folder > " + httpFile.getFileName());
+            Matcher matcher = getMatcherAgainstContent("<title>(.+?)\\s*–\\s*Google");
+            if (!matcher.find())
+                throw new PluginImplementationException("Folder name not found");
+            httpFile.setFileName("Folder > " + matcher.group(1).trim());
         } else {
             PlugUtils.checkName(httpFile, content, "\"og:title\" content=\"", "\"");
             Matcher matcher = getMatcherAgainstContent("\\[\\w+,\\w+,\"(\\d+)\"\\]");

@@ -32,6 +32,12 @@ class DoUploadsFileRunner extends XFileSharingRunner {
                 httpFile.setFileName(match.group(1).trim());
             }
         });
+        fileNameHandlers.add(new FileNameHandler() {
+            @Override
+            public void checkFileName(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
+                PlugUtils.checkName(httpFile, content, "<h1>", "</h1>");
+            }
+        });
         return fileNameHandlers;
     }
 
@@ -48,6 +54,12 @@ class DoUploadsFileRunner extends XFileSharingRunner {
                 httpFile.setFileSize(PlugUtils.getFileSizeFromString(matcher.group(1).trim()));
             }
         });
+        fileSizeHandlers.add(0, new FileSizeHandler() {
+            @Override
+            public void checkFileSize(HttpFile httpFile, String content) throws ErrorDuringDownloadingException {
+                PlugUtils.checkFileSize(httpFile, content, "<span><strong>", "</strong></span>");
+            }
+        });
         return fileSizeHandlers;
     }
 
@@ -62,7 +74,7 @@ class DoUploadsFileRunner extends XFileSharingRunner {
     protected List<String> getDownloadLinkRegexes() {
         final List<String> downloadLinkRegexes = super.getDownloadLinkRegexes();
         downloadLinkRegexes.clear();
-        downloadLinkRegexes.add("<a href\\s*=\\s*[\"'](http.+?" + Pattern.quote(httpFile.getFileName()) + ")[\"'].+?Download Now.+?</a");
+        downloadLinkRegexes.add("<a[^<>]+href\\s*=\\s*[\"'](http.+?" + Pattern.quote(httpFile.getFileName()) + ")[\"'].+?>\\s*Download");
         return downloadLinkRegexes;
     }
 }
