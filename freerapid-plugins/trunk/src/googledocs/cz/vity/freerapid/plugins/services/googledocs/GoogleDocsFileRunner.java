@@ -33,6 +33,7 @@ class GoogleDocsFileRunner extends AbstractRunner {
         correctURL();
         final GetMethod getMethod = getGetMethod(fileURL);
         if (makeRedirectedRequest(getMethod)) {
+            fileURL = getMethod.getURI().getURI();
             checkProblems();
             doLogin();
             checkNameAndSize(getContentAsString());
@@ -78,6 +79,7 @@ class GoogleDocsFileRunner extends AbstractRunner {
         logger.info("Starting download in TASK " + fileURL);
         final GetMethod method = getGetMethod(fileURL);
         if (makeRedirectedRequest(method)) {
+            fileURL = method.getURI().getURI();
             checkProblems();
             doLogin();
             checkNameAndSize(getContentAsString());

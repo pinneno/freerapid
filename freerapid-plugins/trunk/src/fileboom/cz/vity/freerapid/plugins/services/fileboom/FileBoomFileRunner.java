@@ -68,7 +68,7 @@ class FileBoomFileRunner extends AbstractRunner {
         matcher = getMatcherAgainstContent("['\"]?(?:sitekey|RECAPTCHA_PUBLIC_KEY)['\"]?\\s*[:=]\\s*['\"]([^\"]+)['\"]");
         if (!matcher.find()) throw new PluginImplementationException("captcha key not found");
         reCaptchaKey = matcher.group(1).trim();
-        matcher = getMatcherAgainstContent("d=\"([^\"]+?api\\.[^\"]+?)\",m=\"([^\"]+?)\",f=\"([^\"]+?)\",");
+        matcher = getMatcherAgainstContent("\\w=\"([^\"]+?api\\.[^\"]+?)\",\\w=\"([^\"]+?)\",\\w=\"([^\"]+?)\",");
         if (!matcher.find()) throw new PluginImplementationException("token keys not found");
         baseApiUrl = matcher.group(1);
         String c_id = matcher.group(2);

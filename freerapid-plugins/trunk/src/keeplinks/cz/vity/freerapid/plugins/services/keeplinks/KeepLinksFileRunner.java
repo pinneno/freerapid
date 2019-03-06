@@ -157,14 +157,14 @@ class KeepLinksFileRunner extends AbstractRunner {
         final CaptchaSupport captchaSupport = getCaptchaSupport();
         final String captcha;
         if (getContentAsString().contains("recaptcha/api/challenge")) { //recaptcha
-            final Matcher m = getMatcherAgainstContent("recaptcha/api/challenge\\?k=(.+?)\"");
-            if (!m.find()) throw new PluginImplementationException("Captcha key not found");
-            final String captchaKey = m.group(1);
-            final ReCaptcha reCaptcha = new ReCaptcha(captchaKey, client);
-            captcha = captchaSupport.getCaptcha(reCaptcha.getImageURL());
-            if (captcha == null) throw new CaptchaEntryInputMismatchException();
-            reCaptcha.setRecognized(captcha);
-            reCaptcha.modifyResponseMethod(method);
+          //  final Matcher m = getMatcherAgainstContent("recaptcha/api/challenge\\?k=(.+?)\"");
+          //  if (!m.find()) throw new PluginImplementationException("Captcha key not found");
+          //  final String captchaKey = m.group(1);
+          //  final ReCaptcha reCaptcha = new ReCaptcha(captchaKey, client);
+          //  captcha = captchaSupport.getCaptcha(reCaptcha.getImageURL());
+          //  if (captcha == null) throw new CaptchaEntryInputMismatchException();
+          //  reCaptcha.setRecognized(captcha);
+          //  reCaptcha.modifyResponseMethod(method);
         } else if (getContentAsString().contains("/simplecaptcha/captcha.php")) { //simple captcha
             final String captchaUrl = getMethodBuilder()
                     .setReferer(fileURL)
