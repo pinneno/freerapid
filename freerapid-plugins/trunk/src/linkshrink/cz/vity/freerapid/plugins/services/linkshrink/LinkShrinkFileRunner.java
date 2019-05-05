@@ -6,6 +6,7 @@ import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
 import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadState;
+import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -56,11 +57,20 @@ class LinkShrinkFileRunner extends AbstractRunner {
     }
 
     private String decodeNextLink() throws Exception {
-        Matcher match = getMatcherAgainstContent("<script>(function.+?)</script><script>.+?location\\.href\\s*=\\s*(.+?)[,;].+?</script>");
+        Matcher match = getMatcherAgainstContent("<script>(function.+?)</script><script>(.+?(?:location\\.href\\s*=\\s*|window\\.open\\()(.+?)[,;].+?)</script>");
         if (!match.find()) throw new PluginImplementationException("Script not found");
         try {
+            Matcher subMatch1 = PlugUtils.matcher("location\\.href\\s*=\\s*(.+?)[,;]", match.group(2));
+            Matcher subMatch2 = PlugUtils.matcher("window\\.open\\((.+?)[,;]", match.group(2));
+            String evalFunct;
+            if (subMatch1.find() && !subMatch1.group(1).contains("ads.linkshrink"))
+                evalFunct = subMatch1.group(1);
+            else if (subMatch2.find() && !subMatch2.group(1).contains("ads.linkshrink"))
+                evalFunct = subMatch2.group(1);
+            else
+                throw new PluginImplementationException("Error finding javascript");
             ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
-            return engine.eval(match.group(1) + match.group(2)).toString();
+            return engine.eval(match.group(1) + evalFunct).toString();
         } catch (Exception e) {
             throw new PluginImplementationException("JS evaluation error " + e.getLocalizedMessage());
         }

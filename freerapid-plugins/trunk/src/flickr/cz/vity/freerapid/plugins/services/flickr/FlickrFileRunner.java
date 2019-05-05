@@ -120,6 +120,7 @@ class FlickrFileRunner extends AbstractRunner {
                 .setAction(source)
                 .toGetMethod();
         setClientParameter(DownloadClientConsts.DONT_USE_HEADER_FILENAME, true);
+        setClientParameter(DownloadClientConsts.NO_CONTENT_LENGTH_AVAILABLE, true);
         setFileStreamContentTypes("text/plain");
         if (!tryDownloadAndSaveFile(method)) {
             checkProblems();

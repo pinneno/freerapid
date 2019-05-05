@@ -31,6 +31,7 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("https://www.flickr.com/photos/94652568@N03/8786671669/")); //'text/plain'
             httpFile.setNewURL(new URL("https://www.flickr.com/groups/734017@N25/pool/")); //groups pools
             //httpFile.setNewURL(new URL("http://www.flickr.com/photos/27398037@N04/2555335609/"));
+            //httpFile.setNewURL(new URL("https://www.flickr.com/photos/17114381@N00/47571904191"));  //adult content
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("195.77.62.138", 3128); //eg we can use local proxy to sniff HTTP communication
