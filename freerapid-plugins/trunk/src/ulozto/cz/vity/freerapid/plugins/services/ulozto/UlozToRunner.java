@@ -149,9 +149,26 @@ class UlozToRunner extends AbstractRunner {
             } else {
                 checkNameAndSize(getContentAsString());
                 captchaCount = 0;
-                HttpMethod method;
+                HttpMethod method = null;
                 do {
-                    method = stepCaptcha();
+                    if (getContentAsString().contains("Please click here to continue")) {
+                        logger.info("Using HTML redirect");
+                        method = getMethodBuilder().setReferer(fileURL).setActionFromAHrefWhereATagContains("Please click here to continue").toGetMethod();
+                    }
+                    if (getContentAsString().contains("freeDownloadForm")) {
+                        method = stepCaptcha();
+                    }
+                    if (getContentAsString().contains("limitedDownloadButton")) {
+                        Matcher m = Pattern.compile("<a id=\"limitedDownloadButton\" .*? href=\"([^\"]+)\">").matcher(getContentAsString());
+                        if (!m.find()) {
+                            throw new PluginImplementationException("<a tag containing \"limitedDownloadButton\" not found!");
+                        }
+                        method = getMethodBuilder().setReferer(fileURL).setAction(m.group(1)).toGetMethod();
+                    }
+                    if (method == null) {
+                        throw new PluginImplementationException("Nenalezeny potrebne retezce");
+                    }
+
                     downloadTask.sleep(new Random().nextInt(4) + new Random().nextInt(3));
                     makeRequest(method);
                     if ((method.getStatusCode() == 302) || (method.getStatusCode() == 303)) {
@@ -162,7 +179,7 @@ class UlozToRunner extends AbstractRunner {
                         break;
                     }
                     checkProblems();
-                } while (getContentAsString().contains("captchaContainer") || getContentAsString().contains("?captcha=no"));
+                } while (getContentAsString().contains("limitedDownloadButton") || getContentAsString().contains("captchaContainer") || getContentAsString().contains("?captcha=no"));
                 setFileStreamContentTypes("text/plain", "text/texmacs");
                 if (!tryDownloadAndSaveFile(method)) {
                     checkProblems();
@@ -226,10 +243,6 @@ class UlozToRunner extends AbstractRunner {
     }
 
     private HttpMethod stepCaptcha() throws Exception {
-        if (getContentAsString().contains("Please click here to continue")) {
-            logger.info("Using HTML redirect");
-            return getMethodBuilder().setReferer(fileURL).setActionFromAHrefWhereATagContains("Please click here to continue").toGetMethod();
-        }
         final MethodBuilder sendForm = getMethodBuilder()
                 .setReferer(fileURL)
                 .setActionFromFormWhereTagContains("freeDownloadForm", true);
