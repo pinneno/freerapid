@@ -18,7 +18,7 @@ public class TestApp extends PluginDevApplication {
             httpFile.setNewURL(new URL("http://fr.xhamster.com/movies/4302367/shu_qi_zouk_me.html"));
             httpFile.setNewURL(new URL("https://xhamster.com/movies/7464893/milf_teacher_gets_it_in_her_office.html"));
             //httpFile.setNewURL(new URL("https://xhamster.com/videos/milf-big-tits-and-nipples-7927779"));
-            httpFile.setNewURL(new URL("https://xhamster.com/photos/gallery/sexy-beautiful-girls-563-10206387"));     //photo gallery
+            //httpFile.setNewURL(new URL("https://xhamster.com/photos/gallery/sexy-beautiful-girls-563-10206387"));     //photo gallery
             //httpFile.setNewURL(new URL("https://xhamster.com/photos/gallery/random-nudity-and-porn-10206239"));       //photo gallery - multi page
             //httpFile.setNewURL(new URL("https://xhamster.com/photos/gallery/10206387/202578489"));                    //photo
             final ConnectionSettings connectionSettings = new ConnectionSettings();

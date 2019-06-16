@@ -1,8 +1,7 @@
 package cz.vity.freerapid.plugins.services.xfilesharing.captcha;
 
-import cz.vity.freerapid.plugins.exceptions.CaptchaEntryInputMismatchException;
+import com.sun.org.apache.xml.internal.resolver.helpers.FileURL;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
-import cz.vity.freerapid.plugins.services.recaptcha.ReCaptcha;
 import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
 import cz.vity.freerapid.plugins.webclient.hoster.CaptchaSupport;
@@ -35,22 +34,10 @@ public class ReCaptchaType implements CaptchaType {
         if (!reCaptchaKeyMatcher.find()) {
             throw new PluginImplementationException("ReCaptcha key not found");
         }
-        if (content.contains("/api/challenge")) {
-            final String reCaptchaKey = reCaptchaKeyMatcher.group(1).trim();
-            final ReCaptcha r = new ReCaptcha(reCaptchaKey, client);
-            final String captcha = captchaSupport.getCaptcha(r.getImageURL());
-            if (captcha == null) {
-                throw new CaptchaEntryInputMismatchException();
-            }
-            r.setRecognized(captcha);
-            r.modifyResponseMethod(methodBuilder);
-        }
-        else {
-            final String reCaptchaKey = reCaptchaKeyMatcher.group(1).trim();
-            final String fileUrl = downloadTask.getDownloadFile().getFileUrl().toString();
-            final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileUrl);
-            r.modifyResponseMethod(methodBuilder);
-        }
+        final String reCaptchaKey = reCaptchaKeyMatcher.group(1).trim();
+        final String fileUrl = downloadTask.getDownloadFile().getFileUrl().toString();
+        final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileUrl);
+        r.modifyResponseMethod(methodBuilder);
     }
 
 }

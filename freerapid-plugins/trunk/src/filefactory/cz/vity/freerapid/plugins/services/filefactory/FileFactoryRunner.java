@@ -39,11 +39,11 @@ class FileFactoryRunner extends AbstractRunner {
     }
 
     private void checkPasswordProtected() throws Exception {
-        while (getContentAsString().contains("Password Protected File")
-                || getContentAsString().contains("File has been password protected")) {
+        while (getContentAsString().contains("Password Protected F")
+                || getContentAsString().contains("has been password protected")) {
             final String password = getDialogSupport().askForPassword("FileFactory");
             if (password == null) {
-                throw new PluginImplementationException("This File has been password protected");
+                throw new PluginImplementationException("This File/Folder has been password protected");
             }
             final HttpMethod method = getMethodBuilder()
                     .setActionFromFormWhereTagContains("password", true)

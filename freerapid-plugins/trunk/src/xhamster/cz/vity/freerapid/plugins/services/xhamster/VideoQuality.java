@@ -5,6 +5,7 @@ package cz.vity.freerapid.plugins.services.xhamster;
  */
 
 enum VideoQuality {
+    _144(144),
     _240(240),
     _480(480),
     _720(720);

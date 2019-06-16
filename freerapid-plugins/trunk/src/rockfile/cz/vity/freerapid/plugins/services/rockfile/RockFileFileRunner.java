@@ -23,6 +23,7 @@ class RockFileFileRunner extends XFileSharingRunner {
 
     @Override
     protected void correctURL() throws Exception {
+        fileURL = fileURL.replace("//rockfile.co/", "//www.rockfile.co/");
         skipDDoSProtection();
     }
 
@@ -33,13 +34,17 @@ class RockFileFileRunner extends XFileSharingRunner {
             Matcher match = getMatcherAgainstContent("var (?:\\w,)* ([^;]+;)");
             if (!match.find()) throw new PluginImplementationException("DDoS Protection bypass error 1");
             String script = match.group(1);
-            script += "t=\"rockfile.eu\";";
+            script += "t=\"www.rockfile.co\";";
             match = getMatcherAgainstContent("  ;(.+?;) ");
             if (!match.find()) throw new PluginImplementationException("DDoS Protection bypass error 2");
             script += match.group(1).replace("a.value", "answer");
 
             ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
-            String answer = "" + new Float(engine.eval(script).toString()).intValue();
+            String answer = "" + engine.eval(script).toString() + "00000";
+            match = getMatcherAgainstContent("toFixed\\((\\d+)\\)");
+            if (!match.find()) throw new PluginImplementationException("DDoS Protection bypass error 3");
+            int precision = Integer.parseInt(match.group(1).trim());
+            answer = answer.substring(0, answer.lastIndexOf(".")+ 1 + precision);
 
             method = getMethodBuilder().setReferer(fileURL)
                     .setActionFromFormByName("challenge-form", true)

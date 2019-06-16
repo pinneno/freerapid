@@ -31,6 +31,7 @@ class FileFactoryFileRunner extends AbstractRunner {
         if (httpStatus / 100 == 3) {    // direct download
             httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
         } else if (httpStatus == 200) {
+            checkPasswordProtected();
             checkProblems();
             checkNameAndSize();
         } else {
@@ -41,6 +42,25 @@ class FileFactoryFileRunner extends AbstractRunner {
 
     private void setLanguageCookie() throws Exception {
         addCookie(new Cookie(".filefactory.com", "locale", "en_US.utf8", "/", 86400, false));
+    }
+
+    private void checkPasswordProtected() throws Exception {
+        while (getContentAsString().contains("Password Protected F")
+                || getContentAsString().contains("has been password protected")) {
+            final String password = getDialogSupport().askForPassword("FileFactory");
+            if (password == null) {
+                throw new PluginImplementationException("This File/Folder has been password protected");
+            }
+            final HttpMethod method = getMethodBuilder()
+                    .setActionFromFormWhereTagContains("password", true)
+                    .setAction(fileURL).setReferer(fileURL)
+                    .setParameter("password", password)
+                    .toPostMethod();
+            if (!makeRedirectedRequest(method)) {
+                checkProblems();
+                throw new ServiceConnectionProblemException();
+            }
+        }
     }
 
     @Override
@@ -59,6 +79,7 @@ class FileFactoryFileRunner extends AbstractRunner {
                 throw new ServiceConnectionProblemException("Error starting download");
             }
         } else if (httpStatus == 200) {
+            checkPasswordProtected();
             checkProblems();
             checkNameAndSize();
 

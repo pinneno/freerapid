@@ -59,7 +59,7 @@ class xHamsterFileRunner extends AbstractRunner {
             }
         } else {
             httpFile.setFileName(name + ".mp4");
-            PlugUtils.checkFileSize(httpFile, content, getPreferredQuality() + " quality (", ")");
+            PlugUtils.checkFileSize(httpFile, content, getPreferredQuality() + " quality<span>", "</span>");
         }
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }

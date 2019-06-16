@@ -19,7 +19,7 @@ public class TestApp extends PluginDevApplication {
             //httpFile.setNewURL(new URL("http://www.filefactory.com/file/4gtrcz9lu891/"));
             httpFile.setNewURL(new URL("http://www.filefactory.com/file/29o8ylf7u0u1/Suea.2014.E08.20141218.mkv"));
             //httpFile.setNewURL(new URL("http://www.filefactory.com/stream/2wrrb67r7rqh"));
-            //httpFile.setNewURL(new URL("http://www.filefactory.com/file/5zi28vrfqgan"));    // password protected
+            //httpFile.setNewURL(new URL("http://www.filefactory.com/file/54t5klpgcfc7"));    // password protected: "FRD"
             //the way we connect to the internet
             final ConnectionSettings connectionSettings = new ConnectionSettings();// creates default connection
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
