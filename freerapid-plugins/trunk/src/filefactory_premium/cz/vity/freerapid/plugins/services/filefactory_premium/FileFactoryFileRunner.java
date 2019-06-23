@@ -44,22 +44,32 @@ class FileFactoryFileRunner extends AbstractRunner {
         addCookie(new Cookie(".filefactory.com", "locale", "en_US.utf8", "/", 86400, false));
     }
 
+    private static String lastPassword = null;
     private void checkPasswordProtected() throws Exception {
-        while (getContentAsString().contains("Password Protected F")
-                || getContentAsString().contains("has been password protected")) {
-            final String password = getDialogSupport().askForPassword("FileFactory");
-            if (password == null) {
-                throw new PluginImplementationException("This File/Folder has been password protected");
+        synchronized(FileFactoryFileRunner.class) {
+            String password = null;
+            while (getContentAsString().contains("Password Protected F")
+                    || getContentAsString().contains("has been password protected")) {
+                if (lastPassword != null) {
+                    password = lastPassword;
+                    lastPassword = null;
+                } else {
+                    password = getDialogSupport().askForPassword("FileFactory");
+                }
+                if (password == null) {
+                    throw new PluginImplementationException("This File/Folder has been password protected");
+                }
+                final HttpMethod method = getMethodBuilder()
+                        .setActionFromFormWhereTagContains("password", true)
+                        .setAction(fileURL).setReferer(fileURL)
+                        .setParameter("password", password)
+                        .toPostMethod();
+                if (!makeRedirectedRequest(method)) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
+                }
             }
-            final HttpMethod method = getMethodBuilder()
-                    .setActionFromFormWhereTagContains("password", true)
-                    .setAction(fileURL).setReferer(fileURL)
-                    .setParameter("password", password)
-                    .toPostMethod();
-            if (!makeRedirectedRequest(method)) {
-                checkProblems();
-                throw new ServiceConnectionProblemException();
-            }
+            lastPassword = password;
         }
     }
 

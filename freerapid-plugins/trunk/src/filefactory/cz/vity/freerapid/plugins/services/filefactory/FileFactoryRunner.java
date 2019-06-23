@@ -38,22 +38,32 @@ class FileFactoryRunner extends AbstractRunner {
         addCookie(new Cookie(".filefactory.com", "locale", "en_US.utf8", "/", 86400, false));
     }
 
+    private static String lastPassword = null;
     private void checkPasswordProtected() throws Exception {
-        while (getContentAsString().contains("Password Protected F")
-                || getContentAsString().contains("has been password protected")) {
-            final String password = getDialogSupport().askForPassword("FileFactory");
-            if (password == null) {
-                throw new PluginImplementationException("This File/Folder has been password protected");
+        synchronized(FileFactoryRunner.class) {
+            String password = null;
+            while (getContentAsString().contains("Password Protected F")
+                    || getContentAsString().contains("has been password protected")) {
+                if (lastPassword != null) {
+                    password = lastPassword;
+                    lastPassword = null;
+                } else {
+                    password = getDialogSupport().askForPassword("FileFactory");
+                }
+                if (password == null) {
+                    throw new PluginImplementationException("This File/Folder has been password protected");
+                }
+                final HttpMethod method = getMethodBuilder()
+                        .setActionFromFormWhereTagContains("password", true)
+                        .setAction(fileURL).setReferer(fileURL)
+                        .setParameter("password", password)
+                        .toPostMethod();
+                if (!makeRedirectedRequest(method)) {
+                    checkSeriousProblems();
+                    throw new ServiceConnectionProblemException();
+                }
             }
-            final HttpMethod method = getMethodBuilder()
-                    .setActionFromFormWhereTagContains("password", true)
-                    .setAction(fileURL).setReferer(fileURL)
-                    .setParameter("password", password)
-                    .toPostMethod();
-            if (!makeRedirectedRequest(method)) {
-                checkSeriousProblems();
-                throw new ServiceConnectionProblemException();
-            }
+            lastPassword = password;
         }
     }
 
@@ -79,9 +89,15 @@ class FileFactoryRunner extends AbstractRunner {
                 }
                 makeRedirectedRequest(getMethod);
             }
+            String link;
+            try {
+                link = PlugUtils.getStringBetween(getContentAsString(), "data-href=\"", "\"");
+            } catch (Exception x) {
+                link = getMethodBuilder().setActionFromAHrefWhereATagContains("Start Download").getEscapedURI();
+            }
             final HttpMethod finalMethod = getMethodBuilder()
                     .setReferer(fileURL)
-                    .setAction(PlugUtils.getStringBetween(getContentAsString(), "data-href=\"", "\""))
+                    .setAction(link)
                     .toGetMethod();
 
             downloadTask.sleep(PlugUtils.getWaitTimeBetween(getContentAsString(), "data-delay=\"", "\"", TimeUnit.SECONDS) + 1);
