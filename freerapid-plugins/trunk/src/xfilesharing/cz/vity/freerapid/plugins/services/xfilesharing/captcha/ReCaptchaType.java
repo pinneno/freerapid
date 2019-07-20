@@ -1,6 +1,5 @@
 package cz.vity.freerapid.plugins.services.xfilesharing.captcha;
 
-import com.sun.org.apache.xml.internal.resolver.helpers.FileURL;
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.MethodBuilder;
