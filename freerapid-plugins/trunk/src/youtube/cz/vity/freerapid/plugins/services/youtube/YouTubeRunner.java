@@ -270,7 +270,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
             } else {
                 signature = youTubeMedia.getSignature();
             }
-            videoURL += "&signature=" + signature;
+            videoURL += "&sig=" + signature;
         }
         return videoURL;
     }
@@ -405,7 +405,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
                         url = URLDecoder.decode(value, "UTF-8");
                         String sigParam = null;
                         try {
-                            sigParam = URLUtil.getQueryParams(url, "UTF-8").get("signature");
+                            sigParam = URLUtil.getQueryParams(url, "UTF-8").get("sig");
                         } catch (Exception e) {
                             //
                         }
@@ -413,7 +413,7 @@ class YouTubeRunner extends AbstractVideo2AudioRunner {
                             signature = sigParam;
                         }
                     } else if (key.equals("signature") || key.equals("sig") || key.equals("s")) {
-                        signature = value;
+                        signature = URLDecoder.decode(value, "UTF-8");
                         cipherSig = key.equals("s");
                     }
                 }
