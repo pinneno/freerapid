@@ -94,11 +94,14 @@ class MegaApi {
     }
 
     public static void checkProblems(final String content) throws Exception {
-        Matcher matcher = PlugUtils.matcher("\\[(\\-\\d+?)\\]", content);
+        Matcher matcher = PlugUtils.matcher("^(\\-\\d+?)$", content);
         if (!matcher.find()) {
-            matcher = PlugUtils.matcher("\"e\":(\\-\\d+)", content);
+            matcher = PlugUtils.matcher("\\[(\\-\\d+?)\\]", content);
             if (!matcher.find()) {
-                return;
+                matcher = PlugUtils.matcher("\"e\":(\\-\\d+)", content);
+                if (!matcher.find()) {
+                    return;
+                }
             }
         }
         final int e = Integer.parseInt(matcher.group(1));

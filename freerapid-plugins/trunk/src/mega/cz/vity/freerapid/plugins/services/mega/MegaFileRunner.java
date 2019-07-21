@@ -2,6 +2,7 @@ package cz.vity.freerapid.plugins.services.mega;
 
 import cz.vity.freerapid.plugins.exceptions.PluginImplementationException;
 import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
+import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
 import cz.vity.freerapid.plugins.webclient.*;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
 import cz.vity.freerapid.utilities.LogUtils;
@@ -17,7 +18,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
@@ -49,10 +50,9 @@ class MegaFileRunner extends AbstractRunner {
     private LinkType type = LinkType.P;
 
     private void init() throws Exception {
-        if (fileURL.contains("%21"))  fileURL = fileURL.replace("%21", "!");
-        if (fileURL.contains("%23"))  fileURL = fileURL.replace("%23", "#");
+        fileURL = fileURL.replace("%21", "!").replace("%23", "#");
         if (id == null) {
-            Matcher matcher = PlugUtils.matcher("#(N)?(?:!|%21)([a-zA-Z\\d]{8})(?:!|%21)([a-zA-Z\\d\\-_]{43})(?:(?:!|%21)([a-zA-Z\\d]{8}))?", fileURL);
+            Matcher matcher = PlugUtils.matcher("#(N)?!([a-zA-Z\\d]{8})!([a-zA-Z\\d\\-_]{43})(?:!([a-zA-Z\\d]{8}))?", fileURL);
             if (matcher.find()) {
                 if (matcher.group(1) != null) {
                     type = LinkType.N;
@@ -61,13 +61,29 @@ class MegaFileRunner extends AbstractRunner {
                 api = new MegaApi(client, matcher.group(3));
                 folderId = matcher.group(4);
             } else {
-                matcher = PlugUtils.matcher("#F(?:!|%21)([a-zA-Z\\d]{8})(?:!|%21)([a-zA-Z\\d\\-_]{22})$", fileURL);
+                matcher = PlugUtils.matcher("#F!([a-zA-Z\\d]{8})!([a-zA-Z\\d\\-_]{22})(?:\\?([a-zA-Z\\d]{8}))?", fileURL);
                 if (!matcher.find()) {
                     throw new PluginImplementationException("Error parsing file URL");
                 }
                 id = matcher.group(1);
                 key = Base64.decodeBase64(matcher.group(2));
                 type = LinkType.FOLDER;
+
+                final String nodeId = matcher.group(3);
+                if (nodeId != null) {
+                    for (final MegaNode node : getFolderLinks()) {
+                        if (nodeId.equals(node.id)) {
+                            fileURL = node.toString();
+                            logger.info("Setting new file URL to " + fileURL);
+                            type = LinkType.N;
+                            id = node.id;
+                            api = new MegaApi(client, node.key);
+                            folderId = node.folderId;
+                            return;
+                        }
+                    }
+                    throw new URLNotAvailableAnymoreException("File not found in folder");
+                }
             }
         }
     }
@@ -107,8 +123,16 @@ class MegaFileRunner extends AbstractRunner {
         init();
         logger.info("Starting download in TASK " + fileURL);
         if (type == LinkType.FOLDER) {
-            final List<URI> list = getFolderLinks();
-            getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, list);
+            final List<MegaNode> list = getFolderLinks();
+            final List<URI> uriList = new ArrayList<URI>(list.size());
+            for (final MegaNode node : list) {
+                try {
+                    uriList.add(node.toUri());
+                } catch (final URISyntaxException e) {
+                    LogUtils.processException(logger, e);
+                }
+            }
+            getPluginService().getPluginContext().getQueueSupport().addLinksToQueue(httpFile, uriList);
             httpFile.getProperties().put("removeCompleted", true);
             return;
         }
@@ -169,7 +193,7 @@ class MegaFileRunner extends AbstractRunner {
         }
     }
 
-    public List<URI> getFolderLinks() throws Exception {
+    private List<MegaNode> getFolderLinks() throws Exception {
         final HttpMethod method = new MethodBuilder(client)
                 .setAction("https://g.api.mega.co.nz/cs?id=" + new Random().nextInt(0x10000000) + "&n=" + id)
                 .toPostMethod();
@@ -178,15 +202,15 @@ class MegaFileRunner extends AbstractRunner {
             throw new ServiceConnectionProblemException();
         }
         MegaApi.checkProblems(getContentAsString());
-        final List<URI> list = parseFolderContent(getContentAsString());
+        final List<MegaNode> list = parseFolderContent(getContentAsString());
         if (list.isEmpty()) {
             throw new PluginImplementationException("No links found");
         }
         return list;
     }
 
-    private List<URI> parseFolderContent(final String content) throws Exception {
-        final List<URI> list = new LinkedList<URI>();
+    private List<MegaNode> parseFolderContent(final String content) throws Exception {
+        final List<MegaNode> list = new ArrayList<MegaNode>();
         final Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
         cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"));
         final Matcher matcher = PlugUtils.matcher("\\{\\s*(\"h\".+?)\\s*\\}", content);
@@ -203,11 +227,7 @@ class MegaFileRunner extends AbstractRunner {
                     throw new PluginImplementationException("Error parsing server response");
                 }
                 final String key = Base64.encodeBase64URLSafeString(cipher.doFinal(Base64.decodeBase64(keyParts[1])));
-                try {
-                    list.add(new URI("https://mega.nz/#N!" + nodeId + "!" + key + "!" + id));
-                } catch (final URISyntaxException e) {
-                    LogUtils.processException(logger, e);
-                }
+                list.add(new MegaNode(nodeId, key, id));
             }
         }
         return list;
@@ -227,6 +247,26 @@ class MegaFileRunner extends AbstractRunner {
             } else {
                 return null;
             }
+        }
+    }
+
+    private static class MegaNode {
+        final String id;
+        final String key;
+        final String folderId;
+
+        public MegaNode(final String id, final String key, final String folderId) {
+            this.id = id;
+            this.key = key;
+            this.folderId = folderId;
+        }
+
+        public URI toUri() throws Exception {
+            return new URI(toString());
+        }
+
+        public String toString() {
+            return "https://mega.nz/#N!" + id + "!" + key + "!" + folderId;
         }
     }
 
