@@ -45,8 +45,8 @@ class MegaFileRunner extends AbstractRunner {
 
     private MegaApi api;
     private String id;
-    private byte[] key;
-    private String folderId;
+    private byte[] folderKey;
+    private String parentFolderId;
     private LinkType type = LinkType.P;
 
     private void init() throws Exception {
@@ -59,14 +59,14 @@ class MegaFileRunner extends AbstractRunner {
                 }
                 id = matcher.group(2);
                 api = new MegaApi(client, matcher.group(3));
-                folderId = matcher.group(4);
+                parentFolderId = matcher.group(4);
             } else {
                 matcher = PlugUtils.matcher("#F!([a-zA-Z\\d]{8})!([a-zA-Z\\d\\-_]{22})(?:\\?([a-zA-Z\\d]{8}))?", fileURL);
                 if (!matcher.find()) {
                     throw new PluginImplementationException("Error parsing file URL");
                 }
                 id = matcher.group(1);
-                key = Base64.decodeBase64(matcher.group(2));
+                folderKey = Base64.decodeBase64(matcher.group(2));
                 type = LinkType.FOLDER;
 
                 final String nodeId = matcher.group(3);
@@ -75,10 +75,11 @@ class MegaFileRunner extends AbstractRunner {
                         if (nodeId.equals(node.id)) {
                             fileURL = node.toString();
                             logger.info("Setting new file URL to " + fileURL);
+                            folderKey = null;
                             type = LinkType.N;
                             id = node.id;
                             api = new MegaApi(client, node.key);
-                            folderId = node.folderId;
+                            parentFolderId = node.parentFolderId;
                             return;
                         }
                     }
@@ -93,7 +94,7 @@ class MegaFileRunner extends AbstractRunner {
         super.runCheck();
         init();
         if (type != LinkType.FOLDER) {
-            final String content = api.request("[{\"a\":\"g\",\"" + type.parameter() + "\":\"" + id + "\",\"ssl\":\"1\"}]", folderId);
+            final String content = api.request("[{\"a\":\"g\",\"" + type.parameter() + "\":\"" + id + "\",\"ssl\":\"1\"}]", parentFolderId);
             checkNameAndSize(content);
         }
     }
@@ -136,7 +137,7 @@ class MegaFileRunner extends AbstractRunner {
             httpFile.getProperties().put("removeCompleted", true);
             return;
         }
-        final String content = api.request("[{\"a\":\"g\",\"g\":1,\"ssl\":1,\"" + type.parameter() + "\":\"" + id + "\"}]", folderId);
+        final String content = api.request("[{\"a\":\"g\",\"g\":1,\"ssl\":1,\"" + type.parameter() + "\":\"" + id + "\"}]", parentFolderId);
         checkNameAndSize(content);
         final Matcher matcher = PlugUtils.matcher("\"g\"\\s*:\\s*\"(.+?)\"", content);
         if (!matcher.find()) {
@@ -212,7 +213,7 @@ class MegaFileRunner extends AbstractRunner {
     private List<MegaNode> parseFolderContent(final String content) throws Exception {
         final List<MegaNode> list = new ArrayList<MegaNode>();
         final Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
-        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"));
+        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(folderKey, "AES"));
         final Matcher matcher = PlugUtils.matcher("\\{\\s*(\"h\".+?)\\s*\\}", content);
         while (matcher.find()) {
             final NodeData data = new NodeData(matcher.group(1));
@@ -253,12 +254,12 @@ class MegaFileRunner extends AbstractRunner {
     private static class MegaNode {
         final String id;
         final String key;
-        final String folderId;
+        final String parentFolderId;
 
-        public MegaNode(final String id, final String key, final String folderId) {
+        public MegaNode(final String id, final String key, final String parentFolderId) {
             this.id = id;
             this.key = key;
-            this.folderId = folderId;
+            this.parentFolderId = parentFolderId;
         }
 
         public URI toUri() throws Exception {
@@ -266,7 +267,7 @@ class MegaFileRunner extends AbstractRunner {
         }
 
         public String toString() {
-            return "https://mega.nz/#N!" + id + "!" + key + "!" + folderId;
+            return "https://mega.nz/#N!" + id + "!" + key + "!" + parentFolderId;
         }
     }
 
