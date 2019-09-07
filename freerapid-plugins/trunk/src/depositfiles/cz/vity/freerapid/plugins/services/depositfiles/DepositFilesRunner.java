@@ -83,7 +83,7 @@ class DepositFilesRunner extends AbstractRunner {
                 }
                 checkProblems();
             }
-            Matcher matcher = getMatcherAgainstContent("setTimeout\\s*\\(\\s*'load_form.*?'\\s*,\\s*(\\d+)[^\\d]");
+            Matcher matcher = getMatcherAgainstContent("download_wait[^\"']*[\"'][^>]*>\\s*(\\d+)");
             if (!matcher.find()) {
                 throw new PluginImplementationException("Cannot find wait time");
             }

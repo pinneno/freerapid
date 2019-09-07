@@ -16,7 +16,7 @@ public class TestApp extends PluginDevApplication {
         final HttpFile httpFile = getHttpFile();
         try {
             //httpFile.setNewURL(new URL("http://spankbang.com/344l/video/newlywed+hannah+harper+cheats+on+husband+for+money"));
-            httpFile.setNewURL(new URL("http://spankbang.com/2yul/video/dillion+harper"));
+            httpFile.setNewURL(new URL("https://spankbang.com/12wrr/video/sexy+belly+dance"));
             final ConnectionSettings connectionSettings = new ConnectionSettings();
             //connectionSettings.setProxy("localhost", 8081); //eg we can use local proxy to sniff HTTP communication
             final SpankBangServiceImpl service = new SpankBangServiceImpl();

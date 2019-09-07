@@ -1,22 +1,22 @@
-package cz.vity.freerapid.plugins.services.youjizz;
+package cz.vity.freerapid.plugins.services.k511;
 
-import cz.vity.freerapid.plugins.exceptions.ErrorDuringDownloadingException;
-import cz.vity.freerapid.plugins.exceptions.ServiceConnectionProblemException;
-import cz.vity.freerapid.plugins.exceptions.URLNotAvailableAnymoreException;
+import cz.vity.freerapid.plugins.exceptions.*;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.FileState;
 import cz.vity.freerapid.plugins.webclient.utils.PlugUtils;
+import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 
 /**
  * Class which contains main code
  *
  * @author birchie
  */
-class YouJizzFileRunner extends AbstractRunner {
-    private final static Logger logger = Logger.getLogger(YouJizzFileRunner.class.getName());
+class K511FileRunner extends AbstractRunner {
+    private final static Logger logger = Logger.getLogger(K511FileRunner.class.getName());
 
     @Override
     public void runCheck() throws Exception { //this method validates file
@@ -32,8 +32,10 @@ class YouJizzFileRunner extends AbstractRunner {
     }
 
     private void checkNameAndSize(String content) throws ErrorDuringDownloadingException {
-        PlugUtils.checkName(httpFile, content, "<title>", "</title>");
-        httpFile.setFileName(httpFile.getFileName() + ".mp4");
+        PlugUtils.checkName(httpFile, content, "<title>", " - K511");
+        Matcher matcher = PlugUtils.matcher(" \\(\\s*(\\d[^\\)]+)\\s*\\)", content);
+        if (!matcher.find()) throw new PluginImplementationException("File size not found");
+        httpFile.setFileSize(PlugUtils.getFileSizeFromString(matcher.group(1)));
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 
@@ -46,9 +48,24 @@ class YouJizzFileRunner extends AbstractRunner {
             final String contentAsString = getContentAsString();//check for response
             checkProblems();//check problems
             checkNameAndSize(contentAsString);
-            String downloadUrl = PlugUtils.getStringBetween(contentAsString, "quality\":\"360\",\"filename\":\"", "\"").replace("\\", "");
-            downloadUrl = downloadUrl.replaceFirst(".*//", "https://");
-            if (!tryDownloadAndSaveFile(getGetMethod(downloadUrl))) {
+            HttpMethod httpMethod;
+            while (getContentAsString().contains("view now<")) {
+                httpMethod = getMethodBuilder().setReferer(fileURL)
+                        .setActionFromAHrefWhereATagContains("view now").toHttpMethod();
+                int wait = PlugUtils.getNumberBetween(getContentAsString(), "var seconds = ", ";");
+                downloadTask.sleep(1 + wait);
+                if (!makeRedirectedRequest(httpMethod)) {
+                    checkProblems();
+                    throw new ServiceConnectionProblemException();
+                }
+                checkProblems();
+            }
+            Matcher matcher = getMatcherAgainstContent("<a[^>]+href=\"([^\"]+)\"[^>]+>[^<]+download");
+            if (!matcher.find())
+                throw new PluginImplementationException("Download link not found");
+            httpMethod = getMethodBuilder().setReferer(fileURL)
+                    .setAction(matcher.group(1).trim()).toHttpMethod();
+            if (!tryDownloadAndSaveFile(httpMethod)) {
                 checkProblems();//if downloading failed
                 throw new ServiceConnectionProblemException("Error starting download");//some unknown problem
             }
@@ -59,8 +76,8 @@ class YouJizzFileRunner extends AbstractRunner {
     }
 
     private void checkProblems() throws ErrorDuringDownloadingException {
-        final String contentAsString = getContentAsString();
-        if (contentAsString.contains("This video does not exist or has been removed")) {
+        final String content = getContentAsString();
+        if ((content.contains("pageErrors") && content.contains("File has been removed")) || content.contains("<title>Error")) {
             throw new URLNotAvailableAnymoreException("File not found"); //let to know user in FRD
         }
     }

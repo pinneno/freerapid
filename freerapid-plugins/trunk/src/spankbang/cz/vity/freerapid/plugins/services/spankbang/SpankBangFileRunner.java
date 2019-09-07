@@ -83,9 +83,15 @@ class SpankBangFileRunner extends AbstractRunner {
             //    //
             //}
 
+            String streamKey = PlugUtils.getStringBetween(getContentAsString(), "streamkey=\"", "\"");
+            makeRedirectedRequest(getMethodBuilder().setReferer(fileURL).setAjax()
+                    .setAction("https://spankbang.com/api/videos/stream")
+                    .setParameter("id", streamKey)
+                    .toPostMethod());
+
             setConfig();
             List<SpankBangVideo> videoList = new LinkedList<SpankBangVideo>();
-            Matcher matcher = getMatcherAgainstContent("stream_url_([^\\s=:]+)\\s*[=:]\\s*[\"']([^\"']+)[\"']");
+            Matcher matcher = getMatcherAgainstContent("stream_url_([^\\s=:\"']+)[\"']?\\s*[=:]\\s*[\"']([^\"']+)[\"']");
             while (matcher.find()) {
                 String qual = matcher.group(1).trim();
                 if (qual.equals("240p"))
@@ -107,8 +113,8 @@ class SpankBangFileRunner extends AbstractRunner {
             //if (streamSd == 1) {
             //    videoList.add(new SpankBangVideo(VideoQuality._240, getVideoUrl(streamKey, streamId, VideoQuality._240.getName())));
             //}
-            //videoList.add(new SpankBangVideo(VideoQuality._480, getVideoUrl(streamKey, streamId, VideoQuality._480.getName())));
-
+            if (videoList.isEmpty())
+                throw new PluginImplementationException("No videos found");
             SpankBangVideo selectedVideo = Collections.min(videoList);
             logger.info("Config settings: " + config);
             logger.info("Selected video: " + selectedVideo);
@@ -127,7 +133,7 @@ class SpankBangFileRunner extends AbstractRunner {
 
     private void checkProblems() throws ErrorDuringDownloadingException {
         final String contentAsString = getContentAsString();
-        if (contentAsString.contains("File Not Found")) {
+        if (contentAsString.contains("File Not Found") || contentAsString.contains("this video is no longer available")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
     }
@@ -138,9 +144,9 @@ class SpankBangFileRunner extends AbstractRunner {
         }
     }
 
-    private String getVideoUrl(String streamKey, String streamId, String qualityName) {
-        return getBaseURL() + "/_" + streamId + "/" + streamKey + "/title/" + qualityName + "__mp4";
-    }
+    //private String getVideoUrl(String streamKey, String streamId, String qualityName) {
+    //    return getBaseURL() + "/_" + streamId + "/" + streamKey + "/title/" + qualityName + "__mp4";
+    //}
 
     private class SpankBangVideo implements Comparable<SpankBangVideo> {
         private final static int LOWER_QUALITY_PENALTY = 10;

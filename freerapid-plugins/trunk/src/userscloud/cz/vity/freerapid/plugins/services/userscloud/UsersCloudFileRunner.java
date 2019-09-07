@@ -88,7 +88,8 @@ class UsersCloudFileRunner extends XFileSharingRunner {
 
     @Override
     protected void checkFileProblems(final String content) throws ErrorDuringDownloadingException {
-        if (content.contains("file you are trying to download is no longer available")) {
+        if (content.contains("file you are trying to download is no longer available") ||
+                content.contains("file is no longer available")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
         super.checkFileProblems(content);
