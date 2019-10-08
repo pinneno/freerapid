@@ -1,7 +1,7 @@
 package cz.vity.freerapid.plugins.services.kprotector;
 
 import cz.vity.freerapid.plugins.exceptions.*;
-import cz.vity.freerapid.plugins.services.recaptcha.ReCaptcha;
+import cz.vity.freerapid.plugins.services.recaptcha.ReCaptchaNoCaptcha;
 import cz.vity.freerapid.plugins.webclient.AbstractRunner;
 import cz.vity.freerapid.plugins.webclient.DownloadState;
 import cz.vity.freerapid.plugins.webclient.FileState;
@@ -95,13 +95,11 @@ class KProtectorFileRunner extends AbstractRunner {
     private MethodBuilder doCaptcha(MethodBuilder builder) throws Exception {
         String content = getContentAsString().replaceFirst("function reloadCaptcha\\(\\)\\s*\\{\\s*.+\\s*\\}", "");
         if (content.contains("recaptcha/api/")) {
-            String key = PlugUtils.getStringBetween(content, "recaptcha/api/noscript?k=", "\"");
-            final ReCaptcha reCaptcha = new ReCaptcha(key, client);
-            final String captcha = getCaptchaSupport().getCaptcha(reCaptcha.getImageURL());
-            if (captcha == null)
-                throw new CaptchaEntryInputMismatchException();
-            reCaptcha.setRecognized(captcha);
-            return reCaptcha.modifyResponseMethod(builder);
+            final Matcher m = getMatcherAgainstContent("['\"]?sitekey['\"]?\\s*[:=]\\s*['\"]([^'\"]+)['\"]");
+            if (!m.find()) throw new PluginImplementationException("ReCaptcha key not found");
+            final String reCaptchaKey = m.group(1);
+            final ReCaptchaNoCaptcha r = new ReCaptchaNoCaptcha(reCaptchaKey, fileURL);
+            return r.modifyResponseMethod(builder);
         }
         else if (content.contains("kprotector.com/basiccaptcha/")) {
             final CaptchaSupport captchaSupport = getCaptchaSupport();

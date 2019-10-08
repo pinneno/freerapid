@@ -38,7 +38,7 @@ class DropApkFileRunner extends XFileSharingRunner {
 
     @Override
     protected MethodBuilder getXFSMethodBuilder(final String content) throws Exception {
-        return getXFSMethodBuilder(content, "method_free");
+        return getXFSMethodBuilder(content, "method_free").setParameter("method_free", "Free Download >>");
     }
 
     @Override
