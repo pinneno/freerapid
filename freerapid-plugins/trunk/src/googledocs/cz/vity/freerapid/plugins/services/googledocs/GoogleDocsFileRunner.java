@@ -145,6 +145,9 @@ class GoogleDocsFileRunner extends AbstractRunner {
         if (contentAsString.contains("file you have requested does not exist")) {
             throw new URLNotAvailableAnymoreException("File not found");
         }
+        if (contentAsString.contains("Too many users have viewed or downloaded this file recently")) {
+            throw new YouHaveToWaitException("You can't download this file at this time", 5*60);
+        }
     }
 
     private void doLogin() throws Exception {

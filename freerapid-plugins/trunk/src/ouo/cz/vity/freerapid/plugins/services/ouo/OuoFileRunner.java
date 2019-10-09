@@ -23,6 +23,7 @@ class OuoFileRunner extends AbstractRunner {
     @Override
     public void run() throws Exception {
         super.run();
+        fileURL = fileURL.substring(0, fileURL.lastIndexOf("/")) + "/fbc" + fileURL.substring(fileURL.lastIndexOf("/"));
         logger.info("Starting download in TASK " + fileURL);
         HttpMethod httpMethod = getGetMethod(fileURL); //create GET request
         if (makeRedirectedRequest(httpMethod)) { //we make the main request
@@ -67,7 +68,7 @@ class OuoFileRunner extends AbstractRunner {
         return r.modifyResponseMethod(
                 getMethodBuilder()
                         .setReferer(referrer)
-                        .setActionFromFormWhereTagContains("g-recaptcha-response", true)
+                        .setActionFromFormWhereTagContains("captcha", true)
                 ).toPostMethod();
     }
 }

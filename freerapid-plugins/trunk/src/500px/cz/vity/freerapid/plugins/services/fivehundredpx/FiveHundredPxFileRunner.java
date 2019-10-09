@@ -53,7 +53,7 @@ class FiveHundredPxFileRunner extends AbstractRunner {
         String title = "";
         if (matcher.find())
             title = matcher.group(1).trim();
-        httpFile.setFileName(ImageID + "__" + name + "__" + title + ".jpg");
+        httpFile.setFileName(title + "__" + name + "__" + ImageID + ".jpg");
         httpFile.setFileState(FileState.CHECKED_AND_EXISTING);
     }
 
